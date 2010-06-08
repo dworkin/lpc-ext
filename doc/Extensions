@@ -1,0 +1,271 @@
+			DGD extension interface
+
+1. Introduction
+
+DGD presents an interface for extending the driver with new kfuns and special
+object types.  To enable this interface, DGD should be compiled with the macro
+LPC_EXTENSION defined.  The driver will then call an external function at
+initialization time:
+
+    void extension_init();
+
+From this function, new kfuns may be added to the driver.  The interface
+furthermore allows objects to be marked as `special'.
+
+The extension code must be linked with DGD at compile time.  The include file
+`lpc_ext.h' defines the entire interface with the driver, using macros that
+all start with the prefix `LPC_'.  Compliant extensions should use these
+macros, only.  Some of these macros will evaluate their arguments several
+times; to be compatible with future releases, extensions should assume that
+all LPC_* macros with arguments may do so.
+
+
+2. Kernel functions
+
+Kernel functions may be added during the initialization phase by calling the
+following function:
+
+    void LPC_EXT_KFUN(LPC_EXTKFUN_T *kf, int n);
+
+where `kf' is an array of LPC_EXTFUN_T structs, and `n' the number of elements
+in that array.  LPC_EXT_KFUN() should be called only once, and must not
+redeclare any existing kfuns.
+
+The LPC_EXTKFUN_T struct has the following fields:
+
+    char *name;		/* kfun name */
+    char *proto;	/* kfun prototype */
+    func;		/* kfun function pointer */
+
+Here `func' is a pointer to a C function with the following prototype:
+
+    void func(LPC_FRAME_T f, int nargs, LPC_VALUE_T *retval);
+
+Calls to the kfun with name `name' will be routed to that C function.  The
+`f' argument contains the function context, `nargs' is the number of
+arguments on the stack, and `retval' is a pointer to the return value.  The
+function should not attempt to push or pop arguments; instead, arguments
+should be accessed using the relevant LPC_FRAME_* macros listed below, and the
+return value, if any, should be stored in the retval value using one of the
+LPC_RETVAL_* macros.  The default return value is nil.
+
+Kfuns can call LPC_ERROR() to indicate that an error occurred.  Errors will
+interrupt the flow of execution, so LPC_ERROR() is best called before any
+LPC values are constructed or changed, including the return value of the
+kfun.
+
+Errors can be caught in code enclosed between LPC_ECONTEXT_PUSH() and
+LPC_ECONTEXT_POP().  LPC_ECONTEXT_PUSH() creates a new errorcontext, and
+returns TRUE if LPC_ERROR() was called from within the enclosed code.
+LPC_ECONTEXT_POP() clears the current errorcontext, and should only be called
+when no error occurred since LPC_ERROR() also implicitly removes the current
+errorcontext.  LPC_ERROR(f, NULL) can be used to pass on the last error to the
+surrounding errorcontext.  LPC_ECONTEXT_PUSH() and LPC_ERROR() make use of
+setjmp() and longjmp(), respectively.
+
+Note that at present, the extension interface does not define a way to call an
+LPC function from a kfun.
+
+    LPC_OBJECT_T LPC_FRAME_OBJECT(LPC_FRAME_T f);	/* current object */
+    LPC_DATASPACE_T LPC_FRAME_DATASPACE(LPC_FRAME_T f);	/* current dataspace */
+    LPC_VALUE_T  LPC_FRAME_ARG(LPC_FRAME_T f, int nargs, int n);/* argument n */
+    bool	 LPC_FRAME_ATOMIC(LPC_FRAME_T f);	/* atomic? */
+
+    void	 LPC_RETVAL_INT(LPC_VALUE_T *retval, LPC_INT_T num);
+    void	 LPC_RETVAL_FLT(LPC_VALUE_T *retval, LPC_FLOAT_T flt);
+    void	 LPC_RETVAL_STR(LPC_VALUE_T *retval, LPC_STRING_T str);
+    void	 LPC_RETVAL_OBJ(LPC_VALUE_T *retval, LPC_OBJECT_T obj);
+    void	 LPC_RETVAL_ARR(LPC_VALUE_T *retval, LPC_ARRAY_T arr);
+    void	 LPC_RETVAL_MAP(LPC_VALUE_T *retval, LPC_MAPPING_T map);
+
+    void	 LPC_ERROR(LPC_FRAME_T f, char *format, ...);
+    bool	 LPC_ECONTEXT_PUSH(LPC_FRAME_T f);
+    void	 LPC_ECONTEXT_POP(LPC_FRAME_T f);
+
+The `proto' field of the LPC_EXTKFUN_T struct is a prototype for the function,
+represented as a 0-terminated array of chars.  For example, the LPC prototypes
+
+    string lower_case(string str);
+    string concat(string str...);
+    int foo(int *a, varargs object **b);
+    void bar(void);
+    void gnu();
+
+would be represented as
+
+    char lower_case_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
+    char concat_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
+			    LPC_TYPE_ELLIPSIS, 0 };
+    char foo_proto[] = { LPC_TYPE_INT, LPC_TYPE_ARRAY_OF(LPC_TYPE_INT),
+			 LPC_TYPE_VARARGS,
+			 LPC_TYPE_ARRAY_OF(LPC_TYPE_ARRAY_OF(LPC_TYPE_OBJECT)),
+			 0 };
+    char bar_proto[] = { LPC_TYPE_VOID, LPC_TYPE_VOID, 0 };
+    char gnu_proto[] = { LPC_TYPE_VOID, 0 };
+
+Note that the prototypes of bar() and gnu() are effectively identical, just
+as they would be for LPC functions; also note that varargs must be specified
+in the new way, among the arguments of the prototype rather than in front of
+the return type.
+
+The building blocks for prototypes are:
+
+    LPC_TYPE_VOID
+    LPC_TYPE_INT
+    LPC_TYPE_FLOAT
+    LPC_TYPE_STRING
+    LPC_TYPE_OBJECT
+    LPC_TYPE_ARRAY_OF(lpc_type)
+    LPC_TYPE_MAPPING
+    LPC_TYPE_MIXED
+    LPC_TYPE_VARARGS
+    LPC_TYPE_ELLIPSIS
+
+
+3. Special objects
+
+DGD defines various types of special objects: user objects, editor objects
+and parser objects.  Extensions may define their own additional special
+object type.  Special objects have an additional LPC value.
+
+Objects should only be marked as special if they are not special already.
+If an object is to be unmarked, and a special LPC value has been set, it
+should be reset to LPC_NIL_VALUE first.
+
+    bool LPC_OBJECT_ISSPECIAL(LPC_OBJECT_T obj);	/* special object */
+    bool LPC_OBJECT_ISMARKED(LPC_OBJECT_T obj);		/* user-def special */
+    void LPC_OBJECT_MARK(LPC_OBJECT_T obj);		/* mark as special */
+    void LPC_OBJECT_UNMARK(LPC_OBJECT_T obj);		/* unmark as special */
+
+To retrieve or set the LPC value associated with a special object, the
+following functions can be used.
+
+    LPC_VALUE_T     LPC_DATA_GET_VAL(LPC_DATASPACE_T data);
+    void	    LPC_DATA_SET_VAL(LPC_DATASPACE_T data, LPC_VALUE_T val);
+
+
+4. Operations on LPC values
+
+The type of an LPC value can be determined with
+
+    int LPC_TYPEOF(LPC_VALUE_T val);
+
+The types can be:
+
+    LPC_TYPE_NIL
+    LPC_TYPE_INT
+    LPC_TYPE_FLOAT
+    LPC_TYPE_STRING
+    LPC_TYPE_OBJECT
+    LPC_TYPE_ARRAY
+    LPC_TYPE_MAPPING
+    LPC_TYPE_LWOBJ
+
+Each type has its own set of macros.
+
+    LPC_NIL_VALUE		/* the nil value */
+
+    LPC_INT_T LPC_INT_GETVAL(LPC_VALUE_T val);
+    void      LPC_INT_PUTVAL(LPC_VALUE_T val, LPC_INT_T num);
+
+Floats consist of a 1-bit sign, a 11-bit exponent, and a 36-bit mantissa.
+To make a C double out of a sign, exponent and mantissa, use this expression:
+
+	((sign) ? -1 : 1) * ldexp(mantissa, exponent - 36)
+
+To convert in the other direction, use the following code:
+
+	sign = (Cfloatval < 0);
+	mantissa = ldexp(frexp(fabs(Cfloatval), &exponent), 37);
+	--exponent;
+
+    void	LPC_FLOAT_GETVAL(LPC_VALUE_T val, LPC_FLOAT_T flt);
+    void	LPC_FLOAT_PUTVAL(LPC_VALUE_T val, LPC_FLOAT_T flt);
+    void	LPC_FLOAT_GET(LPC_FLOAT_T flt, int sign, int exp,
+			      int64 mantissa); /* assign to sign/exp/mantissa */
+    void	LPC_FLOAT_PUT(LPC_FLOAT_T flt, int sign, int exp,
+			      int64 mantissa);
+
+    LPC_STRING_T LPC_STRING_GETVAL(LPC_VALUE_T val);
+    void	 LPC_STRING_PUTVAL(LPC_VALUE_T val, LPC_STRING_T str);
+    LPC_STRING_T LPC_STRING_NEW(LPC_DATASPACE_T data, char *text, int len);
+    char	*LPC_STRING_TEXT(LPC_STRING_T str);
+    unsigned int LPC_STRING_LENGTH(LPC_STRING_T str);
+
+The current object may be stored as an array or mapping element.
+
+    void	 LPC_OBJECT_PUTVAL(LPC_VALUE_T val, LPC_OBJECT_T obj);
+    void	 LPC_OBJECT_NAME(LPC_FRAME_T f, char *buffer, LPC_OBJECT_T obj);
+
+Don't modify array elements directly, but use LPC_ARRAY_ASSIGN() to change
+their value.
+
+    LPC_ARRAY_T	 LPC_ARRAY_GETVAL(LPC_VALUE_T val);
+    void	 LPC_ARRAY_PUTVAL(LPC_VALUE_T val, LPC_ARRAY_T arr);
+    LPC_ARRAY_T	 LPC_ARRAY_NEW(LPC_DATASPACE_T data, int size);
+    LPC_VALUE_T *LPC_ARRAY_ELTS(LPC_ARRAY_T arr);
+    unsigned int LPC_ARRAY_SIZE(LPC_ARRAY_T arr);
+    LPC_VALUE_T	 LPC_ARRAY_INDEX(LPC_ARRAY_T arr, int i);
+    void	 LPC_ARRAY_ASSIGN(LPC_DATASPACE_T data, LPC_ARRAY_T arr,
+				  int index, LPC_VALUE_T val);
+
+The elements of a mapping may be retrieved as a sorted array of alternate
+index-value pairs with LPC_MAPPING_ELTS().  Don't modify mapping elements
+directly, but ise LPC_MAPPING_ASSIGN() to change their value.
+
+    LPC_MAPPING_T LPC_MAPPING_GETVAL(LPC_VALUE_T val);
+    void	  LPC_MAPPING_PUTVAL(LPC_VALUE_T val, LPC_MAPPING_T map);
+    LPC_MAPPING_T LPC_MAPPING_NEW(LPC_DATASPACE_T data);
+    LPC_VALUE_T  *LPC_MAPPING_ELTS(LPC_MAPPING_T map);
+    unsigned int  LPC_MAPPING_SIZE(LPC_ARRAY_T map);
+    LPC_VALUE_T   LPC_MAPPING_INDEX(LPC_MAPPING_T map, LPC_VALUE_T index);
+    void	  LPC_MAPPING_ASSIGN(LPC_DATASPACE_T data, LPC_MAPPING_T map,
+				     LPC_VALUE_T index, LPC_VALUE_T val);
+
+
+5. Example
+
+The following code implements a lower_case() kfun.
+
+# include "lpc_ext.h"
+
+static void lower_case(LPC_FRAME_T f, int nargs, LPC_VALUE_T *retval)
+{
+    LPC_VALUE_T val;
+    LPC_STRING_T str;
+    LPC_DATASPACE_T data;
+    char *p;
+    unsigned int i;
+
+    /* fetch the argument string */
+    val = LPC_FRAME_ARG(f, nargs, 0);
+    str = LPC_STRING_GETVAL(val);
+
+    /* make a copy */
+    data = LPC_FRAME_DATASPACE(f);
+    str = LPC_STRING_NEW(data, LPC_STRING_TEXT(str), LPC_STRING_LENGTH(str));
+
+    /* turn to lowercase */
+    p = LPC_STRING_TEXT(str);
+    for (i = LPC_STRING_LENGTH(str); i != 0; --i) {
+	if (*p >= 'A' && *p <= 'Z') {
+	    *p += 'a' - 'A';
+	}
+	p++;
+    }
+
+    /* put result in return value */
+    LPC_RETVAL_STR(retval, str);
+}
+
+static char lower_case_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
+static LPC_EXTKFUN_T kf[1] = {
+    "lower_case",
+    lower_case_proto,
+    &lower_case
+};
+
+void extension_init(void)
+{
+    LPC_EXT_KFUN(kf, 1);
+}
