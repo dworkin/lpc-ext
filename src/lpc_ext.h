@@ -5,7 +5,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	1
+# define LPC_EXT_VERSION_MINOR	2
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -57,8 +57,8 @@ LPCEXT LPC_value		(*lpc_data_get_val)(LPC_dataspace);
 LPCEXT void			(*lpc_data_set_val)(LPC_dataspace, LPC_value);
 
 LPCEXT int			(*lpc_value_type)(LPC_value);
+LPCEXT LPC_value		(*lpc_value_nil)(void);
 LPCEXT LPC_value		(*lpc_value_temp)(LPC_dataspace);
-LPCEXT void			(*lpc_value_nil)(LPC_value);
 
 LPCEXT LPC_int			(*lpc_int_getval)(LPC_value);
 LPCEXT void			(*lpc_int_putval)(LPC_value, LPC_int);
@@ -72,8 +72,6 @@ LPCEXT LPC_string		(*lpc_string_new)(LPC_dataspace, char*, int);
 LPCEXT char *			(*lpc_string_text)(LPC_string);
 LPCEXT int			(*lpc_string_length)(LPC_string);
 
-LPCEXT LPC_object		(*lpc_object_getval)(LPC_value);
-LPCEXT void			(*lpc_object_putval)(LPC_value, LPC_object);
 LPCEXT void			(*lpc_object_name)(LPC_frame, LPC_object,
 						   char*);
 LPCEXT int			(*lpc_object_isspecial)(LPC_object);

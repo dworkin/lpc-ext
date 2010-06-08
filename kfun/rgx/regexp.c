@@ -369,6 +369,7 @@ static void regexp(LPC_frame f, int nargs, LPC_value retval)
 	    lpc_array_assign(data, a, i * 2 + 1, val);
 	}
 	lpc_array_putval(retval, a);
+	lpc_value_return(retval);
     }
 }
 

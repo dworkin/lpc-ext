@@ -27,6 +27,7 @@ static void lower_case(LPC_frame f, int nargs, LPC_value retval)
 
     /* put result in return value */
     lpc_str_putval(retval, str);
+    lpc_value_return(retval);
 }
 
 static char lower_case_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
