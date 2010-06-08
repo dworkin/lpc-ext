@@ -382,10 +382,10 @@ static LPC_ext_kfun kf_regexp[1] = {
 };
 
 /*
- * NAME:	extension_init()
+ * NAME:	lpc_ext_init()
  * DESCRIPTION:	add regexp kfun
  */
-void extension_init(void)
+void lpc_ext_init(void)
 {
     rgx_init();
     lpc_ext_kfun(kf_regexp, 1);

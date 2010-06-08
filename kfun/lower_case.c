@@ -36,7 +36,7 @@ static LPC_ext_kfun kf[1] = {
     &lower_case
 };
 
-void extension_init(void)
+void lpc_ext_init(void)
 {
     lpc_ext_kfun(kf, 1);
 }
