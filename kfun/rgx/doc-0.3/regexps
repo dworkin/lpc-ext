@@ -1,0 +1,32 @@
+
+Regular expressions are composed of the following operators:
+
+.		Match any single character
+XY		Match X immediately followed by Y
+X*		Match zero-or-more of X
+X+		Match one-or-more of X
+X?		Match zero-or-one of X
+X\|Y		Match either X or Y
+[charset]	Match any single character in `charset'
+[^charset]	Match any single character not in `charset'
+\(X\)		Match X, but also remember the match as a subexpression
+\digit		Match the numbered previous subexpression
+^X		Match X anchored at the beginning of a line
+X$		Match X anchored at the end of a line
+\b		Match the empty string at the beginning or end of a word
+\B		Match the empty string only within the middle of a word
+\<		Match the beginning of a word
+\>		Match the end of a word
+\w		Match any word-constituent character
+\W		Match any character that is not word-constituent
+
+Any other character in a regular expression is matched literally with itself.
+To match any of the special operator characters .*+?\[^$ literally, precede
+the character with `\'.
+
+A `charset' is formed by listing all desired characters with brackets. To
+include a literal `^' in a charset, do not list it in the first position. To
+include a literal `]', list it immediately after the opening `[' or `[^'. All
+characters are non-special (and should not be escaped) within a charset,
+except `-', which denotes a character range. To include a literal `-', list it
+either first or last.

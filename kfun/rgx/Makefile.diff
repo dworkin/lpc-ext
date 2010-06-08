@@ -1,0 +1,38 @@
+Index: Makefile
+===================================================================
+--- Makefile	(revision 65)
++++ Makefile	(working copy)
+@@ -16,7 +16,7 @@
+ # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ #
+ HOST=	DARWIN
+-DEFINES=-D$(HOST) #-DNETWORK_EXTENSIONS #-DDUMP_FUNCS
++DEFINES=-D$(HOST) -DDGD_EXTENSION #-DNETWORK_EXTENSIONS #-DDUMP_FUNCS
+ DEBUG=	-O -g
+ CCFLAGS=$(DEFINES) $(DEBUG)
+ CFLAGS=	-I. -Icomp -Ilex -Ied -Iparser -Ikfun $(CCFLAGS)
+@@ -29,12 +29,13 @@
+ YACC=	yacc
+ BIN=	../bin
+ 
++REGOBJ=	regex.o regexp.o
+ SRC=	alloc.c error.c hash.c swap.c str.c array.c object.c sdata.c data.c \
+ 	path.c editor.c comm.c call_out.c interpret.c config.c dgd.c
+ OBJ=	alloc.o error.o hash.o swap.o str.o array.o object.o sdata.o data.o \
+-	path.o editor.o comm.o call_out.o interpret.o config.o dgd.o
++	path.o editor.o comm.o call_out.o interpret.o config.o dgd.o $(REGOBJ)
+ COMPOBJ=alloc.o error.o hash.o path.o str.o array.o object.o sdata.o data.o \
+-	interpret.o config.o
++	interpret.o config.o $(REGOBJ)
+ 
+ a.out:	$(OBJ) always
+ 	cd comp; $(DMAKE) 'CC=$(CC)' 'CCFLAGS=$(CCFLAGS)' 'YACC=$(YACC)' dgd
+@@ -124,3 +125,8 @@
+ call_out.o config.o dgd.o: call_out.h
+ error.o comm.o config.o dgd.o: comm.h
+ comm.o config.o: version.h
++
++regex.o: libiberty/regex.c
++	$(CC) -c $(CFLAGS) -Ilibiberty `cat libiberty/config` libiberty/regex.c -o $@
++regexp.o: regexp.c dgd_ext.h
++	$(CC) -c $(CFLAGS) -Ilibiberty regexp.c

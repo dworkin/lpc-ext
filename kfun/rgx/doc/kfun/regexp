@@ -1,0 +1,21 @@
+NAME
+	regexp - match a regular expression
+
+SYNOPSIS
+	int *regexp(string pattern, string str,
+		    varargs int case_insensive, int reverse)
+
+DESCRIPTION
+	The argument str is matched against the regular expression pattern.
+	If the argument case_insensitive is nonzero, the match is
+	case-insensitive.  If the argument reverse is nonzero, matching is
+	performed from right-to-left; otherwise, matching is performed
+	left-to-right.
+	If the argument str could not be matched with the regular expression,
+	nil is returned.  Otherwise, an array is returned containing the
+	offset in str of the first character of the match, followed by the
+	offset in str of the last character of the match.  For any matched
+	subexpressions, further pairs of offsets are appended to the array.
+
+SEE ALSO
+	kfun/parse_string
