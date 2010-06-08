@@ -1,150 +1,90 @@
 # ifndef LPC_EXT_H
 # define LPC_EXT_H
 
-/*
- * interface
- */
-# define LPC_EXT_KFUN(ekf, n)	kf_ext_kfun((ekf), (n))
-# define LPC_ERROR		lpc_error
-# define LPC_ECONTEXT_PUSH(f)	ec_push((ec_ftn) NULL)
-# define LPC_ECONTEXT_POP(f)	ec_pop()
+# include <stdint.h>
 
-/*
- * types
- */
-typedef string *lpc_string_t;
-typedef object *lpc_object_t;
-typedef array *lpc_array_t;
-typedef frame *lpc_frame_t;
-typedef dataspace *lpc_dataspace_t;
 
-# define LPC_INT_T		Int
-# define LPC_FLOAT_T		xfloat
-# define LPC_STRING_T		lpc_string_t
-# define LPC_OBJECT_T		lpc_object_t
-# define LPC_ARRAY_T		lpc_array_t
-# define LPC_MAPPING_T		lpc_array_t
-# define LPC_LWOBJ_T		lpc_array_t
-# define LPC_VALUE_T		value
-# define LPC_FRAME_T		lpc_frame_t
-# define LPC_DATASPACE_T	lpc_dataspace_t
-# define LPC_EXTKFUN_T		extkfunc
-# define LPC_EINDEX_T		eindex
+# define LPC_TYPE_NIL		0
+# define LPC_TYPE_INT		1
+# define LPC_TYPE_FLOAT		2
+# define LPC_TYPE_STRING	3
+# define LPC_TYPE_OBJECT	4
+# define LPC_TYPE_ARRAY		5
+# define LPC_TYPE_MAPPING	6
+# define LPC_TYPE_LWOBJ		7
+# define LPC_TYPE_MIXED		8
+# define LPC_TYPE_VOID		9
+# define LPC_TYPE_VARARGS	16
+# define LPC_TYPE_ELLIPSIS	16
+# define LPC_TYPE_ARRAY_OF(t)	((t) + 16)
 
-/*
- * prototype and value types
- */
-# define LPC_TYPE_VOID		T_VOID
-# define LPC_TYPE_NIL		T_NIL
-# define LPC_TYPE_INT		T_INT
-# define LPC_TYPE_FLOAT		T_FLOAT
-# define LPC_TYPE_STRING	T_STRING
-# define LPC_TYPE_OBJECT	T_OBJECT
-# define LPC_TYPE_ARRAY		T_ARRAY
-# define LPC_TYPE_MAPPING	T_MAPPING
-# define LPC_TYPE_LWOBJ		T_LWOBJECT
-# define LPC_TYPE_MIXED		T_MIXED
+typedef int32_t			LPC_int;
+typedef double			LPC_float;
+typedef struct _string_	       *LPC_string;
+typedef struct _object_	       *LPC_object;
+typedef struct _array_	       *LPC_array;
+typedef struct _array_	       *LPC_mapping;
+typedef struct _array_	       *LPC_lwobj;
+typedef struct _value_	       *LPC_value;
+typedef struct _frame_	       *LPC_frame;
+typedef struct _dataspace_     *LPC_dataspace;
+typedef void		      (*LPC_kfun)(LPC_frame, int, LPC_value);
+typedef struct {
+    char *name;			/* kfun name */
+    char *proto;		/* kfun prototype */
+    LPC_kfun func;		/* kfun address */
+} LPC_ext_kfun;
 
-# define LPC_TYPE_ARRAY_OF(t)	((t) + (1 << REFSHIFT))
-# define LPC_TYPE_VARARGS	T_VARARGS
-# define LPC_TYPE_ELLIPSIS	T_ELLIPSIS
+void				(*lpc_ext_kfun)(LPC_ext_kfun*, int);
+void				(*lpc_error)(LPC_frame, char*);
 
-/*
- * frame
- */
-# define LPC_FRAME_OBJECT(f)	(((f)->lwobj == (array *) NULL) ? \
-				  OBJW((f)->oindex) : (object *) NULL)
-# define LPC_FRAME_DATASPACE(f)	((f)->data)
-# define LPC_FRAME_ARG(f, n, i)	(*((f)->sp + (n) - ((i) + 1)))
-# define LPC_FRAME_ATOMIC(f)	((f)->level != 0)
+LPC_object			(*lpc_frame_object)(LPC_frame);
+LPC_dataspace			(*lpc_frame_dataspace)(LPC_frame);
+LPC_value			(*lpc_frame_arg)(LPC_frame, int, int);
+int				(*lpc_frame_atomic)(LPC_frame);
 
-/*
- * dataspace
- */
-# define LPC_DATA_GET_VAL(d)	(*d_get_extravar((d)))
-# define LPC_DATA_SET_VAL(d, v)	d_set_extravar((d), &(v))
+LPC_value			(*lpc_data_get_val)(LPC_dataspace);
+void				(*lpc_data_set_val)(LPC_dataspace, LPC_value);
 
-/*
- * value
- */
-# define LPC_TYPEOF(v)		((v).type)
+int				(*lpc_value_type)(LPC_value);
+LPC_value			(*lpc_value_temp)(LPC_dataspace);
+void				(*lpc_value_nil)(LPC_value);
 
-# define LPC_RETVAL_INT(v, i)	PUT_INTVAL((v), (i))
-# define LPC_RETVAL_FLT(v, f)	PUT_FLTVAL((v), (f))
-# define LPC_RETVAL_STR(v, s)	PUT_STRVAL((v), (s))
-# define LPC_RETVAL_OBJ(v, o)	PUT_OBJVAL((v), (o))
-# define LPC_RETVAL_ARR(v, a)	PUT_ARRVAL((v), (a))
-# define LPC_RETVAL_MAP(v, m)	PUT_MAPVAL((v), (m))
+LPC_int				(*lpc_int_getval)(LPC_value);
+void				(*lpc_int_putval)(LPC_value, LPC_int);
 
-/*
- * nil
- */
-# define LPC_NIL_VALUE		nil_value
+LPC_float			(*lpc_float_getval)(LPC_value);
+void				(*lpc_float_putval)(LPC_value, LPC_float);
 
-/*
- * int
- */
-# define LPC_INT_GETVAL(v)	((v).u.number)
-# define LPC_INT_PUTVAL(v, i)	PUT_INTVAL(&(v), (i))
+LPC_string			(*lpc_string_getval)(LPC_value);
+void				(*lpc_string_putval)(LPC_value, LPC_string);
+LPC_string			(*lpc_string_new)(LPC_dataspace, char*, int);
+char *				(*lpc_string_text)(LPC_string);
+int				(*lpc_string_length)(LPC_string);
 
-/*
- * float
- */
-# define LPC_FLOAT_GETVAL(v, f)		GET_FLT(&(v), (f))
-# define LPC_FLOAT_PUTVAL(v, f)		PUT_FLTVAL(&(v), (f))
-# define LPC_FLOAT_GET(f, s, e, m)	((((f).high | (f).low) == 0) ? \
-					  ((s) = 0, (e) = 0, (m) = 0) : \
-					  ((s) = (f).high >> 15, \
-					   (e) = (((f).high >> 4) & 0x7ff) - \
-						 1023, \
-					   (m) = 0x10 | ((f).high & 0xf), \
-					   (m) <<= 32, (m) |= (f).low))
-# define LPC_FLOAT_PUT(f, s, e, m)	((f).high = (((m) == 0) ? 0 : \
-						      ((s) << 15) | \
-						      (((e) + 1023) << 4) | \
-						      (((m) >> 32) & 0xf)), \
-					 (f).low = (m))
+LPC_object			(*lpc_object_getval)(LPC_value);
+void				(*lpc_object_putval)(LPC_value, LPC_object);
+void				(*lpc_object_name)(LPC_frame, LPC_object,
+						   char*);
+int				(*lpc_object_isspecial)(LPC_object);
+int				(*lpc_object_ismarked)(LPC_object);
+void				(*lpc_object_mark)(LPC_object);
+void				(*lpc_object_unmark)(LPC_object);
 
-/*
- * string
- */
-# define LPC_STRING_GETVAL(v)		((v).u.string)
-# define LPC_STRING_PUTVAL(v, s)	PUT_STRVAL_NOREF(&(v), (s))
-# define LPC_STRING_NEW(d, t, n)	str_new((t), (long) (n))
-# define LPC_STRING_TEXT(s)		((s)->text)
-# define LPC_STRING_LENGTH(s)		((unsigned int) (s)->len)
+LPC_array			(*lpc_array_getval)(LPC_value);
+void				(*lpc_array_putval)(LPC_value, LPC_array);
+LPC_array			(*lpc_array_new)(LPC_dataspace, int);
+LPC_value			(*lpc_array_index)(LPC_array, int);
+void				(*lpc_array_assign)(LPC_dataspace, LPC_array,
+						    int, LPC_value);
+int				(*lpc_array_size)(LPC_array);
 
-/*
- * object
- */
-# define LPC_OBJECT_PUTVAL(v, o)	PUT_OBJVAL(&(v), (o))
-# define LPC_OBJECT_NAME(f, buf, o)	o_name((buf), (o))
-# define LPC_OBJECT_ISSPECIAL(o)	(((o)->flags & O_SPECIAL) != 0)
-# define LPC_OBJECT_ISMARKED(o)		(((o)->flags & O_SPECIAL) == O_SPECIAL)
-# define LPC_OBJECT_MARK(o)		((o)->flags |= O_SPECIAL)
-# define LPC_OBJECT_UNMARK(o)		((o)->flags &= ~O_SPECIAL)
-
-/*
- * array
- */
-# define LPC_ARRAY_GETVAL(v)		((v).u.array)
-# define LPC_ARRAY_PUTVAL(v, a)		PUT_ARRVAL_NOREF(&(v), (a))
-# define LPC_ARRAY_NEW(d, n)		arr_ext_new((d), (long) (n))
-# define LPC_ARRAY_ELTS(a)		d_get_elts((a))
-# define LPC_ARRAY_SIZE(a)		((unsigned int) (a)->size)
-# define LPC_ARRAY_INDEX(a, i)		(d_get_elts((a))[(i)])
-# define LPC_ARRAY_ASSIGN(d, a, i, v)	d_assign_elt((d), (a), \
-						    &d_get_elts((a))[(i)], &(v))
-/*
- * mapping
- */
-# define LPC_MAPPING_GETVAL(v)		((v).u.array)
-# define LPC_MAPPING_PUTVAL(v, m)	PUT_MAPVAL_NOREF(&(v), (m))
-# define LPC_MAPPING_NEW(d)		map_new((d), 0L)
-# define LPC_MAPPING_ELTS(m)		(map_compact((m)), d_get_elts((m)))
-# define LPC_MAPPING_SIZE(m)		((unsigned int) map_size((m)))
-# define LPC_MAPPING_INDEX(m, i)	(*map_index((m)->primary->data, (m), \
-						    &(i), (value *) NULL))
-# define LPC_MAPPING_ASSIGN(d, m, i, v)	map_index((d), (m), &(i), &(v))
-
+LPC_mapping			(*lpc_mapping_getval)(LPC_value);
+void				(*lpc_mapping_putval)(LPC_value, LPC_mapping);
+LPC_mapping			(*lpc_mapping_new)(LPC_dataspace);
+LPC_value			(*lpc_mapping_index)(LPC_mapping, LPC_value);
+void				(*lpc_mapping_assign)(LPC_dataspace,
+						      LPC_mapping, LPC_value,
+						      LPC_value);
+int				(*lpc_mapping_size)(LPC_mapping);
 # endif	/* LPC_EXT_H */

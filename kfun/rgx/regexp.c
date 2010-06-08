@@ -1,7 +1,8 @@
 # include <sys/types.h>
 # include <stdlib.h>
+# include <string.h>
 # include "libiberty/xregex.h"
-# include "dgd_ext.h"
+# include "lpc_ext.h"
 
 /*
  * ({ "regexp", pattern, compiled, used, bits, fastmap })
@@ -52,22 +53,23 @@ static void rgx_init(void)
  * NAME:	rgx->new()
  * DESCRIPTION:	create a regexp container, and associate it with the object
  */
-static DGD_ARRAY_T rgx_new(DGD_DATASPACE_T data, DGD_OBJECT_T obj)
+static LPC_array rgx_new(LPC_dataspace data, LPC_object obj)
 {
-    DGD_ARRAY_T a;
-    DGD_STRING_T str;
-    DGD_VALUE_T val;
+    LPC_array a;
+    LPC_string str;
+    LPC_value val;
 
     /* create the regexp container */
-    a = DGD_ARRAY_NEW(data, RGX_SIZE);
-    str = DGD_STRING_NEW(data, "regexp", 6);
-    DGD_STRING_PUTVAL(val, str);
-    DGD_ARRAY_ASSIGN(data, a, RGX_HEADER, val);
+    a = lpc_array_new(data, RGX_SIZE);
+    str = lpc_string_new(data, "regexp", 6);
+    val = lpc_value_temp(data);
+    lpc_string_putval(val, str);
+    lpc_array_assign(data, a, RGX_HEADER, val);
 
     /* associate it with the given object */
-    DGD_OBJECT_MARK(obj);
-    DGD_ARRAY_PUTVAL(val, a);
-    DGD_DATA_SET_VAL(data, val);
+    lpc_object_mark(obj);
+    lpc_array_putval(val, a);
+    lpc_data_set_val(data, val);
 
     return a;
 }
@@ -76,33 +78,32 @@ static DGD_ARRAY_T rgx_new(DGD_DATASPACE_T data, DGD_OBJECT_T obj)
  * NAME:	rgx->get()
  * DESCRIPTION:	retrieve a regexp container from an object
  */
-static DGD_ARRAY_T rgx_get(DGD_FRAME_T f, DGD_DATASPACE_T data,
-			   DGD_OBJECT_T obj)
+static LPC_array rgx_get(LPC_frame f, LPC_dataspace data, LPC_object obj)
 {
-    DGD_ARRAY_T a;
-    DGD_STRING_T str;
-    DGD_VALUE_T val;
+    LPC_array a;
+    LPC_string str;
+    LPC_value val;
     int special;
 
     special = 0;
-    if (DGD_OBJECT_ISSPECIAL(obj)) {
+    if (lpc_object_isspecial(obj)) {
 	/*
 	 * special object
 	 */
 	special = 1;
-	if (DGD_OBJECT_ISMARKED(obj)) {
+	if (lpc_object_ismarked(obj)) {
 	    /*
 	     * object was marked by kfun extension
 	     */
-	    val = DGD_DATA_GET_VAL(data);
-	    if (DGD_TYPEOF(val) == DGD_TYPE_ARRAY) {
-		a = DGD_ARRAY_GETVAL(val);
-		if (DGD_ARRAY_SIZE(a) == RGX_SIZE) {
-		    val = DGD_ARRAY_INDEX(a, RGX_HEADER);
-		    if (DGD_TYPEOF(val) == DGD_TYPE_STRING) {
-			str = DGD_STRING_GETVAL(val);
-			if (DGD_STRING_LENGTH(str) == 6 &&
-			    strcmp(DGD_STRING_TEXT(str), "regexp") == 0) {
+	    val = lpc_data_get_val(data);
+	    if (lpc_value_type(val) == LPC_TYPE_ARRAY) {
+		a = lpc_array_getval(val);
+		if (lpc_array_size(a) == RGX_SIZE) {
+		    val = lpc_array_index(a, RGX_HEADER);
+		    if (lpc_value_type(val) == LPC_TYPE_STRING) {
+			str = lpc_string_getval(val);
+			if (lpc_string_length(str) == 6 &&
+			    strcmp(lpc_string_text(str), "regexp") == 0) {
 			    /*
 			     * value is an array of 6 elements, and the
 			     * first element is the string "regexp"
@@ -118,7 +119,7 @@ static DGD_ARRAY_T rgx_get(DGD_FRAME_T f, DGD_DATASPACE_T data,
 	/*
 	 * special object, possibly marked by a different kfun extension
 	 */
-	DGD_ERROR(f, "Regexp in special object");
+	lpc_error(f, "Regexp in special object");
     }
 
     /*
@@ -132,25 +133,25 @@ static DGD_ARRAY_T rgx_get(DGD_FRAME_T f, DGD_DATASPACE_T data,
  * DESCRIPTION:	return 1 if the given regular expression is the same as the
  *		one in the regexp container, or 0 otherwise
  */
-static int rgx_same(DGD_ARRAY_T a, DGD_STRING_T pattern, int casef)
+static int rgx_same(LPC_array a, LPC_string pattern, int casef)
 {
-    DGD_STRING_T str;
-    DGD_VALUE_T val;
+    LPC_string str;
+    LPC_value val;
 
     /*
      * check whether the pattern is the same
      */
-    val = DGD_ARRAY_INDEX(a, RGX_PATTERN);
-    if (DGD_TYPEOF(val) == DGD_TYPE_STRING) {
-	str = DGD_STRING_GETVAL(val);
-	if (DGD_STRING_LENGTH(str) == DGD_STRING_LENGTH(pattern) &&
-	    memcmp(DGD_STRING_TEXT(str), DGD_STRING_TEXT(pattern),
-		   DGD_STRING_LENGTH(str)) == 0) {
+    val = lpc_array_index(a, RGX_PATTERN);
+    if (lpc_value_type(val) == LPC_TYPE_STRING) {
+	str = lpc_string_getval(val);
+	if (lpc_string_length(str) == lpc_string_length(pattern) &&
+	    memcmp(lpc_string_text(str), lpc_string_text(pattern),
+		   lpc_string_length(str)) == 0) {
 	    /*
 	     * same pattern, now check the flags
 	     */
-	    val = DGD_ARRAY_INDEX(a, RGX_BITS);
-	    if (!!(DGD_INT_GETVAL(val) & BITS_NOCASE) == casef) {
+	    val = lpc_array_index(a, RGX_BITS);
+	    if (!!(lpc_int_getval(val) & BITS_NOCASE) == casef) {
 		return 1;	/* same */
 	    }
 	}
@@ -164,14 +165,14 @@ static int rgx_same(DGD_ARRAY_T a, DGD_STRING_T pattern, int casef)
  * DESCRIPTION:	compile a regular expression, and store it in the regexp
  *		container
  */
-static void rgx_compile(DGD_FRAME_T f, DGD_DATASPACE_T data, DGD_ARRAY_T a,
-			DGD_STRING_T pattern, int casef)
+static void rgx_compile(LPC_frame f, LPC_dataspace data, LPC_array a,
+			LPC_string pattern, int casef)
 {
     struct re_pattern_buffer regbuf;
     char fastmap[256];
     char *err;
-    DGD_STRING_T str;
-    DGD_VALUE_T val;
+    LPC_string str;
+    LPC_value val;
     int bits;
 
     /* initialize */
@@ -183,19 +184,19 @@ static void rgx_compile(DGD_FRAME_T f, DGD_DATASPACE_T data, DGD_ARRAY_T a,
     regbuf.syntax = re_syntax_options;
 
     /* compile pattern */
-    err = (char *) re_compile_pattern(DGD_STRING_TEXT(pattern),
-				      DGD_STRING_LENGTH(pattern), &regbuf);
+    err = (char *) re_compile_pattern(lpc_string_text(pattern),
+				      lpc_string_length(pattern), &regbuf);
     if (err != NULL) {
 	regbuf.translate = NULL;
 	regbuf.fastmap = NULL;
 	regfree(&regbuf);
-	DGD_ERROR(f, err);
+	lpc_error(f, err);
     }
     if (regbuf.allocated > 65535) {
 	regbuf.translate = NULL;
 	regbuf.fastmap = NULL;
 	regfree(&regbuf);
-	DGD_ERROR(f, "Regular expression too large");
+	lpc_error(f, "Regular expression too large");
     }
 
     /* compile fastmap */
@@ -203,19 +204,20 @@ static void rgx_compile(DGD_FRAME_T f, DGD_DATASPACE_T data, DGD_ARRAY_T a,
 	regbuf.translate = NULL;
 	regbuf.fastmap = NULL;
 	regfree(&regbuf);
-	DGD_ERROR(f, "Regexp internal error");
+	lpc_error(f, "Regexp internal error");
     }
 
     /* pattern */
-    DGD_STRING_PUTVAL(val, pattern);
-    DGD_ARRAY_ASSIGN(data, a, RGX_PATTERN, val);
+    val = lpc_value_temp(data);
+    lpc_string_putval(val, pattern);
+    lpc_array_assign(data, a, RGX_PATTERN, val);
     /* compiled */
-    str = DGD_STRING_NEW(data, (char *) regbuf.buffer, regbuf.allocated);
-    DGD_STRING_PUTVAL(val, str);
-    DGD_ARRAY_ASSIGN(data, a, RGX_COMPILED, val);
+    str = lpc_string_new(data, (char *) regbuf.buffer, regbuf.allocated);
+    lpc_string_putval(val, str);
+    lpc_array_assign(data, a, RGX_COMPILED, val);
     /* used */
-    DGD_INT_PUTVAL(val, regbuf.used);
-    DGD_ARRAY_ASSIGN(data, a, RGX_USED, val);
+    lpc_int_putval(val, regbuf.used);
+    lpc_array_assign(data, a, RGX_USED, val);
     /* bits */
     bits = regbuf.re_nsub;
     if (casef) {
@@ -239,12 +241,12 @@ static void rgx_compile(DGD_FRAME_T f, DGD_DATASPACE_T data, DGD_ARRAY_T a,
     if (regbuf.newline_anchor) {
 	bits |= BITS_NLANCHOR;
     }
-    DGD_INT_PUTVAL(val, bits);
-    DGD_ARRAY_ASSIGN(data, a, RGX_BITS, val);
+    lpc_int_putval(val, bits);
+    lpc_array_assign(data, a, RGX_BITS, val);
     /* fastmap */
-    str = DGD_STRING_NEW(data, fastmap, 256);
-    DGD_STRING_PUTVAL(val, str);
-    DGD_ARRAY_ASSIGN(data, a, RGX_FASTMAP, val);
+    str = lpc_string_new(data, fastmap, 256);
+    lpc_string_putval(val, str);
+    lpc_array_assign(data, a, RGX_FASTMAP, val);
 
     /* clean up */
     regbuf.translate = NULL;
@@ -256,26 +258,26 @@ static void rgx_compile(DGD_FRAME_T f, DGD_DATASPACE_T data, DGD_ARRAY_T a,
  * NAME:	rgx->start()
  * DESCRIPTION:	initialize a regbuf from a regexp container
  */
-static void rgx_start(struct re_pattern_buffer *regbuf, DGD_ARRAY_T a)
+static void rgx_start(struct re_pattern_buffer *regbuf, LPC_array a)
 {
-    DGD_VALUE_T val;
-    DGD_STRING_T str;
+    LPC_value val;
+    LPC_string str;
     int bits;
 
     memset(regbuf, '\0', sizeof(struct re_pattern_buffer));
     regbuf->syntax = re_syntax_options;
 
     /* compiled */
-    val = DGD_ARRAY_INDEX(a, RGX_COMPILED);
-    str = DGD_STRING_GETVAL(val);
-    regbuf->buffer = (unsigned char *) DGD_STRING_TEXT(str);
-    regbuf->allocated = DGD_STRING_LENGTH(str);
+    val = lpc_array_index(a, RGX_COMPILED);
+    str = lpc_string_getval(val);
+    regbuf->buffer = (unsigned char *) lpc_string_text(str);
+    regbuf->allocated = lpc_string_length(str);
     /* used */
-    val = DGD_ARRAY_INDEX(a, RGX_USED);
-    regbuf->used = DGD_INT_GETVAL(val);
+    val = lpc_array_index(a, RGX_USED);
+    regbuf->used = lpc_int_getval(val);
     /* bits */
-    val = DGD_ARRAY_INDEX(a, RGX_BITS);
-    bits = DGD_INT_GETVAL(val);
+    val = lpc_array_index(a, RGX_BITS);
+    bits = lpc_int_getval(val);
     regbuf->re_nsub = bits & BITS_NSUB;
     if (bits & BITS_NOCASE) {
 	regbuf->translate = trans;
@@ -299,39 +301,39 @@ static void rgx_start(struct re_pattern_buffer *regbuf, DGD_ARRAY_T a)
 	regbuf->newline_anchor = 1;
     }
     /* fastmap */
-    val = DGD_ARRAY_INDEX(a, RGX_FASTMAP);
-    str = DGD_STRING_GETVAL(val);
-    regbuf->fastmap = DGD_STRING_TEXT(str);
+    val = lpc_array_index(a, RGX_FASTMAP);
+    str = lpc_string_getval(val);
+    regbuf->fastmap = lpc_string_text(str);
 }
 
 /*
  * NAME:	regexp()
  * DESCRIPTION:	regular expression kfun
  */
-static void regexp(DGD_FRAME_T f, int nargs, DGD_VALUE_T *retval)
+static void regexp(LPC_frame f, int nargs, LPC_value retval)
 {
-    DGD_VALUE_T val;
-    DGD_STRING_T pattern, str;
+    LPC_value val;
+    LPC_string pattern, str;
     int casef, reverse, len, size, i;
-    DGD_DATASPACE_T data;
-    DGD_OBJECT_T obj;
-    DGD_ARRAY_T a;
+    LPC_dataspace data;
+    LPC_object obj;
+    LPC_array a;
     struct re_pattern_buffer regbuf;
     struct re_registers regs;
     regoff_t starts[RE_NREGS + 1], ends[RE_NREGS + 1];
 
-    data = DGD_FRAME_DATASPACE(f);
-    obj = DGD_FRAME_OBJECT(f);
+    data = lpc_frame_dataspace(f);
+    obj = lpc_frame_object(f);
 
     /* getopt */
     casef = reverse = 0;
-    val = DGD_FRAME_ARG(f, nargs, 0);	    pattern = DGD_STRING_GETVAL(val);
-    val = DGD_FRAME_ARG(f, nargs, 1);	    str = DGD_STRING_GETVAL(val);
+    val = lpc_frame_arg(f, nargs, 0);	    pattern = lpc_string_getval(val);
+    val = lpc_frame_arg(f, nargs, 1);	    str = lpc_string_getval(val);
     if (nargs >= 3) {
-	val = DGD_FRAME_ARG(f, nargs, 2);   casef = !!DGD_INT_GETVAL(val);
+	val = lpc_frame_arg(f, nargs, 2);   casef = !!lpc_int_getval(val);
     }
     if (nargs >= 4) {
-	val = DGD_FRAME_ARG(f, nargs, 3);   reverse = DGD_INT_GETVAL(val);
+	val = lpc_frame_arg(f, nargs, 3);   reverse = lpc_int_getval(val);
     }
 
     /* get regexp container */
@@ -351,28 +353,29 @@ static void regexp(DGD_FRAME_T f, int nargs, DGD_VALUE_T *retval)
     regs.end = ends;
 
     /* match */
-    len = DGD_STRING_LENGTH(str);
-    if (re_search(&regbuf, DGD_STRING_TEXT(str), len, (reverse) ? len : 0,
+    len = lpc_string_length(str);
+    if (re_search(&regbuf, lpc_string_text(str), len, (reverse) ? len : 0,
 		  (reverse) ? -len : len, &regs) != -1) {
 	/*
 	 * match found, create an array with results
 	 */
+	val = lpc_value_temp(data);
 	size = regbuf.re_nsub + 1;
-	a = DGD_ARRAY_NEW(data, size * 2);
+	a = lpc_array_new(data, size * 2);
 	for (i = 0; i < size; i++) {
-	    DGD_INT_PUTVAL(val, regs.start[i]);
-	    DGD_ARRAY_ASSIGN(data, a, i * 2, val);
-	    DGD_INT_PUTVAL(val, regs.end[i] - 1);
-	    DGD_ARRAY_ASSIGN(data, a, i * 2 + 1, val);
+	    lpc_int_putval(val, regs.start[i]);
+	    lpc_array_assign(data, a, i * 2, val);
+	    lpc_int_putval(val, regs.end[i] - 1);
+	    lpc_array_assign(data, a, i * 2 + 1, val);
 	}
-	DGD_RETVAL_ARR(retval, a);
+	lpc_array_putval(retval, a);
     }
 }
 
-static char regexp_proto[] = { DGD_TYPE_ARRAY_OF(DGD_TYPE_INT),
-			       DGD_TYPE_STRING, DGD_TYPE_STRING,
-			       DGD_TYPE_VARARGS, DGD_TYPE_INT, DGD_TYPE_INT };
-static DGD_EXTKFUN_T kf_regexp[1] = {
+static char regexp_proto[] = { LPC_TYPE_ARRAY_OF(LPC_TYPE_INT),
+			       LPC_TYPE_STRING, LPC_TYPE_STRING,
+			       LPC_TYPE_VARARGS, LPC_TYPE_INT, LPC_TYPE_INT };
+static LPC_ext_kfun kf_regexp[1] = {
     "regexp",
     regexp_proto,
     &regexp
@@ -385,5 +388,5 @@ static DGD_EXTKFUN_T kf_regexp[1] = {
 void extension_init(void)
 {
     rgx_init();
-    DGD_EXT_KFUN(kf_regexp, 1);
+    lpc_ext_kfun(kf_regexp, 1);
 }
