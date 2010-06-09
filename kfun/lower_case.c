@@ -1,3 +1,8 @@
+/*
+ * lower_case() kfun extension
+ * This code is released into the public domain.
+ */
+
 # include "lpc_ext.h"
 
 static void lower_case(LPC_frame f, int nargs, LPC_value retval)
@@ -26,8 +31,7 @@ static void lower_case(LPC_frame f, int nargs, LPC_value retval)
     }
 
     /* put result in return value */
-    lpc_str_putval(retval, str);
-    lpc_value_return(retval);
+    lpc_string_putval(retval, str);
 }
 
 static char lower_case_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
@@ -37,7 +41,8 @@ static LPC_ext_kfun kf[1] = {
     &lower_case
 };
 
-void lpc_ext_init(void)
+int lpc_ext_init(int major, int minor)
 {
     lpc_ext_kfun(kf, 1);
+    return 1;
 }

@@ -5,7 +5,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	2
+# define LPC_EXT_VERSION_MINOR	3
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -39,13 +39,12 @@ typedef struct {
 } LPC_ext_kfun;
 
 
+extern int			lpc_ext_init(int, int);
+
 # ifndef LPCEXT
 #  define LPCEXT extern
 # endif
 
-extern void			lpc_ext_init(void);
-
-LPCEXT void			(*lpc_error)(LPC_frame, char*);
 LPCEXT void			(*lpc_ext_kfun)(LPC_ext_kfun*, int);
 
 LPCEXT LPC_object		(*lpc_frame_object)(LPC_frame);
@@ -72,6 +71,7 @@ LPCEXT LPC_string		(*lpc_string_new)(LPC_dataspace, char*, int);
 LPCEXT char *			(*lpc_string_text)(LPC_string);
 LPCEXT int			(*lpc_string_length)(LPC_string);
 
+LPCEXT void			(*lpc_object_putval)(LPC_value, LPC_object);
 LPCEXT void			(*lpc_object_name)(LPC_frame, LPC_object,
 						   char*);
 LPCEXT int			(*lpc_object_isspecial)(LPC_object);
@@ -95,4 +95,6 @@ LPCEXT void			(*lpc_mapping_assign)(LPC_dataspace,
 						      LPC_mapping, LPC_value,
 						      LPC_value);
 LPCEXT int			(*lpc_mapping_size)(LPC_mapping);
+
+LPCEXT void			(*lpc_runtime_error)(LPC_frame, char*);
 # endif	/* LPC_EXT_H */

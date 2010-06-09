@@ -1,3 +1,7 @@
+/*
+ * regular expression matching kfun package, version 0.6
+ */
+
 # include <sys/types.h>
 # include <stdlib.h>
 # include <string.h>
@@ -119,7 +123,7 @@ static LPC_array rgx_get(LPC_frame f, LPC_dataspace data, LPC_object obj)
 	/*
 	 * special object, possibly marked by a different kfun extension
 	 */
-	lpc_error(f, "Regexp in special object");
+	lpc_runtime_error(f, "Regexp in special object");
     }
 
     /*
@@ -190,13 +194,13 @@ static void rgx_compile(LPC_frame f, LPC_dataspace data, LPC_array a,
 	regbuf.translate = NULL;
 	regbuf.fastmap = NULL;
 	regfree(&regbuf);
-	lpc_error(f, err);
+	lpc_runtime_error(f, err);
     }
     if (regbuf.allocated > 65535) {
 	regbuf.translate = NULL;
 	regbuf.fastmap = NULL;
 	regfree(&regbuf);
-	lpc_error(f, "Regular expression too large");
+	lpc_runtime_error(f, "Regular expression too large");
     }
 
     /* compile fastmap */
@@ -204,7 +208,7 @@ static void rgx_compile(LPC_frame f, LPC_dataspace data, LPC_array a,
 	regbuf.translate = NULL;
 	regbuf.fastmap = NULL;
 	regfree(&regbuf);
-	lpc_error(f, "Regexp internal error");
+	lpc_runtime_error(f, "Regexp internal error");
     }
 
     /* pattern */
@@ -369,7 +373,6 @@ static void regexp(LPC_frame f, int nargs, LPC_value retval)
 	    lpc_array_assign(data, a, i * 2 + 1, val);
 	}
 	lpc_array_putval(retval, a);
-	lpc_value_return(retval);
     }
 }
 
@@ -386,8 +389,9 @@ static LPC_ext_kfun kf_regexp[1] = {
  * NAME:	lpc_ext_init()
  * DESCRIPTION:	add regexp kfun
  */
-void lpc_ext_init(void)
+int lpc_ext_init(int major, int minor)
 {
     rgx_init();
     lpc_ext_kfun(kf_regexp, 1);
+    return 1;
 }
