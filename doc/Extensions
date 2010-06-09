@@ -162,7 +162,7 @@ Each type has its own set of macros.
 The current object may be stored as an array or mapping element.
 
     void	lpc_object_putval(LPC_value val, LPC_object obj);
-    void	lpc_object_name(LPC_frame f, LPC_object obj, char *buffer);
+    char       *lpc_object_name(LPC_frame f, LPC_object obj, char *buffer);
 
 Don't modify array elements directly, but use lpc_array_assign() to change
 their value.
