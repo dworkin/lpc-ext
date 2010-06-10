@@ -71,12 +71,13 @@ int ext_init(int major, int minor, void **ftabs[], int sizes[])
 		   &lpc_array_index,
 		   &lpc_array_assign,
 		   &lpc_array_size) &&
-	    ext_cb(ftabs[9], sizes[9], 6,
+	    ext_cb(ftabs[9], sizes[9], 7,
 		   &lpc_mapping_getval,
 		   &lpc_mapping_putval,
 		   &lpc_mapping_new,
 		   &lpc_mapping_index,
 		   &lpc_mapping_assign,
+		   &lpc_mapping_enum,
 		   &lpc_mapping_size) &&
 	    ext_cb(ftabs[10], sizes[10], 1,
 		   &lpc_runtime_error) &&

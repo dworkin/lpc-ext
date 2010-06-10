@@ -5,7 +5,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	4
+# define LPC_EXT_VERSION_MINOR	5
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -94,6 +94,7 @@ LPCEXT LPC_value		(*lpc_mapping_index)(LPC_mapping, LPC_value);
 LPCEXT void			(*lpc_mapping_assign)(LPC_dataspace,
 						      LPC_mapping, LPC_value,
 						      LPC_value);
+LPCEXT LPC_value		(*lpc_mapping_enum)(LPC_mapping, int);
 LPCEXT int			(*lpc_mapping_size)(LPC_mapping);
 
 LPCEXT void			(*lpc_runtime_error)(LPC_frame, char*);
