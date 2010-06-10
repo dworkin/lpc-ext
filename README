@@ -1,0 +1,2 @@
+To build modules for all kfuns, just type 'make' (or whatever your GNU make
+command is).  On OS X, first set HOST in the Makefile to DARWIN.

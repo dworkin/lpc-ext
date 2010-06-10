@@ -1,7 +1,7 @@
 #
 # Makefile for kfun shared objects
 #
-HOST=DARWIN
+HOST=GNU
 EXT=0.5
 DEFINES=
 DEBUG=
