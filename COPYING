@@ -1,4 +1,4 @@
 The LPC extension API is released into the public domain.
 
-Add-on packages in the kfun directory will each have their own open source
-license.
+Add-on packages in the kfun directory each have their own open source license;
+please consult the relevant code for the details.
