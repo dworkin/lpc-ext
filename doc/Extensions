@@ -6,11 +6,12 @@ DGD presents an interface for extending the driver with new kfuns and special
 object types.  To enable this interface, DGD should be compiled with the macro
 LPC_EXTENSION defined.  The driver may then be started as follows:
 
-    dgd -e module.so config_file
+    dgd -e module config_file
 
-The extension code will then be loaded into DGD at runtime, and the function
-lpc_ext_init(int major, int minor) will be called to initialize it.  New
-kfuns may be added by this function.
+The extension module will be loaded into DGD at runtime, and the function
+int lpc_ext_init(int major, int minor) will be called to initialize it; this
+function must return a non-zero value to indicate that initialization was
+successful.
 
 
 2. Kernel functions
@@ -34,7 +35,7 @@ Here `func' is a pointer to a C function with the following prototype:
     void func(LPC_frame f, int nargs, LPC_value retval);
 
 Calls to the kfun with name `name' will be routed to that C function.  The
-`f' argument contains the function context, `nargs' is the number of
+argument `f' contains the function context, `nargs' is the number of
 arguments on the stack, and `retval' is a pointer to the return value.  The
 function should not attempt to push or pop arguments; instead, arguments should
 be accessed using the relevant lpc_frame_*() functions listed below, and the
@@ -135,8 +136,8 @@ The return values can be:
     LPC_TYPE_MAPPING	=>	LPC_mapping
     LPC_TYPE_LWOBJ	=>	LPC_lwobj
 
-LPC_int and LPC_float can be used directly, and are represented by a 32 bit
-integer and a 64 bit float, respectively.  The other types must be handled
+LPC_int and LPC_float can be used directly, and are represented by an integral
+and a floating point value, respectively.  The other types must be handled
 by the proper functions.  Light-weight objects cannot be manipulated by an
 extension kfun, at all.
 
@@ -189,3 +190,52 @@ mapping.
 				   LPC_value index, LPC_value val);
     LPC_value	lpc_mapping_enum(LPC_mapping map, int i);
     int		lpc_mapping_size(LPC_array map);
+
+
+5. Example
+
+The following code implements a lower_case() kfun.
+
+# include "lpc_ext.h"
+
+static void lower_case(LPC_frame f, int nargs, LPC_value retval)
+{
+    LPC_value val;
+    LPC_string str;
+    LPC_dataspace data;
+    char *p;
+    unsigned int i;
+
+    /* fetch the argument string */
+    val = lpc_frame_arg(f, nargs, 0);
+    str = lpc_string_getval(val);
+
+    /* make a copy */
+    data = lpc_frame_dataspace(f);
+    str = lpc_string_new(data, lpc_string_text(str), lpc_string_length(str));
+
+    /* turn to lowercase */
+    p = lpc_string_text(str);
+    for (i = lpc_string_length(str); i != 0; --i) {
+	if (*p >= 'A' && *p <= 'Z') {
+	    *p += 'a' - 'A';
+	}
+	p++;
+    }
+
+    /* put result in return value */
+    lpc_string_putval(retval, str);
+}
+
+static char lower_case_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
+static LPC_ext_kfun kf[1] = {
+    "lower_case",
+    lower_case_proto,
+    &lower_case
+};
+
+int lpc_ext_init(int major, int minor)
+{
+    lpc_ext_kfun(kf, 1);
+    return 1;
+}

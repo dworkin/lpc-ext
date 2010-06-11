@@ -41,3 +41,6 @@ kfun/rgx/regex.o:	kfun/rgx/libiberty/regex.c
 
 regexp.$(EXT):		kfun/rgx/regexp.o kfun/rgx/regex.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ $+
+
+clean:
+	rm -f lower_case.$(EXT) regexp.$(EXT) src/*.o kfun/*.o kfun/rgx/*.o

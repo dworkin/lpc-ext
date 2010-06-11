@@ -1,2 +1,6 @@
+src	API glue to compile with your kfun source code
+doc	documentation
+kfun	kfun source code
+
 To build modules for all kfuns, just type 'make' (or whatever your GNU make
-command is).  On OS X, first set HOST in the Makefile to DARWIN.
+command is).  On OS X, use 'make HOST=DARWIN'.
