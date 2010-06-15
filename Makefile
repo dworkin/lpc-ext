@@ -2,7 +2,7 @@
 # Makefile for kfun shared objects
 #
 HOST=GNU
-EXT=0.5
+EXT=0.6
 DEFINES=
 DEBUG=
 CCFLAGS=$(DEFINES) $(DEBUG) -Isrc
@@ -24,17 +24,17 @@ LIBLIB=	kfun/rgx/libiberty
 
 all: lower_case.$(EXT) regexp.$(EXT)
 
-src/lpc_ext.o:	src/lpc_ext.c
-	$(CC) -c $(CFLAGS) -o $@ $+
+src/lpc_ext.o:	src/lpc_ext.c src/lpc_ext.h
+	$(CC) -c $(CFLAGS) -o $@ src/lpc_ext.c
 
-kfun/lower_case.o:	kfun/lower_case.c
-	$(CC) -c $(CFLAGS) -o $@ $+
+kfun/lower_case.o:	kfun/lower_case.c src/lpc_ext.h
+	$(CC) -c $(CFLAGS) -o $@ kfun/lower_case.c
 
 lower_case.$(EXT):	kfun/lower_case.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ $+
 
-kfun/rgx/regexp.o:	kfun/rgx/regexp.c
-	$(CC) -c $(CFLAGS) -I$(LIBLIB) -o $@ $+
+kfun/rgx/regexp.o:	kfun/rgx/regexp.c src/lpc_ext.h
+	$(CC) -c $(CFLAGS) -I$(LIBLIB) -o $@ kfun/rgx/regexp.c
 
 kfun/rgx/regex.o:	kfun/rgx/libiberty/regex.c
 	$(CC) -c $(CFLAGS) -I$(LIBLIB) `cat $(LIBLIB)/config` -o $@ $+

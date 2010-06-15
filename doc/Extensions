@@ -137,7 +137,7 @@ The return values can be:
     LPC_TYPE_LWOBJ	=>	LPC_lwobj
 
 LPC_int and LPC_float can be used directly, and are represented by an integral
-and a floating point value, respectively.  The other types must be handled
+and a floating point type, respectively.  The other types must be handled
 by the proper functions.  Light-weight objects cannot be manipulated by an
 extension kfun, at all.
 

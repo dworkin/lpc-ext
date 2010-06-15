@@ -5,7 +5,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	5
+# define LPC_EXT_VERSION_MINOR	6
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -22,7 +22,7 @@
 # define LPC_TYPE_ARRAY_OF(t)	((t) + 16)
 
 typedef int32_t			LPC_int;
-typedef double			LPC_float;
+typedef long double		LPC_float;
 typedef struct _string_	       *LPC_string;
 typedef struct _object_	       *LPC_object;
 typedef struct _array_	       *LPC_array;
