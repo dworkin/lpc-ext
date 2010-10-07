@@ -1,3 +1,10 @@
+# ifdef WIN32
+# include <Windows.h>
+# define DLLEXPORT		__declspec(dllexport)
+# else
+# define DLLEXPORT		/* nothing */
+# endif
+
 # define LPCEXT			/* declare */
 # include "lpc_ext.h"
 # include <stdarg.h>
@@ -18,7 +25,7 @@ static int ext_cb(void *ftab[], int size, int n, ...)
 
     va_start(args, n);
     do {
-	func = va_arg(args, void*);
+	func = va_arg(args, void**);
 	*func = *ftab++;
     } while (--n > 0);
     va_end(args);
@@ -30,7 +37,7 @@ static int ext_cb(void *ftab[], int size, int n, ...)
  * NAME:	ext->init()
  * DESCRIPTION:	initialize extension handling
  */
-int ext_init(int major, int minor, void **ftabs[], int sizes[])
+DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[])
 {
     return (major == LPC_EXT_VERSION_MAJOR && minor >= LPC_EXT_VERSION_MINOR &&
 	    ext_cb(ftabs[0], sizes[0], 1,
