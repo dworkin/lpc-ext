@@ -22,6 +22,8 @@ static int ext_cb(void *ftab[], int size, int n, ...)
 	*func = *ftab++;
     } while (--n > 0);
     va_end(args);
+
+    return 1;
 }
 
 /*
