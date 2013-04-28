@@ -57,9 +57,11 @@ DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[])
 	    ext_cb(ftabs[4], sizes[4], 2,
 		   &lpc_int_getval,
 		   &lpc_int_putval) &&
+# ifndef NOFLOAT
 	    ext_cb(ftabs[5], sizes[5], 2,
 		   &lpc_float_getval,
 		   &lpc_float_putval) &&
+# endif
 	    ext_cb(ftabs[6], sizes[6], 5,
 		   &lpc_string_getval,
 		   &lpc_string_putval,

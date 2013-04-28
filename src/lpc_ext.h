@@ -22,7 +22,9 @@
 # define LPC_TYPE_ARRAY_OF(t)	((t) + 16)
 
 typedef int32_t			LPC_int;
+# ifndef NOFLOAT
 typedef long double		LPC_float;
+# endif
 typedef struct _string_	       *LPC_string;
 typedef struct _object_	       *LPC_object;
 typedef struct _array_	       *LPC_array;
@@ -62,8 +64,10 @@ LPCEXT LPC_value		(*lpc_value_temp)(LPC_dataspace);
 LPCEXT LPC_int			(*lpc_int_getval)(LPC_value);
 LPCEXT void			(*lpc_int_putval)(LPC_value, LPC_int);
 
+# ifndef NOFLOAT
 LPCEXT LPC_float		(*lpc_float_getval)(LPC_value);
 LPCEXT void			(*lpc_float_putval)(LPC_value, LPC_float);
+# endif
 
 LPCEXT LPC_string		(*lpc_string_getval)(LPC_value);
 LPCEXT void			(*lpc_string_putval)(LPC_value, LPC_string);
