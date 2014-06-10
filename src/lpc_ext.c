@@ -40,8 +40,9 @@ static int ext_cb(void *ftab[], int size, int n, ...)
 DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[])
 {
     return (major == LPC_EXT_VERSION_MAJOR && minor >= LPC_EXT_VERSION_MINOR &&
-	    ext_cb(ftabs[0], sizes[0], 1,
-		   &lpc_ext_kfun) &&
+	    ext_cb(ftabs[0], sizes[0], 2,
+		   &lpc_ext_kfun,
+		   &lpc_ext_dbase) &&
 	    ext_cb(ftabs[1], sizes[1], 4,
 		   &lpc_frame_object,
 		   &lpc_frame_dataspace,

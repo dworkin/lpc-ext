@@ -5,7 +5,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	6
+# define LPC_EXT_VERSION_MINOR	7
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -39,6 +39,34 @@ typedef struct {
     char *proto;		/* kfun prototype */
     LPC_kfun func;		/* kfun address */
 } LPC_ext_kfun;
+typedef struct _lpc_database_	LPC_db;
+typedef struct _lpc_db_object_	LPC_db_object;
+typedef uint64_t		LPC_db_index;
+typedef uint64_t		LPC_db_sector;
+typedef struct {
+    void *data;			/* address */
+    uint64_t offset;		/* offset of request */
+    uint64_t size;		/* size of request */
+} LPC_db_request;
+typedef struct {
+    int (*valid)		(char*);
+    LPC_db (*creat)		(char*);
+    LPC_db (*open_rw)		(char*);
+    LPC_db (*open_r)		(char*);
+    void (*close)		(LPC_db*);
+    LPC_db_object (*new)	(LPC_db*, LPC_db_index);
+    LPC_db_object (*load)	(LPC_db*, LPC_db_index, LPC_db_sector);
+    int (*del)			(LPC_db*, LPC_db_object*);
+    int (*resize)		(LPC_db*, LPC_db_object*, uint64_t,
+				 LPC_db_sector*);
+    int (*read)			(LPC_db*, LPC_db_object*, LPC_db_request*, int);
+    int (*write)		(LPC_db*, LPC_db_object*, LPC_db_request*, int);
+    int (*erase)		(LPC_db*, LPC_db_object*);
+    int (*save)			(LPC_db*, LPC_db_request*);
+    int (*restore)		(LPC_db*, LPC_db_request*);
+    int (*save_snapshot)	(LPC_db*, LPC_db_request*);
+    int (*restore_snapshot)	(LPC_db*, LPC_db_request*);
+} LPC_ext_dbase;
 
 
 extern int			lpc_ext_init(int, int);
@@ -48,6 +76,7 @@ extern int			lpc_ext_init(int, int);
 # endif
 
 LPCEXT void			(*lpc_ext_kfun)(LPC_ext_kfun*, int);
+LPCEXT void			(*lpc_ext_dbase)(LPC_ext_dbase*);
 
 LPCEXT LPC_object		(*lpc_frame_object)(LPC_frame);
 LPCEXT LPC_dataspace		(*lpc_frame_dataspace)(LPC_frame);
