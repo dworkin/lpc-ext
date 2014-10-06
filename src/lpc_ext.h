@@ -5,7 +5,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	7
+# define LPC_EXT_VERSION_MINOR	8
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -69,7 +69,7 @@ typedef struct {
 } LPC_ext_dbase;
 
 
-extern int			lpc_ext_init(int, int);
+extern int			lpc_ext_init(int, int, char*);
 
 # ifndef LPCEXT
 #  define LPCEXT extern

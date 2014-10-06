@@ -389,7 +389,7 @@ static LPC_ext_kfun kf_regexp[1] = {
  * NAME:	lpc_ext_init()
  * DESCRIPTION:	add regexp kfun
  */
-int lpc_ext_init(int major, int minor)
+int lpc_ext_init(int major, int minor, char *config)
 {
     rgx_init();
     lpc_ext_kfun(kf_regexp, 1);
