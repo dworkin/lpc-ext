@@ -1,3 +1,5 @@
+# define TRUE			1
+# define FALSE			0
 # define alloc(type, count)	((type *) jit_alloc(sizeof(type) * (count)))
 
 extern void	*jit_alloc	(size_t);
