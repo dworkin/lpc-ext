@@ -8,17 +8,9 @@ DEBUG=
 CCFLAGS=$(DEFINES) $(DEBUG) -Isrc
 CC=cc
 
-ifeq ($(HOST),DARWIN)
-# OS X
-CFLAGS=	-DPIC $(CCFLAGS)
-LD=ld
-LDFLAGS=-bundle -flat_namespace -undefined suppress /usr/lib/bundle1.o
-else
-# generic gcc
 CFLAGS=	-fPIC -DPIC $(CCFLAGS)
 LD=$(CC)
 LDFLAGS=-shared
-endif
 
 OBJ=	src/lpc_ext.o
 LIBLIB=	kfun/rgx/libiberty
