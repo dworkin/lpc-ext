@@ -1,10 +1,11 @@
 # include <stdlib.h>
 # include <stdint.h>
 # include <stdbool.h>
-# include "jit.h"
+# include "lpc_ext.h"
 # include "data.h"
 # include "instruction.h"
 # include "code.h"
+# include "jit.h"
 
 # define FETCH1U(pc)	(*(pc)++)
 # define FETCH1S(pc)	((int8_t) *(pc)++)
@@ -66,7 +67,7 @@ typedef struct CodeContext {
 static CodeByte *code_type(CodeContext *context, CodeByte *pc, LPCType *type)
 {
     type->type = FETCH1U(pc);
-    if (type->type == T_CLASS) {
+    if (type->type == LPC_TYPE_CLASS) {
 	type->inherit = FETCHI(pc, context);
 	type->index = FETCH2U(pc);
     }
@@ -88,7 +89,7 @@ CodeContext *code_init(int major, int minor, size_t intSize, size_t inhSize,
 
     /* check VM version */
     if (major != VERSION_VM_MAJOR || minor > VERSION_VM_MINOR) {
-	fatal("incompatible VM");
+	return NULL;
     }
 
     /* allocate code context */
@@ -113,7 +114,7 @@ CodeContext *code_init(int major, int minor, size_t intSize, size_t inhSize,
 	    protos = &PROTO_FTYPE(protos);
 	    do {
 		protos = code_type(context, protos, proto);
-		if (proto->type == T_LVALUE) {
+		if (proto->type == LPC_TYPE_LVALUE) {
 		    kfun->lval = TRUE;
 		}
 		proto++;
@@ -403,7 +404,7 @@ static CodeByte *code_switch_string(Code *code, CodeByte *pc,
 
     /* nil */
     if (FETCH1U(pc) == 0) {
-	caseString->str.inherit = INHERIT_PROG;
+	caseString->str.inherit = THIS;
 	caseString->str.index = 0xffff;
 	caseString->addr = FETCH2U(pc);
 	caseString++;
@@ -517,7 +518,7 @@ Code *code_instr(CodeFunction *function)
 	break;
 
     case I_STRING:
-	code->u.str.inherit = INHERIT_PROG;
+	code->u.str.inherit = THIS;
 	code->u.str.index = FETCH1U(pc);
 	code->instruction = CODE_STRING;
 	break;
@@ -546,7 +547,7 @@ Code *code_instr(CodeFunction *function)
 	break;
 
     case I_GLOBAL:
-	code->u.var.inherit = INHERIT_PROG;
+	code->u.var.inherit = THIS;
 	code->u.var.index = FETCH1U(pc);
 	code->instruction = CODE_GLOBAL;
 	break;
@@ -627,7 +628,7 @@ Code *code_instr(CodeFunction *function)
 	code->pop = TRUE;
 	/* fall through */
     case I_STORE_GLOBAL:
-	code->u.var.inherit = INHERIT_PROG;
+	code->u.var.inherit = THIS;
 	code->u.var.index = FETCH1U(pc);
 	code->instruction = CODE_STORE_GLOBAL;
 	break;
@@ -666,7 +667,7 @@ Code *code_instr(CodeFunction *function)
 	code->pop = TRUE;
 	/* fall through */
     case I_STORE_GLOBAL_INDEX:
-	code->u.var.inherit = INHERIT_PROG;
+	code->u.var.inherit = THIS;
 	code->u.var.index = FETCH1U(pc);
 	code->instruction = CODE_STORE_GLOBAL_INDEX;
 	break;
@@ -840,6 +841,9 @@ static void code_remove(Code *code)
 
     case CODE_SWITCH_STRING:
 	free(code->u.caseString);
+	break;
+
+    default:
 	break;
     }
 

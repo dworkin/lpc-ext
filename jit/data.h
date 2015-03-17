@@ -1,19 +1,6 @@
-# define T_TYPE			0x0f
-# define T_NIL			0x00	/* runtime only */
-# define T_INT			0x01
-# define T_FLOAT		0x02
-# define T_STRING		0x03
-# define T_OBJECT		0x04
-# define T_ARRAY		0x05	/* runtime only */
-# define T_MAPPING		0x06
-# define T_LWOBJECT		0x07	/* runtime only */
-# define T_CLASS		0x07    /* declaration only */
-# define T_MIXED		0x08    /* declaration only */
-# define T_VOID			0x09    /* declaration only */
-# define T_LVALUE		0x0a	/* kfun declaration only */
-
-# define T_REF			0xf0    /* reference count mask */
-# define REFSHIFT		4
+# define LPC_TYPE_CLASS		7
+# define LPC_TYPE_LVALUE	10
+# define LPC_TYPE_REF(t)	((t) >> 4)
 
 typedef int64_t LPCInt;
 
@@ -24,7 +11,7 @@ typedef struct {
 
 typedef uint16_t LPCInherit;
 
-# define INHERIT_PROG		0xffff
+# define THIS			0xffff
 
 typedef struct {
     LPCInherit inherit;		/* program */
