@@ -82,7 +82,7 @@ static CodeByte *code_type(CodeContext *context, CodeByte *pc, LPCType *type)
  * DESCRIPTION:	initialize code retriever
  */
 CodeContext *code_init(int major, int minor, size_t intSize, size_t inhSize,
-		       CodeMap *map, CodeByte *protos, int nKfuns)
+		       CodeMap *map, int nMap, CodeByte *protos, int nProto)
 {
     CodeContext *context;
     int i, size;
@@ -98,13 +98,13 @@ CodeContext *code_init(int major, int minor, size_t intSize, size_t inhSize,
     context = alloc(CodeContext, 1);
     context->intSize = intSize;
     context->inhSize = inhSize;
-    context->map = alloc(CodeMap, nKfuns);
-    memcpy(context->map, map, nKfuns * sizeof(CodeMap));
+    context->map = alloc(CodeMap, nMap);
+    memcpy(context->map, map, nMap * sizeof(CodeMap));
 
     /*
      * initialize kfun prototype table
      */
-    context->kfun = alloc(CodeProto, context->nkfun = nKfuns);
+    context->kfun = alloc(CodeProto, context->nkfun = nProto);
     for (kfun = context->kfun, i = 0; i < context->nkfun; kfun++, i++) {
 	if (protos[0] == 0) {
 	    protos++;
@@ -152,12 +152,11 @@ void code_clear(CodeContext *context)
  * NAME:	Code->new()
  * DESCRIPTION:	create a function retriever
  */
-CodeFunction *code_new(CodeContext *context, CodeByte *program)
+CodeFunction *code_new(CodeContext *context, CodeByte *pc)
 {
     CodeFunction *function;
     uint16_t size;
     LPCType *proto;
-    CodeByte *pc;
 
     function = alloc(CodeFunction, 1);
     function->context = context;
@@ -182,6 +181,7 @@ CodeFunction *code_new(CodeContext *context, CodeByte *program)
     function->pc = function->lc = 0;
     function->line = 0;
     function->list = NULL;
+    function->last = &function->list;
 
     return function;
 }
@@ -447,8 +447,9 @@ Code *code_instr(CodeFunction *function)
 
     /* allocate new code */
     code = alloc(Code, 1);
-    code->list = function->list;
-    function->list = code;
+    code->list = NULL;
+    *function->last = code;
+    function->last = &code->list;
 
     /*
      * retrieve instruction

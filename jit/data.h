@@ -1,5 +1,6 @@
 # define LPC_TYPE_CLASS		7
 # define LPC_TYPE_LVALUE	10
+# define LPC_TYPE_MASK		0x0f
 # define LPC_TYPE_REF(t)	((t) >> 4)
 
 typedef int64_t LPCInt;

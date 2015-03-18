@@ -99,11 +99,11 @@ typedef struct {
     CodeByte *program, *lines;		/* program & line numbers */
     CodeAddr pc, lc;			/* program counter and line counter */
     CodeLine line;			/* current line */
-    Code *list;				/* list of code in this function */
+    Code *list, **last;			/* list of code in this function */
 } CodeFunction;
 
 extern struct CodeContext *code_init	(int, int, size_t, size_t, CodeMap*,
-					 CodeByte*, int);
+					 int, CodeByte*, int);
 extern void		   code_clear	(struct CodeContext*);
 extern CodeFunction	  *code_new	(struct CodeContext*, CodeByte*);
 extern void		   code_del	(CodeFunction*);
