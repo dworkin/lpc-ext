@@ -1,6 +1,7 @@
 typedef uint16_t CodeAddr;		/* code address */
 typedef uint8_t CodeByte;		/* code byte */
 typedef uint16_t CodeLine;		/* line number */
+typedef uint16_t CodeMap;		/* kfun map */
 
 typedef struct {
     LPCInt num;				/* integer case label */
@@ -101,8 +102,8 @@ typedef struct {
     Code *list;				/* list of code in this function */
 } CodeFunction;
 
-extern struct CodeContext *code_init	(int, int, size_t, size_t, CodeByte*,
-					 int);
+extern struct CodeContext *code_init	(int, int, size_t, size_t, CodeMap*,
+					 CodeByte*, int);
 extern void		   code_clear	(struct CodeContext*);
 extern CodeFunction	  *code_new	(struct CodeContext*, CodeByte*);
 extern void		   code_del	(CodeFunction*);

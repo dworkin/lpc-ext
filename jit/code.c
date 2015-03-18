@@ -1,6 +1,7 @@
 # include <stdlib.h>
 # include <stdint.h>
 # include <stdbool.h>
+# include <string.h>
 # include "lpc_ext.h"
 # include "data.h"
 # include "instruction.h"
@@ -56,6 +57,7 @@ typedef struct {
 typedef struct CodeContext {
     size_t intSize;		/* integer size */
     size_t inhSize;		/* inherit size */
+    CodeMap *map;		/* kfun mapping */
     CodeProto *kfun;		/* kfun prototypes */
     uint16_t nkfun;		/* # kfuns */
 } CodeContext;
@@ -80,7 +82,7 @@ static CodeByte *code_type(CodeContext *context, CodeByte *pc, LPCType *type)
  * DESCRIPTION:	initialize code retriever
  */
 CodeContext *code_init(int major, int minor, size_t intSize, size_t inhSize,
-		       CodeByte *protos, int nProtos)
+		       CodeMap *map, CodeByte *protos, int nKfuns)
 {
     CodeContext *context;
     int i, size;
@@ -96,11 +98,13 @@ CodeContext *code_init(int major, int minor, size_t intSize, size_t inhSize,
     context = alloc(CodeContext, 1);
     context->intSize = intSize;
     context->inhSize = inhSize;
+    context->map = alloc(CodeMap, nKfuns);
+    memcpy(context->map, map, nKfuns * sizeof(CodeMap));
 
     /*
      * initialize kfun prototype table
      */
-    context->kfun = alloc(CodeProto, context->nkfun = nProtos);
+    context->kfun = alloc(CodeProto, context->nkfun = nKfuns);
     for (kfun = context->kfun, i = 0; i < context->nkfun; kfun++, i++) {
 	if (protos[0] == 0) {
 	    protos++;
@@ -726,7 +730,7 @@ Code *code_instr(CodeFunction *function)
 	code->pop = TRUE;
 	/* fall through */
     case I_CALL_KFUNC:
-	code->u.kfun.func = FETCH1U(pc);
+	code->u.kfun.func = function->context->map[FETCH1U(pc)];
 	kfun = &function->context->kfun[code->u.kfun.func];
 	if (kfun->vargs != 0) {
 	    code->u.kfun.nargs = FETCH1U(pc);
@@ -740,7 +744,7 @@ Code *code_instr(CodeFunction *function)
 	code->pop = TRUE;
 	/* fall through */
     case I_CALL_EFUNC:
-	code->u.kfun.func = FETCH2U(pc);
+	code->u.kfun.func = function->context->map[FETCH2U(pc)];
 	kfun = &function->context->kfun[code->u.kfun.func];
 	if (kfun->vargs != 0) {
 	    code->u.kfun.nargs = FETCH1U(pc);
@@ -754,7 +758,7 @@ Code *code_instr(CodeFunction *function)
 	code->pop = TRUE;
 	/* fall through */
     case I_CALL_CKFUNC:
-	code->u.kfun.func = FETCH1U(pc);
+	code->u.kfun.func = function->context->map[FETCH1U(pc)];
 	code->u.kfun.nargs = FETCH1U(pc);
 	kfun = &function->context->kfun[code->u.kfun.func];
 	code->instruction = (kfun->lval) ? CODE_KFUNC_STORES : CODE_KFUNC;
@@ -764,7 +768,7 @@ Code *code_instr(CodeFunction *function)
 	code->pop = TRUE;
 	/* fall through */
     case I_CALL_CEFUNC:
-	code->u.kfun.func = FETCH2U(pc);
+	code->u.kfun.func = function->context->map[FETCH2U(pc)];
 	code->u.kfun.nargs = FETCH1U(pc);
 	kfun = &function->context->kfun[code->u.kfun.func];
 	code->instruction = (kfun->lval) ? CODE_KFUNC_STORES : CODE_KFUNC;
