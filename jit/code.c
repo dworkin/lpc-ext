@@ -694,11 +694,13 @@ Code *code_instr(CodeFunction *function)
 	break;
 
     case I_JUMP_ZERO:
+	code->pop = TRUE;
 	code->u.addr = FETCH2U(pc);
 	code->instruction = CODE_JUMP_ZERO;
 	break;
 
     case I_JUMP_NONZERO:
+	code->pop = TRUE;
 	code->u.addr = FETCH2U(pc);
 	code->instruction = CODE_JUMP_NONZERO;
 	break;
@@ -709,6 +711,7 @@ Code *code_instr(CodeFunction *function)
 	break;
 
     case I_SWITCH:
+	code->pop = TRUE;
 	switch (FETCH1U(pc)) {
 	case SWITCH_INT:
 	    pc = code_switch_int(code, pc, function->context);
@@ -813,6 +816,7 @@ Code *code_instr(CodeFunction *function)
 	break;
 
     case I_RLIMITS:
+	code->pop = TRUE;
 	code->instruction = (FETCH1U(pc) != 0) ?
 			     CODE_RLIMITS : CODE_RLIMITS_CHECK;
 	break;
