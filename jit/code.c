@@ -509,7 +509,7 @@ Code *code_instr(CodeFunction *function)
 	    code->u.flt.high = 0;
 	    code->u.flt.low = 0;
 	} else {
-	    code->u.flt.high = (((flt.high & 0x8000) + fexp + 0x7c00) << 16) +
+	    code->u.flt.high = (((flt.high & 0x8000) + fexp + 0x3c00) << 16) +
 			       ((flt.high & 0xf) << 12) + (flt.low >> 20);
 	    code->u.flt.low = flt.low << 44;
 	}
