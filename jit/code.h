@@ -66,10 +66,7 @@ typedef struct Code {
 	CODE_RLIMITS_CHECK,
 	CODE_RETURN
     } instruction;
-    union {
-	uint16_t size;			/* size */
-	int8_t spread;			/* spread */
-    } s;
+    uint16_t size;			/* size */
     union {
 	LPCInt num;			/* integer */
 	LPCFloat flt;			/* float */
@@ -78,6 +75,7 @@ typedef struct Code {
 	LPCLocal local;			/* local variable */
 	LPCGlobal var;			/* global variable */
 	LPCType type;			/* type */
+	int8_t spread;			/* spread */
 	CodeAddr addr;			/* address */
 	CodeCaseInt *caseInt;		/* int case labels */
 	CodeCaseRange *caseRange;	/* range case labels */

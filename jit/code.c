@@ -48,6 +48,10 @@
 # define PROTO_VARGS(p)	((p)[2])
 # define PROTO_FTYPE(p)	((p)[5])
 
+# define KF_CKRANGEFT	51
+# define KF_CKRANGEF	52
+# define KF_CKRANGET	53
+
 typedef struct {
     LPCType *proto;		/* return and argument types */
     uint8_t nargs, vargs;	/* # arguments & optional arguments */
@@ -195,8 +199,8 @@ static CodeByte *code_switch_int(Code *code, CodeByte *pc, CodeContext *context)
     CodeCaseInt *caseInt;
     int i, bytes;
 
-    code->s.size = FETCH2U(pc);
-    code->u.caseInt = caseInt = alloc(CodeCaseInt, i = code->s.size);
+    code->size = FETCH2U(pc);
+    code->u.caseInt = caseInt = alloc(CodeCaseInt, i = code->size);
     bytes = FETCH1U(pc);
 
     /* default */
@@ -292,8 +296,8 @@ static CodeByte *code_switch_range(Code *code, CodeByte *pc,
     CodeCaseRange *caseRange;
     int i, bytes;
 
-    code->s.size = FETCH2U(pc);
-    code->u.caseRange = caseRange = alloc(CodeCaseRange, i = code->s.size);
+    code->size = FETCH2U(pc);
+    code->u.caseRange = caseRange = alloc(CodeCaseRange, i = code->size);
     bytes = FETCH1U(pc);
 
     /* default */
@@ -398,8 +402,8 @@ static CodeByte *code_switch_string(Code *code, CodeByte *pc,
     CodeCaseString *caseString;
     int i;
 
-    code->s.size = FETCH2U(pc);
-    code->u.caseString = caseString = alloc(CodeCaseString, i = code->s.size);
+    code->size = FETCH2U(pc);
+    code->u.caseString = caseString = alloc(CodeCaseString, i = code->size);
 
     /* default */
     caseString->addr = FETCH2U(pc);
@@ -580,17 +584,17 @@ Code *code_instr(CodeFunction *function)
     case I_AGGREGATE:
 	code->instruction = (FETCH1U(pc) == 0) ?
 			     CODE_AGGREGATE : CODE_MAP_AGGREGATE;
-	code->s.size = FETCH2U(pc);
+	code->size = FETCH2U(pc);
 	break;
 
     case I_SPREAD:
-	code->s.spread = FETCH1S(pc);
-	if (code->s.spread >= 0) {
-	    pc = code_type(function->context, pc, &code->u.type);
+	code->u.spread = FETCH1S(pc);
+	if (code->u.spread >= 0) {
+	    code->instruction = CODE_SPREAD;
 	} else {
-	    code->u.type.type = 0;
+	    code->u.spread = -(code->u.spread + 2);
+	    code->instruction = CODE_SPREAD_STORES;
 	}
-	code->instruction = CODE_SPREAD;
 	break;
 
     case I_CAST | I_POP_BIT:
@@ -611,7 +615,7 @@ Code *code_instr(CodeFunction *function)
 	break;
 
     case I_STORES:
-	code->s.size = FETCH1U(pc);
+	code->size = FETCH1U(pc);
 	code->instruction = CODE_STORES;
 	break;
 
@@ -735,13 +739,29 @@ Code *code_instr(CodeFunction *function)
 	/* fall through */
     case I_CALL_KFUNC:
 	code->u.kfun.func = function->context->map[FETCH1U(pc)];
-	kfun = &function->context->kfun[code->u.kfun.func];
-	if (kfun->vargs != 0) {
-	    code->u.kfun.nargs = FETCH1U(pc);
-	} else {
-	    code->u.kfun.nargs = kfun->nargs;
+	switch (code->u.kfun.func) {
+	case KF_CKRANGEFT:
+	    code->instruction = CODE_CHECK_RANGE;
+	    break;
+
+	case KF_CKRANGEF:
+	    code->instruction = CODE_CHECK_RANGE_FROM;
+	    break;
+
+	case KF_CKRANGET:
+	    code->instruction = CODE_CHECK_RANGE_TO;
+	    break;
+
+	default:
+	    kfun = &function->context->kfun[code->u.kfun.func];
+	    if (kfun->vargs != 0) {
+		code->u.kfun.nargs = FETCH1U(pc);
+	    } else {
+		code->u.kfun.nargs = kfun->nargs;
+	    }
+	    code->instruction = (kfun->lval) ? CODE_KFUNC_STORES : CODE_KFUNC;
+	    break;
 	}
-	code->instruction = (kfun->lval) ? CODE_KFUNC_STORES : CODE_KFUNC;
 	break;
 
     case I_CALL_EFUNC | I_POP_BIT:
