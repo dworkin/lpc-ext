@@ -543,7 +543,7 @@ Code *code_instr(CodeFunction *function)
     case I_LOCAL:
 	i = FETCH1S(pc);
 	if (i < 0) {
-	    code->u.local = -i;
+	    code->u.local = -(i + 1);
 	    code->instruction = CODE_LOCAL;
 	} else {
 	    code->u.param = i;
@@ -621,7 +621,7 @@ Code *code_instr(CodeFunction *function)
     case I_STORE_LOCAL:
 	i = FETCH1S(pc);
 	if (i < 0) {
-	    code->u.local = -i;
+	    code->u.local = -(i + 1);
 	    code->instruction = CODE_STORE_LOCAL;
 	} else {
 	    code->u.param = i;
@@ -660,7 +660,7 @@ Code *code_instr(CodeFunction *function)
     case I_STORE_LOCAL_INDEX:
 	i = FETCH1S(pc);
 	if (i < 0) {
-	    code->u.local = -i;
+	    code->u.local = -(i + 1);
 	    code->instruction = CODE_STORE_LOCAL_INDEX;
 	} else {
 	    code->u.param = i;
