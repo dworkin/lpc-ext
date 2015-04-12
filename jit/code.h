@@ -62,8 +62,10 @@ typedef struct Code {
 	CODE_DFUNC,
 	CODE_FUNC,
 	CODE_CATCH,
+	CODE_END_CATCH,
 	CODE_RLIMITS,
 	CODE_RLIMITS_CHECK,
+	CODE_END_RLIMITS,
 	CODE_RETURN
     } instruction;
     uint16_t size;			/* size */

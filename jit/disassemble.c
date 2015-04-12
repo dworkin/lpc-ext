@@ -295,12 +295,20 @@ void dis_program(CodeFunction *func)
 	    printf("CATCH %04x\n", code->u.addr);
 	    break;
 
+	case CODE_END_CATCH:
+	    printf("END_CATCH\n");
+	    break;
+
 	case CODE_RLIMITS:
 	    printf("RLIMITS\n");
 	    break;
 
 	case CODE_RLIMITS_CHECK:
 	    printf("RLIMITS_CHECK\n");
+	    break;
+
+	case CODE_END_RLIMITS:
+	    printf("END_RLIMITS\n");
 	    break;
 
 	case CODE_RETURN:
