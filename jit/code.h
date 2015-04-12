@@ -1,27 +1,27 @@
-typedef uint16_t CodeAddr;		/* code address */
 typedef uint8_t CodeByte;		/* code byte */
+typedef uint16_t CodeSize;		/* function code size */
 typedef uint16_t CodeLine;		/* line number */
 typedef uint16_t CodeMap;		/* kfun map */
 
 typedef struct {
     LPCInt num;				/* integer case label */
-    CodeAddr addr;			/* case address */
+    CodeSize addr;			/* case address */
 } CodeCaseInt;
 
 typedef struct {
     LPCInt from;			/* range from case label */
     LPCInt to;				/* range to case label */
-    CodeAddr addr;			/* case address */
+    CodeSize addr;			/* case address */
 } CodeCaseRange;
 
 typedef struct {
     LPCStringConst str;			/* string constant case label */
-    CodeAddr addr;			/* case address */
+    CodeSize addr;			/* case address */
 } CodeCaseString;
 
 typedef struct Code {
     struct Code *list;			/* previous instruction */
-    CodeAddr addr;			/* address of this instruction */
+    CodeSize addr;			/* address of this instruction */
     CodeLine line;			/* line number of this instruction */
     bool pop;				/* pop stack? */
     enum {
@@ -76,7 +76,7 @@ typedef struct Code {
 	LPCGlobal var;			/* global variable */
 	LPCType type;			/* type */
 	int8_t spread;			/* spread */
-	CodeAddr addr;			/* address */
+	CodeSize addr;			/* address */
 	CodeCaseInt *caseInt;		/* int case labels */
 	CodeCaseRange *caseRange;	/* range case labels */
 	CodeCaseString *caseString;	/* string case labels */
@@ -95,7 +95,7 @@ typedef struct {
     uint8_t locals;			/* # locals */
     uint16_t stack;			/* stack depth */
     CodeByte *program, *lines;		/* program & line numbers */
-    CodeAddr pc, lc;			/* program counter and line counter */
+    CodeSize pc, lc;			/* program counter and line counter */
     CodeLine line;			/* current line */
     Code *list, **last;			/* list of code in this function */
 } CodeFunction;
