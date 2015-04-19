@@ -20,7 +20,7 @@ typedef struct {
 } CodeCaseString;
 
 typedef struct Code {
-    struct Code *list;			/* previous instruction */
+    struct Code *next;			/* following instruction */
     CodeSize addr;			/* address of this instruction */
     CodeLine line;			/* line number of this instruction */
     bool pop;				/* pop stack? */
@@ -86,7 +86,6 @@ typedef struct Code {
 	LPCDFunc dfun;			/* direct function call */
 	LPCVFunc fun;			/* virtual function call */
     } u;
-    struct Code *next;			/* following instruction */
 } Code;
 
 typedef struct {
@@ -99,7 +98,7 @@ typedef struct {
     CodeByte *program, *lines;		/* program & line numbers */
     CodeSize pc, lc;			/* program counter and line counter */
     CodeLine line;			/* current line */
-    Code *list, **last;			/* list of code in this function */
+    Code *list, *last;			/* list of code in this function */
 } CodeFunction;
 
 extern struct CodeContext *code_init	(int, int, size_t, size_t, CodeMap*,

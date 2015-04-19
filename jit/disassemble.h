@@ -1,1 +1,1 @@
-void dis_program(CodeFunction*);
+void dis_program	(CodeFunction*);

@@ -95,7 +95,7 @@ void dis_program(CodeFunction *func)
     int i;
 
     line = 0;
-    for (code = func->list; code != NULL; code = code->list) {
+    for (code = func->list; code != NULL; code = code->next) {
 	printf("%04x", code->addr);
 	if (code->line != line) {
 	    printf("%5d", code->line);

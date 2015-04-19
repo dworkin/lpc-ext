@@ -33,7 +33,6 @@ static Block *block_find(Block *n, CodeSize addr)
 {
     Block b, *t, *l, *r;
 
-    b.left = b.right = NULL;
     l = r = &b;
 
     for (;;) {
@@ -42,9 +41,7 @@ static Block *block_find(Block *n, CodeSize addr)
 		/*
 		 * found
 		 */
-		n->right = b.left;
-		n->left = b.right;
-		return n;
+		break;
 	    }
 
 	    t = n->right;
@@ -56,6 +53,16 @@ static Block *block_find(Block *n, CodeSize addr)
 		l = n;
 		n = t;
 	    } else {
+		if (t->first->addr + t->size > addr) {
+		    /*
+		     * found
+		     */
+		    l->right = n;
+		    l = n;
+		    n = t;
+		    break;
+		}
+
 		/* rotate */
 		n->right = t->left;
 		t->left = n;
@@ -82,6 +89,12 @@ static Block *block_find(Block *n, CodeSize addr)
 	    }
 	}
     }
+
+    l->right = n->left;
+    r->left = n->right;
+    n->right = b.left;
+    n->left = b.right;
+    return n;
 }
 
 /*
@@ -157,7 +170,7 @@ Block *block_function(CodeFunction *function)
     int i;
 
     code = function->list;
-    first = block_new(code, *function->last, function->pc);
+    first = block_new(code, function->last, function->pc);
 
     for (b = first; code != NULL; code = code->next) {
 	switch (code->instruction) {

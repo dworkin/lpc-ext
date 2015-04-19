@@ -185,7 +185,6 @@ CodeFunction *code_new(CodeContext *context, CodeByte *pc)
     function->pc = function->lc = 0;
     function->line = 0;
     function->list = NULL;
-    function->last = &function->list;
 
     return function;
 }
@@ -451,9 +450,13 @@ Code *code_instr(CodeFunction *function)
 
     /* allocate new code */
     code = alloc(Code, 1);
-    code->list = NULL;
-    *function->last = code;
-    function->last = &code->list;
+    code->next = NULL;
+    if (function->list == NULL) {
+	function->list = function->last = code;
+    } else {
+	function->last->next = code;
+	function->last = code;
+    }
 
     /*
      * retrieve instruction
@@ -889,7 +892,7 @@ void code_del(CodeFunction *function)
 
     /* delete all code retrieved for this function */
     for (code = function->list; code != NULL; code = next) {
-	next = code->list;
+	next = code->next;
 	code_remove(code);
     }
 
