@@ -38,31 +38,21 @@ static Block *block_find(Block *n, CodeSize addr)
     for (;;) {
 	if (n->first->addr <= addr) {
 	    if (n->first->addr + n->size > addr) {
-		/*
-		 * found
-		 */
-		break;
+		break;			/* found */
 	    }
 
 	    t = n->right;
 	    if (t == NULL) {
 		return NULL;		/* out of range */
 	    }
-	    if (t->first->addr > addr) {
+	    if (t->first->addr + t->size > addr) {
 		l->right = n;
 		l = n;
 		n = t;
-	    } else {
-		if (t->first->addr + t->size > addr) {
-		    /*
-		     * found
-		     */
-		    l->right = n;
-		    l = n;
-		    n = t;
-		    break;
+		if (t->first->addr <= addr) {
+		    break;		/* found */
 		}
-
+	    } else {
 		/* rotate */
 		n->right = t->left;
 		t->left = n;
