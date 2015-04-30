@@ -190,6 +190,7 @@ Block *block_function(CodeFunction *function)
 
 	case CODE_JUMP_ZERO:
 	case CODE_JUMP_NONZERO:
+	case CODE_CATCH:
 	    /* split at jump target */
 	    b = block_split(b, code->u.addr);
 	    if (b == NULL) {
