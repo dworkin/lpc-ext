@@ -41,12 +41,12 @@ static Block *block_find(Block *n, CodeSize addr)
 		break;			/* found */
 	    }
 
-	    t = n->right;
+	    t = n->u.t.right;
 	    if (t == NULL) {
 		return NULL;		/* out of range */
 	    }
 	    if (t->first->addr + t->size > addr) {
-		l->right = n;
+		l->u.t.right = n;
 		l = n;
 		n = t;
 		if (t->first->addr <= addr) {
@@ -54,36 +54,36 @@ static Block *block_find(Block *n, CodeSize addr)
 		}
 	    } else {
 		/* rotate */
-		n->right = t->left;
-		t->left = n;
-		l->right = t;
+		n->u.t.right = t->u.t.left;
+		t->u.t.left = n;
+		l->u.t.right = t;
 		l = t;
-		n = t->right;
+		n = t->u.t.right;
 		if (n == NULL) {
 		    return NULL;	/* out of range */
 		}
 	    }
 	} else {
-	    t = n->left;
+	    t = n->u.t.left;
 	    if (t->first->addr <= addr) {
-		r->left = n;
+		r->u.t.left = n;
 		r = n;
 		n = t;
 	    } else {
 		/* rotate */
-		n->left = t->right;
-		t->right = n;
-		r->left = t;
+		n->u.t.left = t->u.t.right;
+		t->u.t.right = n;
+		r->u.t.left = t;
 		r = t;
-		n = t->left;
+		n = t->u.t.left;
 	    }
 	}
     }
 
-    l->right = n->left;
-    r->left = n->right;
-    n->right = b.left;
-    n->left = b.right;
+    l->u.t.right = n->u.t.left;
+    r->u.t.left = n->u.t.right;
+    n->u.t.right = b.u.t.left;
+    n->u.t.left = b.u.t.right;
     return n;
 }
 
@@ -122,9 +122,9 @@ static Block *block_split(Block *b, CodeSize addr)
 	b->nfollow = 0;
 
 	/* insert at root of tree */
-	n->left = b;
-	n->right = b->right;
-	b->right = NULL;
+	n->u.t.left = b;
+	n->u.t.right = b->u.t.right;
+	b->u.t.right = NULL;
 	b = n;
     }
 
