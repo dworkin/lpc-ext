@@ -174,18 +174,21 @@ Block *block_function(CodeFunction *function)
 	    /* one followup */
 	    follow = alloc(Block*, 1);
 	    follow[0] = b;
-	    b = block_find(b, code->addr);
-	    b->follow = follow;
-	    b->nfollow = 1;
 
+	    /* start new block */
 	    if (code->next != NULL) {
-		/* new block starts after jump */
 		b = block_split(b, code->next->addr);
 		if (b == NULL) {
+		    free(follow);
 		    block_clear(first);
 		    return NULL;
 		}
 	    }
+
+	    /* set followups */
+	    b = block_find(b, code->addr);
+	    b->follow = follow;
+	    b->nfollow = 1;
 	    break;
 
 	case CODE_JUMP_ZERO:
@@ -200,29 +203,49 @@ Block *block_function(CodeFunction *function)
 	    /* two followups */
 	    follow = alloc(Block*, 2);
 	    follow[1] = b;
-	    b = block_find(b, code->addr);
-	    b->follow = follow;
-	    b->nfollow = 2;
-	    b = block_split(b, code->next->addr);
-	    if (b == NULL) {
+
+	    /* start new block */
+	    if (code->next == NULL ||
+		(b=block_split(b, code->next->addr)) == NULL) {
+		free(follow);
 		block_clear(first);
 		return NULL;
 	    }
 	    follow[0] = b;
+
+	    /* set followups */
+	    b = block_find(b, code->addr);
+	    b->follow = follow;
+	    b->nfollow = 2;
 	    break;
 
 	case CODE_SWITCH_INT:
 	    /* create jump table with block entry points */
-	    b = block_find(b, code->addr);
-	    b->follow = follow = alloc(Block*, code->size);
-	    b->nfollow = code->size;
+	    follow = alloc(Block*, code->size);
 	    for (i = 0; i < code->size; i++) {
-		follow[i] = b = block_split(b, code->u.caseInt[i].addr);
+		b = block_split(b, code->u.caseInt[i].addr);
 		if (b == NULL) {
+		    free(follow);
+		    block_clear(first);
+		    return NULL;
+		}
+		follow[i] = b;
+	    }
+
+	    /* start new block */
+	    if (code->next != NULL) {
+		b = block_split(b, code->next->addr);
+		if (b == NULL) {
+		    free(follow);
 		    block_clear(first);
 		    return NULL;
 		}
 	    }
+
+	    /* set followups */
+	    b = block_find(b, code->addr);
+	    b->follow = follow;
+	    b->nfollow = code->size;
 	    break;
 
 	case CODE_SWITCH_RANGE:
@@ -233,10 +256,26 @@ Block *block_function(CodeFunction *function)
 	    for (i = 0; i < code->size; i++) {
 		follow[i] = b = block_split(b, code->u.caseRange[i].addr);
 		if (b == NULL) {
+		    free(follow);
 		    block_clear(first);
 		    return NULL;
 		}
 	    }
+
+	    /* start new block */
+	    if (code->next != NULL) {
+		b = block_split(b, code->next->addr);
+		if (b == NULL) {
+		    free(follow);
+		    block_clear(first);
+		    return NULL;
+		}
+	    }
+
+	    /* set followups */
+	    b = block_find(b, code->addr);
+	    b->follow = follow;
+	    b->nfollow = code->size;
 	    break;
 
 	case CODE_SWITCH_STRING:
@@ -247,10 +286,26 @@ Block *block_function(CodeFunction *function)
 	    for (i = 0; i < code->size; i++) {
 		follow[i] = b = block_split(b, code->u.caseString[i].addr);
 		if (b == NULL) {
+		    free(follow);
 		    block_clear(first);
 		    return NULL;
 		}
 	    }
+
+	    /* start new block */
+	    if (code->next != NULL) {
+		b = block_split(b, code->next->addr);
+		if (b == NULL) {
+		    free(follow);
+		    block_clear(first);
+		    return NULL;
+		}
+	    }
+
+	    /* set followups */
+	    b = block_find(b, code->addr);
+	    b->follow = follow;
+	    b->nfollow = code->size;
 	    break;
 
 	default:
