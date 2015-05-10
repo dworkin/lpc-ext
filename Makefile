@@ -2,7 +2,7 @@
 # Makefile for kfun shared objects
 #
 HOST=GNU
-EXT=0.8
+EXT=0.9
 DEFINES=
 DEBUG=
 CCFLAGS=$(DEFINES) $(DEBUG) -Isrc

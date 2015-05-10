@@ -1,11 +1,12 @@
 # ifndef LPC_EXT_H
 # define LPC_EXT_H
 
+# include <sys/types.h>
 # include <stdint.h>
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	8
+# define LPC_EXT_VERSION_MINOR	9
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -67,6 +68,11 @@ typedef struct {
     int (*save_snapshot)	(LPC_db*, LPC_db_request*);
     int (*restore_snapshot)	(LPC_db*, LPC_db_request*);
 } LPC_ext_dbase;
+typedef int		      (*LPC_jit_init)(int, int, size_t, size_t,
+					      uint16_t*, int, uint8_t*, int);
+typedef void		      (*LPC_jit_compile)(uint64_t, uint64_t, int,
+						 uint8_t*, int, uint8_t*,
+						 uint8_t*);
 
 
 extern int			lpc_ext_init(int, int, char*);
@@ -77,6 +83,8 @@ extern int			lpc_ext_init(int, int, char*);
 
 LPCEXT void			(*lpc_ext_kfun)(LPC_ext_kfun*, int);
 LPCEXT void			(*lpc_ext_dbase)(LPC_ext_dbase*);
+LPCEXT int			(*lpc_ext_jit)(LPC_jit_init, LPC_jit_compile);
+LPCEXT void			(*lpc_ext_compiled)(uint64_t, uint64_t, char*);
 
 LPCEXT LPC_object		(*lpc_frame_object)(LPC_frame);
 LPCEXT LPC_dataspace		(*lpc_frame_dataspace)(LPC_frame);
