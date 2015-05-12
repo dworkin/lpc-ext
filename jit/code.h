@@ -104,6 +104,8 @@ typedef struct {
 extern struct CodeContext *code_init	(int, int, size_t, size_t, CodeMap*,
 					 int, CodeByte*, int);
 extern void		   code_clear	(struct CodeContext*);
+extern void		   code_object	(struct CodeContext*, LPCInherit,
+					 CodeByte*, CodeByte*);
 extern CodeFunction	  *code_new	(struct CodeContext*, CodeByte*);
 extern void		   code_del	(CodeFunction*);
 extern Code		  *code_instr	(CodeFunction*);

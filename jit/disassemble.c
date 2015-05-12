@@ -11,23 +11,66 @@
 
 
 /*
- * NAME:	disasm->inherit()
- * DESCRIPTION:	disassemble inherit reference
+ * NAME:	disasm->type()
+ * DESCRIPTION:	disassemble LPC type
  */
-static void dis_inherit(LPCInherit inherit)
+static void dis_type(Type type)
 {
-    if (inherit == THIS) {
-	printf("THIS");
-    } else {
-	printf("%d", inherit);
+    int i;
+
+    switch (type & LPC_TYPE_MASK) {
+    case LPC_TYPE_NIL:
+	printf("nil");
+	break;
+
+    case LPC_TYPE_INT:
+	printf("int");
+	break;
+
+    case LPC_TYPE_FLOAT:
+	printf("float");
+	break;
+
+    case LPC_TYPE_STRING:
+	printf("string");
+	break;
+
+    case LPC_TYPE_OBJECT:
+    case LPC_TYPE_CLASS:
+	printf("object");
+	break;
+
+    case LPC_TYPE_ARRAY:
+	printf("mixed *");
+	break;
+
+    case LPC_TYPE_MAPPING:
+	printf("mapping");
+	break;
+
+    case LPC_TYPE_MIXED:
+	printf("mixed");
+	break;
+
+    case LPC_TYPE_VOID:
+	printf("void");
+	break;
+
+    default:
+	printf("unknown");
+	break;
+    }
+
+    for (i = LPC_TYPE_REF(type); i != 0; --i) {
+	printf("*");
     }
 }
 
 /*
- * NAME:	disasm->type()
- * DESCRIPTION:	disassemble LPC type
+ * NAME:	disasm->casttype()
+ * DESCRIPTION:	disassemble cast type
  */
-static void dis_type(LPCType *type)
+static void dis_casttype(LPCType *type)
 {
     int i;
 
@@ -61,9 +104,7 @@ static void dis_type(LPCType *type)
 	break;
 
     case LPC_TYPE_CLASS:
-	printf("class <");
-	dis_inherit(type->inherit);
-	printf(", %d>", type->index);
+	printf("class <%d, %d>", type->inherit, type->index);
 	break;
 
     case LPC_TYPE_MIXED:
@@ -120,9 +161,7 @@ void dis_program(CodeFunction *func)
 	    break;
 
 	case CODE_STRING:
-	    printf("STRING <");
-	    dis_inherit(code->u.str.inherit);
-	    printf(", %d>\n", code->u.str.index);
+	    printf("STRING <%d, %d>\n", code->u.str.inherit, code->u.str.index);
 	    break;
 
 	case CODE_PARAM:
@@ -134,9 +173,9 @@ void dis_program(CodeFunction *func)
 	    break;
 
 	case CODE_GLOBAL:
-	    printf("GLOBAL <");
-	    dis_inherit(code->u.var.inherit);
-	    printf(", %d>\n", code->u.var.index);
+	    printf("GLOBAL <%d, %d> ", code->u.var.inherit, code->u.var.index);
+	    dis_type(code->u.var.type);
+	    printf("\n");
 	    break;
 
 	case CODE_INDEX:
@@ -165,14 +204,13 @@ void dis_program(CodeFunction *func)
 
 	case CODE_CAST:
 	    printf("CAST ");
-	    dis_type(&code->u.type);
+	    dis_casttype(&code->u.type);
 	    printf("\n");
 	    break;
 
 	case CODE_INSTANCEOF:
-	    printf("INSTANCEOF <");
-	    dis_inherit(code->u.str.inherit);
-	    printf(", %d>\n", code->u.str.index);
+	    printf("INSTANCEOF <%d, %d>\n", code->u.str.inherit,
+		   code->u.str.index);
 	    break;
 
 	case CODE_CHECK_RANGE:
@@ -200,9 +238,8 @@ void dis_program(CodeFunction *func)
 	    break;
 
 	case CODE_STORE_GLOBAL:
-	    printf("STORE_GLOBAL <");
-	    dis_inherit(code->u.var.inherit);
-	    printf(", %d>\n", code->u.var.index);
+	    printf("STORE_GLOBAL <%d, %d>\n", code->u.var.inherit,
+		   code->u.var.index);
 	    break;
 
 	case CODE_STORE_INDEX:
@@ -218,9 +255,8 @@ void dis_program(CodeFunction *func)
 	    break;
 
 	case CODE_STORE_GLOBAL_INDEX:
-	    printf("STORE_GLOBAL_INDEX <");
-	    dis_inherit(code->u.var.inherit);
-	    printf(", %d>\n", code->u.var.index);
+	    printf("STORE_GLOBAL_INDEX <%d, %d>\n", code->u.var.inherit,
+		   code->u.var.index);
 	    break;
 
 	case CODE_STORE_INDEX_INDEX:
@@ -259,32 +295,35 @@ void dis_program(CodeFunction *func)
 	case CODE_SWITCH_STRING:
 	    printf("SWITCH_STRING %04x\n", code->u.caseString->addr);
 	    for (i = 1; i < code->size; i++) {
-		if (code->u.caseString[i].str.inherit == THIS &&
+		if (code->u.caseString[i].str.inherit == 0 &&
 		    code->u.caseString[i].str.index == 0xffff) {
 		    printf("             case nil: %04x\n",
 			   code->u.caseString[i].addr);
 		} else {
-		    printf("             case <");
-		    dis_inherit(code->u.caseString[i].str.inherit);
-		    printf(", %d>: %04x\n", code->u.caseString[i].str.index,
+		    printf("             case <%d, %d>: %04x\n",
+			   code->u.caseString[i].str.inherit,
+			   code->u.caseString[i].str.index,
 			   code->u.caseString[i].addr);
 		}
 	    }
 	    break;
 
 	case CODE_KFUNC:
-	    printf("KFUNC %d (%d)\n", code->u.kfun.func, code->u.kfun.nargs);
+	    printf("KFUNC %d ", code->u.kfun.func);
+	    dis_type(code->u.kfun.type);
+	    printf(" (%d)\n", code->u.kfun.nargs);
 	    break;
 
 	case CODE_KFUNC_STORES:
-	    printf("KFUNC_STORES %d (%d)\n", code->u.kfun.func,
-		   code->u.kfun.nargs);
+	    printf("KFUNC_STORES %d ", code->u.kfun.func);
+	    dis_type(code->u.kfun.type);
+	    printf(" (%d)\n", code->u.kfun.nargs);
 	    break;
 
 	case CODE_DFUNC:
-	    printf("DFUNC <");
-	    dis_inherit(code->u.dfun.inherit);
-	    printf(", %d> (%d)\n", code->u.dfun.func, code->u.dfun.nargs);
+	    printf("DFUNC <%d, %d> ", code->u.dfun.inherit, code->u.dfun.nargs);
+	    dis_type(code->u.dfun.type);
+	    printf(" (%d)\n", code->u.dfun.func);
 	    break;
 
 	case CODE_FUNC:

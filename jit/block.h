@@ -14,4 +14,4 @@ typedef struct Block {
     CodeSize size;			/* size of block */
 } Block;
 
-Block *block_function	(CodeFunction*);
+extern Block *block_function	(CodeFunction*);

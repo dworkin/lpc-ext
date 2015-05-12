@@ -12,15 +12,15 @@ typedef struct {
 
 typedef uint16_t LPCInherit;
 
-# define THIS			0xffff
-
 typedef struct {
     LPCInherit inherit;		/* program */
     uint16_t index;		/* index in string constant table */
 } LPCStringConst;
 
+typedef uint8_t Type;
+
 typedef struct {
-    uint8_t type;		/* compile-time type */
+    Type type;			/* compile-time type */
     LPCInherit inherit;		/* optional class string program */
     uint16_t index;		/* optional class string index */
 } LPCType;
@@ -30,17 +30,20 @@ typedef uint8_t LPCLocal;
 typedef struct {
     LPCInherit inherit;		/* program */
     uint8_t index;		/* index in variable table */
+    Type type;			/* type of variable */
 } LPCGlobal;
 
 typedef struct {
     uint16_t func;		/* index in kfun table */
     uint8_t nargs;		/* # arguments */
+    Type type;			/* return type */
 } LPCKFunc;
 
 typedef struct {
     LPCInherit inherit;		/* program */
     uint8_t func;		/* index in function table */
     uint8_t nargs;		/* # arguments */
+    Type type;			/* return type */
 } LPCDFunc;
 
 typedef struct {
