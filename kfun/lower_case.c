@@ -41,7 +41,7 @@ static LPC_ext_kfun kf[1] = {
     &lower_case
 };
 
-int lpc_ext_init(int major, int minor, char *config)
+int lpc_ext_init(int major, int minor, const char *config)
 {
     lpc_ext_kfun(kf, 1);
     return 1;

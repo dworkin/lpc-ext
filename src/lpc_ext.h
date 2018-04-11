@@ -50,10 +50,10 @@ typedef struct {
     uint64_t size;		/* size of request */
 } LPC_db_request;
 typedef struct {
-    int (*valid)		(char*);
-    LPC_db (*creat)		(char*);
-    LPC_db (*open_rw)		(char*);
-    LPC_db (*open_r)		(char*);
+    int (*valid)		(const char*);
+    LPC_db (*creat)		(const char*);
+    LPC_db (*open_rw)		(const char*);
+    LPC_db (*open_r)		(const char*);
     void (*close)		(LPC_db*);
     LPC_db_object (*new)	(LPC_db*, LPC_db_index);
     LPC_db_object (*load)	(LPC_db*, LPC_db_index, LPC_db_sector);
@@ -75,13 +75,13 @@ typedef void		      (*LPC_jit_compile)(uint64_t, uint64_t, int,
 						 uint8_t*);
 
 
-extern int			lpc_ext_init(int, int, char*);
+extern int			lpc_ext_init(int, int, const char*);
 
 # ifndef LPCEXT
 #  define LPCEXT extern
 # endif
 
-LPCEXT void			(*lpc_ext_kfun)(LPC_ext_kfun*, int);
+LPCEXT void			(*lpc_ext_kfun)(const LPC_ext_kfun*, int);
 LPCEXT void			(*lpc_ext_dbase)(LPC_ext_dbase*);
 LPCEXT int			(*lpc_ext_jit)(LPC_jit_init, LPC_jit_compile);
 LPCEXT void			(*lpc_ext_compiled)(uint64_t, uint64_t, char*);
@@ -114,7 +114,7 @@ LPCEXT char *			(*lpc_string_text)(LPC_string);
 LPCEXT int			(*lpc_string_length)(LPC_string);
 
 LPCEXT void			(*lpc_object_putval)(LPC_value, LPC_object);
-LPCEXT char *			(*lpc_object_name)(LPC_frame, LPC_object,
+LPCEXT const char *		(*lpc_object_name)(LPC_frame, LPC_object,
 						   char*);
 LPCEXT int			(*lpc_object_isspecial)(LPC_object);
 LPCEXT int			(*lpc_object_ismarked)(LPC_object);

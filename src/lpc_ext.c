@@ -38,7 +38,7 @@ static int ext_cb(void *ftab[], int size, int n, ...)
  * DESCRIPTION:	initialize extension handling
  */
 DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[],
-		       char *config)
+		       const char *config)
 {
     return (major == LPC_EXT_VERSION_MAJOR && minor >= LPC_EXT_VERSION_MINOR &&
            ext_cb(ftabs[0], sizes[0], 4,
