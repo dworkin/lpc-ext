@@ -55,14 +55,14 @@ typedef struct {
     LPC_db (*open_rw)		(const char*);
     LPC_db (*open_r)		(const char*);
     void (*close)		(LPC_db*);
-    LPC_db_object (*new)	(LPC_db*, LPC_db_index);
-    LPC_db_object (*load)	(LPC_db*, LPC_db_index, LPC_db_sector);
-    int (*del)			(LPC_db*, LPC_db_object*);
-    int (*resize)		(LPC_db*, LPC_db_object*, uint64_t,
+    LPC_db_object (*new_obj)	(LPC_db*, LPC_db_index);
+    LPC_db_object (*load_obj)	(LPC_db*, LPC_db_index, LPC_db_sector);
+    int (*del_obj)		(LPC_db*, LPC_db_object*);
+    int (*resize_obj)		(LPC_db*, LPC_db_object*, uint64_t,
 				 LPC_db_sector*);
     int (*read)			(LPC_db*, LPC_db_object*, LPC_db_request*, int);
     int (*write)		(LPC_db*, LPC_db_object*, LPC_db_request*, int);
-    int (*erase)		(LPC_db*, LPC_db_object*);
+    int (*erase_obj)		(LPC_db*, LPC_db_object*);
     int (*save)			(LPC_db*, LPC_db_request*);
     int (*restore)		(LPC_db*, LPC_db_request*);
     int (*save_snapshot)	(LPC_db*, LPC_db_request*);
@@ -73,6 +73,8 @@ typedef int		      (*LPC_jit_init)(int, int, size_t, size_t,
 typedef void		      (*LPC_jit_compile)(uint64_t, uint64_t, int,
 						 uint8_t*, int, uint8_t*,
 						 uint8_t*);
+typedef int		      (*LPC_jit_execute)(uint64_t, uint64_t, int,
+						 LPC_value);
 
 
 extern int			lpc_ext_init(int, int, const char*);
@@ -83,8 +85,8 @@ extern int			lpc_ext_init(int, int, const char*);
 
 LPCEXT void			(*lpc_ext_kfun)(const LPC_ext_kfun*, int);
 LPCEXT void			(*lpc_ext_dbase)(LPC_ext_dbase*);
-LPCEXT int			(*lpc_ext_jit)(LPC_jit_init, LPC_jit_compile);
-LPCEXT void			(*lpc_ext_compiled)(uint64_t, uint64_t, char*);
+LPCEXT int			(*lpc_ext_jit)(LPC_jit_init, LPC_jit_compile,
+					       LPC_jit_execute);
 
 LPCEXT LPC_object		(*lpc_frame_object)(LPC_frame);
 LPCEXT LPC_dataspace		(*lpc_frame_dataspace)(LPC_frame);

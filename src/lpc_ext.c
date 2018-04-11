@@ -41,11 +41,10 @@ DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[],
 		       const char *config)
 {
     return (major == LPC_EXT_VERSION_MAJOR && minor >= LPC_EXT_VERSION_MINOR &&
-           ext_cb(ftabs[0], sizes[0], 4,
+           ext_cb(ftabs[0], sizes[0], 3,
 		   &lpc_ext_kfun,
 		   &lpc_ext_dbase,
-		   &lpc_ext_jit,
-		   &lpc_ext_compiled) &&
+		   &lpc_ext_jit) &&
 	    ext_cb(ftabs[1], sizes[1], 4,
 		   &lpc_frame_object,
 		   &lpc_frame_dataspace,

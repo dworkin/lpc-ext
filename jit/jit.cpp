@@ -7,7 +7,7 @@
  * NAME:	fatal()
  * DESCRIPTION:	fatal error
  */
-void fatal(char *format, ...)
+void fatal(const char *format, ...)
 {
     va_list argp;
     char buf[1024];

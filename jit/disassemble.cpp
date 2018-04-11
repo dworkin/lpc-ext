@@ -3,7 +3,9 @@
 # include <stdbool.h>
 # include <string.h>
 # include <stdio.h>
+extern "C" {
 # include "lpc_ext.h"
+}
 # include "data.h"
 # include "code.h"
 # include "disassemble.h"
@@ -151,131 +153,131 @@ void dis_program(CodeFunction *func)
 	}
 
 	switch (code->instruction) {
-	case CODE_INT:
+	case Code::INT:
 	    printf("INT %lld\n", code->u.num);
 	    break;
 
-	case CODE_FLOAT:
+	case Code::FLOAT:
 	    printf("FLOAT <%08X, %016llX>\n", code->u.flt.high,
 		   code->u.flt.low);
 	    break;
 
-	case CODE_STRING:
+	case Code::STRING:
 	    printf("STRING <%d, %d>\n", code->u.str.inherit, code->u.str.index);
 	    break;
 
-	case CODE_PARAM:
+	case Code::PARAM:
 	    printf("PARAM %d\n", code->u.param);
 	    break;
 
-	case CODE_LOCAL:
+	case Code::LOCAL:
 	    printf("LOCAL %d\n", code->u.local);
 	    break;
 
-	case CODE_GLOBAL:
+	case Code::GLOBAL:
 	    printf("GLOBAL <%d, %d> ", code->u.var.inherit, code->u.var.index);
 	    dis_type(code->u.var.type);
 	    printf("\n");
 	    break;
 
-	case CODE_INDEX:
+	case Code::INDEX:
 	    printf("INDEX\n");
 	    break;
 
-	case CODE_INDEX2:
+	case Code::INDEX2:
 	    printf("INDEX2\n");
 	    break;
 
-	case CODE_SPREAD:
+	case Code::SPREAD:
 	    printf("SPREAD %d\n", code->u.spread);
 	    break;
 
-	case CODE_SPREAD_STORES:
+	case Code::SPREAD_STORES:
 	    printf("SPREAD_STORES %d\n", code->u.spread);
 	    break;
 
-	case CODE_AGGREGATE:
+	case Code::AGGREGATE:
 	    printf("AGGREGATE %d\n", code->size);
 	    break;
 
-	case CODE_MAP_AGGREGATE:
+	case Code::MAP_AGGREGATE:
 	    printf("MAP_AGGREGATE %d\n", code->size);
 	    break;
 
-	case CODE_CAST:
+	case Code::CAST:
 	    printf("CAST ");
 	    dis_casttype(&code->u.type);
 	    printf("\n");
 	    break;
 
-	case CODE_INSTANCEOF:
+	case Code::INSTANCEOF:
 	    printf("INSTANCEOF <%d, %d>\n", code->u.str.inherit,
 		   code->u.str.index);
 	    break;
 
-	case CODE_CHECK_RANGE:
+	case Code::CHECK_RANGE:
 	    printf("CHECK_RANGE\n");
 	    break;
 
-	case CODE_CHECK_RANGE_FROM:
+	case Code::CHECK_RANGE_FROM:
 	    printf("CHECK_RANGE_FROM\n");
 	    break;
 
-	case CODE_CHECK_RANGE_TO:
+	case Code::CHECK_RANGE_TO:
 	    printf("CHECK_RANGE_TO\n");
 	    break;
 
-	case CODE_STORES:
+	case Code::STORES:
 	    printf("STORES %d\n", code->size);
 	    break;
 
-	case CODE_STORE_PARAM:
+	case Code::STORE_PARAM:
 	    printf("STORE_PARAM %d\n", code->u.param);
 	    break;
 
-	case CODE_STORE_LOCAL:
+	case Code::STORE_LOCAL:
 	    printf("STORE_LOCAL %d\n", code->u.local);
 	    break;
 
-	case CODE_STORE_GLOBAL:
+	case Code::STORE_GLOBAL:
 	    printf("STORE_GLOBAL <%d, %d>\n", code->u.var.inherit,
 		   code->u.var.index);
 	    break;
 
-	case CODE_STORE_INDEX:
+	case Code::STORE_INDEX:
 	    printf("STORE_INDEX\n");
 	    break;
 
-	case CODE_STORE_PARAM_INDEX:
+	case Code::STORE_PARAM_INDEX:
 	    printf("STORE_PARAM_INDEX %d\n", code->u.param);
 	    break;
 
-	case CODE_STORE_LOCAL_INDEX:
+	case Code::STORE_LOCAL_INDEX:
 	    printf("STORE_LOCAL_INDEX %d\n", code->u.local);
 	    break;
 
-	case CODE_STORE_GLOBAL_INDEX:
+	case Code::STORE_GLOBAL_INDEX:
 	    printf("STORE_GLOBAL_INDEX <%d, %d>\n", code->u.var.inherit,
 		   code->u.var.index);
 	    break;
 
-	case CODE_STORE_INDEX_INDEX:
+	case Code::STORE_INDEX_INDEX:
 	    printf("STORE_INDEX_INDEX\n");
 	    break;
 
-	case CODE_JUMP:
+	case Code::JUMP:
 	    printf("JUMP %04x\n", code->u.addr);
 	    break;
 
-	case CODE_JUMP_ZERO:
+	case Code::JUMP_ZERO:
 	    printf("JUMP_ZERO %04x\n", code->u.addr);
 	    break;
 
-	case CODE_JUMP_NONZERO:
+	case Code::JUMP_NONZERO:
 	    printf("JUMP_NONZERO %04x\n", code->u.addr);
 	    break;
 
-	case CODE_SWITCH_INT:
+	case Code::SWITCH_INT:
 	    printf("SWITCH_INT %04x\n", code->u.caseInt->addr);
 	    for (i = 1; i < code->size; i++) {
 		printf("             case %lld: %04x\n", code->u.caseInt[i].num,
@@ -283,7 +285,7 @@ void dis_program(CodeFunction *func)
 	    }
 	    break;
 
-	case CODE_SWITCH_RANGE:
+	case Code::SWITCH_RANGE:
 	    printf("SWITCH_RANGE %04x\n", code->u.caseRange->addr);
 	    for (i = 1; i < code->size; i++) {
 		printf("             case %lld..%lld: %04x\n",
@@ -292,7 +294,7 @@ void dis_program(CodeFunction *func)
 	    }
 	    break;
 
-	case CODE_SWITCH_STRING:
+	case Code::SWITCH_STRING:
 	    printf("SWITCH_STRING %04x\n", code->u.caseString->addr);
 	    for (i = 1; i < code->size; i++) {
 		if (code->u.caseString[i].str.inherit == 0 &&
@@ -308,49 +310,49 @@ void dis_program(CodeFunction *func)
 	    }
 	    break;
 
-	case CODE_KFUNC:
+	case Code::KFUNC:
 	    printf("KFUNC %d ", code->u.kfun.func);
 	    dis_type(code->u.kfun.type);
 	    printf(" (%d)\n", code->u.kfun.nargs);
 	    break;
 
-	case CODE_KFUNC_STORES:
+	case Code::KFUNC_STORES:
 	    printf("KFUNC_STORES %d ", code->u.kfun.func);
 	    dis_type(code->u.kfun.type);
 	    printf(" (%d)\n", code->u.kfun.nargs);
 	    break;
 
-	case CODE_DFUNC:
+	case Code::DFUNC:
 	    printf("DFUNC <%d, %d> ", code->u.dfun.inherit, code->u.dfun.nargs);
 	    dis_type(code->u.dfun.type);
 	    printf(" (%d)\n", code->u.dfun.func);
 	    break;
 
-	case CODE_FUNC:
+	case Code::FUNC:
 	    printf("FUNC %d (%d)\n", code->u.fun.call, code->u.fun.nargs);
 	    break;
 
-	case CODE_CATCH:
+	case Code::CATCH:
 	    printf("CATCH %04x\n", code->u.addr);
 	    break;
 
-	case CODE_END_CATCH:
+	case Code::END_CATCH:
 	    printf("END_CATCH\n");
 	    break;
 
-	case CODE_RLIMITS:
+	case Code::RLIMITS:
 	    printf("RLIMITS\n");
 	    break;
 
-	case CODE_RLIMITS_CHECK:
+	case Code::RLIMITS_CHECK:
 	    printf("RLIMITS_CHECK\n");
 	    break;
 
-	case CODE_END_RLIMITS:
+	case Code::END_RLIMITS:
 	    printf("END_RLIMITS\n");
 	    break;
 
-	case CODE_RETURN:
+	case Code::RETURN:
 	    printf("RETURN\n");
 	    break;
 	}

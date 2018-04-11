@@ -1,7 +1,9 @@
 # include <stdlib.h>
 # include <stdint.h>
 # include <stdbool.h>
+extern "C" {
 # include "lpc_ext.h"
+}
 # include "data.h"
 # include "code.h"
 # include "block.h"
@@ -164,7 +166,7 @@ Block *block_function(CodeFunction *function)
 
     for (b = first; code != NULL; code = code->next) {
 	switch (code->instruction) {
-	case CODE_JUMP:
+	case Code::JUMP:
 	    /* split at jump target */
 	    b = block_split(b, code->u.addr);
 	    if (b == NULL) {
@@ -191,9 +193,9 @@ Block *block_function(CodeFunction *function)
 	    b->nfollow = 1;
 	    break;
 
-	case CODE_JUMP_ZERO:
-	case CODE_JUMP_NONZERO:
-	case CODE_CATCH:
+	case Code::JUMP_ZERO:
+	case Code::JUMP_NONZERO:
+	case Code::CATCH:
 	    /* split at jump target */
 	    b = block_split(b, code->u.addr);
 	    if (b == NULL) {
@@ -219,7 +221,7 @@ Block *block_function(CodeFunction *function)
 	    b->nfollow = 2;
 	    break;
 
-	case CODE_SWITCH_INT:
+	case Code::SWITCH_INT:
 	    /* create jump table with block entry points */
 	    follow = alloc(Block*, code->size);
 	    for (i = 0; i < code->size; i++) {
@@ -248,7 +250,7 @@ Block *block_function(CodeFunction *function)
 	    b->nfollow = code->size;
 	    break;
 
-	case CODE_SWITCH_RANGE:
+	case Code::SWITCH_RANGE:
 	    /* create jump table with block entry points */
 	    b = block_find(b, code->addr);
 	    b->follow = follow = alloc(Block*, code->size);
@@ -278,7 +280,7 @@ Block *block_function(CodeFunction *function)
 	    b->nfollow = code->size;
 	    break;
 
-	case CODE_SWITCH_STRING:
+	case Code::SWITCH_STRING:
 	    /* create jump table with block entry points */
 	    b = block_find(b, code->addr);
 	    b->follow = follow = alloc(Block*, code->size);

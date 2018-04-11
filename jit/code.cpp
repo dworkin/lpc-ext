@@ -2,7 +2,9 @@
 # include <stdint.h>
 # include <stdbool.h>
 # include <string.h>
+extern "C" {
 # include "lpc_ext.h"
+}
 # include "data.h"
 # include "instruction.h"
 # include "code.h"
@@ -556,22 +558,22 @@ Code *code_instr(CodeFunction *function)
     switch (instr & I_INSTR_MASK) {
     case I_INT1:
 	code->u.num = FETCH1S(pc);
-	code->instruction = CODE_INT;
+	code->instruction = Code::INT;
 	break;
 
     case I_INT2:
 	code->u.num = FETCH2S(pc);
-	code->instruction = CODE_INT;
+	code->instruction = Code::INT;
 	break;
 
     case I_INT4:
 	code->u.num = FETCH4S(pc);
-	code->instruction = CODE_INT;
+	code->instruction = Code::INT;
 	break;
 
     case I_INT8:
 	code->u.num = FETCH8S(pc);
-	code->instruction = CODE_INT;
+	code->instruction = Code::INT;
 	break;
 
     case I_FLOAT6:
@@ -586,41 +588,41 @@ Code *code_instr(CodeFunction *function)
 			       ((flt.high & 0xf) << 12) + (flt.low >> 20);
 	    code->u.flt.low = flt.low << 44;
 	}
-	code->instruction = CODE_FLOAT;
+	code->instruction = Code::FLOAT;
 	break;
 
     case I_FLOAT12:
 	code->u.flt.high = FETCH4U(pc);
 	code->u.flt.low = FETCH8U(pc);
-	code->instruction = CODE_FLOAT;
+	code->instruction = Code::FLOAT;
 	break;
 
     case I_STRING:
 	code->u.str.inherit = function->context->nInherits - 1;
 	code->u.str.index = FETCH1U(pc);
-	code->instruction = CODE_STRING;
+	code->instruction = Code::STRING;
 	break;
 
     case I_NEAR_STRING:
 	code->u.str.inherit = FETCH1U(pc);
 	code->u.str.index = FETCH1U(pc);
-	code->instruction = CODE_STRING;
+	code->instruction = Code::STRING;
 	break;
 
     case I_FAR_STRING:
 	code->u.str.inherit = FETCHI(pc, function->context);
 	code->u.str.index = FETCH2U(pc);
-	code->instruction = CODE_STRING;
+	code->instruction = Code::STRING;
 	break;
 
     case I_LOCAL:
 	i = FETCH1S(pc);
 	if (i < 0) {
 	    code->u.local = -(i + 1);
-	    code->instruction = CODE_LOCAL;
+	    code->instruction = Code::LOCAL;
 	} else {
 	    code->u.param = i;
-	    code->instruction = CODE_PARAM;
+	    code->instruction = Code::PARAM;
 	}
 	break;
 
@@ -629,7 +631,7 @@ Code *code_instr(CodeFunction *function)
 	code->u.var.index = FETCH1U(pc);
 	code->u.var.type = function->context->varTypes[code->u.var.inherit]
 						      [code->u.var.index];
-	code->instruction = CODE_GLOBAL;
+	code->instruction = Code::GLOBAL;
 	break;
 
     case I_FAR_GLOBAL:
@@ -637,18 +639,18 @@ Code *code_instr(CodeFunction *function)
 	code->u.var.index = FETCH1U(pc);
 	code->u.var.type = function->context->varTypes[code->u.var.inherit]
 						      [code->u.var.index];
-	code->instruction = CODE_GLOBAL;
+	code->instruction = Code::GLOBAL;
 	break;
 
     case I_INDEX | I_POP_BIT:
 	code->pop = TRUE;
 	/* fall through */
     case I_INDEX:
-	code->instruction = CODE_INDEX;
+	code->instruction = Code::INDEX;
 	break;
 
     case I_INDEX2:
-	code->instruction = CODE_INDEX2;
+	code->instruction = Code::INDEX2;
 	break;
 
     case I_AGGREGATE | I_POP_BIT:
@@ -656,17 +658,17 @@ Code *code_instr(CodeFunction *function)
 	/* fall through */
     case I_AGGREGATE:
 	code->instruction = (FETCH1U(pc) == 0) ?
-			     CODE_AGGREGATE : CODE_MAP_AGGREGATE;
+			     Code::AGGREGATE : Code::MAP_AGGREGATE;
 	code->size = FETCH2U(pc);
 	break;
 
     case I_SPREAD:
 	code->u.spread = FETCH1S(pc);
 	if (code->u.spread >= 0) {
-	    code->instruction = CODE_SPREAD;
+	    code->instruction = Code::SPREAD;
 	} else {
 	    code->u.spread = -(code->u.spread + 2);
-	    code->instruction = CODE_SPREAD_STORES;
+	    code->instruction = Code::SPREAD_STORES;
 	}
 	break;
 
@@ -675,7 +677,7 @@ Code *code_instr(CodeFunction *function)
 	/* fall through */
     case I_CAST:
 	pc = code_type(function->context, pc, &code->u.type);
-	code->instruction = CODE_CAST;
+	code->instruction = Code::CAST;
 	break;
 
     case I_INSTANCEOF | I_POP_BIT:
@@ -684,12 +686,12 @@ Code *code_instr(CodeFunction *function)
     case I_INSTANCEOF:
 	code->u.str.inherit = FETCHI(pc, function->context);
 	code->u.str.index = FETCH2U(pc);
-	code->instruction = CODE_INSTANCEOF;
+	code->instruction = Code::INSTANCEOF;
 	break;
 
     case I_STORES:
 	code->size = FETCH1U(pc);
-	code->instruction = CODE_STORES;
+	code->instruction = Code::STORES;
 	break;
 
     case I_STORE_LOCAL | I_POP_BIT:
@@ -699,10 +701,10 @@ Code *code_instr(CodeFunction *function)
 	i = FETCH1S(pc);
 	if (i < 0) {
 	    code->u.local = -(i + 1);
-	    code->instruction = CODE_STORE_LOCAL;
+	    code->instruction = Code::STORE_LOCAL;
 	} else {
 	    code->u.param = i;
-	    code->instruction = CODE_STORE_PARAM;
+	    code->instruction = Code::STORE_PARAM;
 	}
 	break;
 
@@ -712,7 +714,7 @@ Code *code_instr(CodeFunction *function)
     case I_STORE_GLOBAL:
 	code->u.var.inherit = function->context->nInherits - 1;
 	code->u.var.index = FETCH1U(pc);
-	code->instruction = CODE_STORE_GLOBAL;
+	code->instruction = Code::STORE_GLOBAL;
 	break;
 
     case I_STORE_FAR_GLOBAL | I_POP_BIT:
@@ -721,14 +723,14 @@ Code *code_instr(CodeFunction *function)
     case I_STORE_FAR_GLOBAL:
 	code->u.var.inherit = FETCHI(pc, function->context);
 	code->u.var.index = FETCH1U(pc);
-	code->instruction = CODE_STORE_GLOBAL;
+	code->instruction = Code::STORE_GLOBAL;
 	break;
 
     case I_STORE_INDEX | I_POP_BIT:
 	code->pop = TRUE;
 	/* fall through */
     case I_STORE_INDEX:
-	code->instruction = CODE_STORE_INDEX;
+	code->instruction = Code::STORE_INDEX;
 	break;
 
     case I_STORE_LOCAL_INDEX | I_POP_BIT:
@@ -738,10 +740,10 @@ Code *code_instr(CodeFunction *function)
 	i = FETCH1S(pc);
 	if (i < 0) {
 	    code->u.local = -(i + 1);
-	    code->instruction = CODE_STORE_LOCAL_INDEX;
+	    code->instruction = Code::STORE_LOCAL_INDEX;
 	} else {
 	    code->u.param = i;
-	    code->instruction = CODE_STORE_PARAM_INDEX;
+	    code->instruction = Code::STORE_PARAM_INDEX;
 	}
 	break;
 
@@ -751,7 +753,7 @@ Code *code_instr(CodeFunction *function)
     case I_STORE_GLOBAL_INDEX:
 	code->u.var.inherit = function->context->nInherits - 1;
 	code->u.var.index = FETCH1U(pc);
-	code->instruction = CODE_STORE_GLOBAL_INDEX;
+	code->instruction = Code::STORE_GLOBAL_INDEX;
 	break;
 
     case I_STORE_FAR_GLOBAL_INDEX | I_POP_BIT:
@@ -760,49 +762,49 @@ Code *code_instr(CodeFunction *function)
     case I_STORE_FAR_GLOBAL_INDEX:
 	code->u.var.inherit = FETCHI(pc, function->context);
 	code->u.var.index = FETCH1U(pc);
-	code->instruction = CODE_STORE_GLOBAL_INDEX;
+	code->instruction = Code::STORE_GLOBAL_INDEX;
 	break;
 
     case I_STORE_INDEX_INDEX | I_POP_BIT:
 	code->pop = TRUE;
 	/* fall through */
     case I_STORE_INDEX_INDEX:
-	code->instruction = CODE_STORE_INDEX_INDEX;
+	code->instruction = Code::STORE_INDEX_INDEX;
 	break;
 
     case I_JUMP_ZERO:
 	code->pop = TRUE;
 	code->u.addr = FETCH2U(pc);
-	code->instruction = CODE_JUMP_ZERO;
+	code->instruction = Code::JUMP_ZERO;
 	break;
 
     case I_JUMP_NONZERO:
 	code->pop = TRUE;
 	code->u.addr = FETCH2U(pc);
-	code->instruction = CODE_JUMP_NONZERO;
+	code->instruction = Code::JUMP_NONZERO;
 	break;
 
     case I_JUMP:
 	code->u.addr = FETCH2U(pc);
-	code->instruction = CODE_JUMP;
+	code->instruction = Code::JUMP;
 	break;
 
     case I_SWITCH:
 	code->pop = TRUE;
 	switch (FETCH1U(pc)) {
-	case SWITCH_INT:
+	case I_SWITCH_INT:
 	    pc = code_switch_int(code, pc);
-	    code->instruction = CODE_SWITCH_INT;
+	    code->instruction = Code::SWITCH_INT;
 	    break;
 
-	case SWITCH_RANGE:
+	case I_SWITCH_RANGE:
 	    pc = code_switch_range(code, pc);
-	    code->instruction = CODE_SWITCH_RANGE;
+	    code->instruction = Code::SWITCH_RANGE;
 	    break;
 
-	case SWITCH_STRING:
+	case I_SWITCH_STRING:
 	    pc = code_switch_string(code, pc, function->context);
-	    code->instruction = CODE_SWITCH_STRING;
+	    code->instruction = Code::SWITCH_STRING;
 	    break;
 	}
 	break;
@@ -814,15 +816,15 @@ Code *code_instr(CodeFunction *function)
 	code->u.kfun.func = function->context->map[FETCH1U(pc)];
 	switch (code->u.kfun.func) {
 	case KF_CKRANGEFT:
-	    code->instruction = CODE_CHECK_RANGE;
+	    code->instruction = Code::CHECK_RANGE;
 	    break;
 
 	case KF_CKRANGEF:
-	    code->instruction = CODE_CHECK_RANGE_FROM;
+	    code->instruction = Code::CHECK_RANGE_FROM;
 	    break;
 
 	case KF_CKRANGET:
-	    code->instruction = CODE_CHECK_RANGE_TO;
+	    code->instruction = Code::CHECK_RANGE_TO;
 	    break;
 
 	default:
@@ -833,7 +835,8 @@ Code *code_instr(CodeFunction *function)
 		code->u.kfun.nargs = kfun->nargs;
 	    }
 	    code->u.kfun.type = kfun->proto[0].type;
-	    code->instruction = (kfun->lval) ? CODE_KFUNC_STORES : CODE_KFUNC;
+	    code->instruction = (kfun->lval) ?
+				 Code::KFUNC_STORES : Code::KFUNC;
 	    break;
 	}
 	break;
@@ -850,7 +853,7 @@ Code *code_instr(CodeFunction *function)
 	    code->u.kfun.nargs = kfun->nargs;
 	}
 	code->u.kfun.type = kfun->proto[0].type;
-	code->instruction = (kfun->lval) ? CODE_KFUNC_STORES : CODE_KFUNC;
+	code->instruction = (kfun->lval) ? Code::KFUNC_STORES : Code::KFUNC;
 	break;
 
     case I_CALL_CKFUNC | I_POP_BIT:
@@ -861,7 +864,7 @@ Code *code_instr(CodeFunction *function)
 	code->u.kfun.nargs = FETCH1U(pc);
 	kfun = &function->context->kfun[code->u.kfun.func];
 	code->u.kfun.type = kfun->proto[0].type;
-	code->instruction = (kfun->lval) ? CODE_KFUNC_STORES : CODE_KFUNC;
+	code->instruction = (kfun->lval) ? Code::KFUNC_STORES : Code::KFUNC;
 	break;
 
     case I_CALL_CEFUNC | I_POP_BIT:
@@ -872,7 +875,7 @@ Code *code_instr(CodeFunction *function)
 	code->u.kfun.nargs = FETCH1U(pc);
 	kfun = &function->context->kfun[code->u.kfun.func];
 	code->u.kfun.type = kfun->proto[0].type;
-	code->instruction = (kfun->lval) ? CODE_KFUNC_STORES : CODE_KFUNC;
+	code->instruction = (kfun->lval) ? Code::KFUNC_STORES : Code::KFUNC;
 	break;
 
     case I_CALL_AFUNC | I_POP_BIT:
@@ -883,7 +886,7 @@ Code *code_instr(CodeFunction *function)
 	code->u.dfun.func = FETCH1U(pc);
 	code->u.dfun.nargs = FETCH1U(pc);
 	code->u.dfun.type = function->context->funcTypes[0][code->u.dfun.func];
-	code->instruction = CODE_DFUNC;
+	code->instruction = Code::DFUNC;
 	break;
 
     case I_CALL_DFUNC | I_POP_BIT:
@@ -895,7 +898,7 @@ Code *code_instr(CodeFunction *function)
 	code->u.dfun.nargs = FETCH1U(pc);
 	code->u.dfun.type = function->context->funcTypes[code->u.dfun.inherit]
 							[code->u.dfun.func];
-	code->instruction = CODE_DFUNC;
+	code->instruction = Code::DFUNC;
 	break;
 
     case I_CALL_FUNC | I_POP_BIT:
@@ -904,7 +907,7 @@ Code *code_instr(CodeFunction *function)
     case I_CALL_FUNC:
 	code->u.fun.call = FETCH2U(pc);
 	code->u.fun.nargs = FETCH1U(pc);
-	code->instruction = CODE_FUNC;
+	code->instruction = Code::FUNC;
 	break;
 
     case I_CATCH | I_POP_BIT:
@@ -912,17 +915,17 @@ Code *code_instr(CodeFunction *function)
 	/* fall through */
     case I_CATCH:
 	code->u.addr = FETCH2U(pc);
-	code->instruction = CODE_CATCH;
+	code->instruction = Code::CATCH;
 	break;
 
     case I_RLIMITS:
 	code->pop = TRUE;
 	code->instruction = (FETCH1U(pc) != 0) ?
-			     CODE_RLIMITS : CODE_RLIMITS_CHECK;
+			     Code::RLIMITS : Code::RLIMITS_CHECK;
 	break;
 
     case I_RETURN:
-	code->instruction = CODE_RETURN;
+	code->instruction = Code::RETURN;
 	break;
 
     default:
@@ -940,15 +943,15 @@ Code *code_instr(CodeFunction *function)
 static void code_remove(Code *code)
 {
     switch (code->instruction) {
-    case CODE_SWITCH_INT:
+    case Code::SWITCH_INT:
 	free(code->u.caseInt);
 	break;
 
-    case CODE_SWITCH_RANGE:
+    case Code::SWITCH_RANGE:
 	free(code->u.caseRange);
 	break;
 
-    case CODE_SWITCH_STRING:
+    case Code::SWITCH_STRING:
 	free(code->u.caseString);
 	break;
 

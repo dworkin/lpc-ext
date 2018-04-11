@@ -51,9 +51,9 @@
 # define I_LINE_MASK			0xc0
 # define I_LINE_SHIFT			6
 
-# define SWITCH_INT			0
-# define SWITCH_RANGE			1
-# define SWITCH_STRING			2
+# define I_SWITCH_INT			0
+# define I_SWITCH_RANGE			1
+# define I_SWITCH_STRING		2
 
 # define VERSION_VM_MAJOR		2
 # define VERSION_VM_MINOR		1
