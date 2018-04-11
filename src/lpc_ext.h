@@ -97,6 +97,7 @@ LPCEXT void			(*lpc_data_set_val)(LPC_dataspace, LPC_value);
 LPCEXT int			(*lpc_value_type)(LPC_value);
 LPCEXT LPC_value		(*lpc_value_nil)(void);
 LPCEXT LPC_value		(*lpc_value_temp)(LPC_dataspace);
+LPCEXT LPC_value		(*lpc_value_temp2)(LPC_dataspace);
 
 LPCEXT LPC_int			(*lpc_int_getval)(LPC_value);
 LPCEXT void			(*lpc_int_putval)(LPC_value, LPC_int);

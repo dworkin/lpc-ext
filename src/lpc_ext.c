@@ -54,10 +54,11 @@ DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[],
 	    ext_cb(ftabs[2], sizes[2], 2,
 		   &lpc_data_get_val,
 		   &lpc_data_set_val) &&
-	    ext_cb(ftabs[3], sizes[3], 3,
+	    ext_cb(ftabs[3], sizes[3], 4,
 		   &lpc_value_type,
 		   &lpc_value_nil,
-		   &lpc_value_temp) &&
+		   &lpc_value_temp,
+		   &lpc_value_temp2) &&
 	    ext_cb(ftabs[4], sizes[4], 2,
 		   &lpc_int_getval,
 		   &lpc_int_putval) &&

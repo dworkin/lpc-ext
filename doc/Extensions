@@ -3,15 +3,15 @@
 1. Introduction
 
 DGD presents an interface for extending the driver with new kfuns and special
-object types.  To enable this interface, DGD should be compiled with the macro
-LPC_EXTENSION defined.  The driver may then be started as follows:
+object types.  Extension modules can be specified in the config file using
+the modules parameter:
 
-    dgd -e module config_file
+    modules = ([ "/path/to/extension/module" : "module configuration" ]);
 
 The extension module will be loaded into DGD at runtime, and the function
-int lpc_ext_init(int major, int minor) will be called to initialize it; this
-function must return a non-zero value to indicate that initialization was
-successful.
+int lpc_ext_init(int major, int minor, char *config) will be called to
+initialize it; this function must return a non-zero value to indicate that
+initialization was successful.
 
 
 2. Kernel functions
@@ -144,6 +144,7 @@ extension kfun, at all.
     int		lpc_value_type(LPC_value val);
     LPC_value	lpc_value_nil();		/* the nil value */
     LPC_value	lpc_value_temp();		/* a temporary value */
+    LPC_value	lpc_value_temp2();		/* another temporary value */
 
 To save data, it must first be stored in a value.  Since LPC_value is actually
 a pointer, there is no way to construct a new value.  lpc_value_temp() can be
@@ -234,7 +235,7 @@ static LPC_ext_kfun kf[1] = {
     &lower_case
 };
 
-int lpc_ext_init(int major, int minor)
+int lpc_ext_init(int major, int minor, char *config)
 {
     lpc_ext_kfun(kf, 1);
     return 1;

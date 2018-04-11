@@ -1,7 +1,6 @@
 #
 # Makefile for kfun shared objects
 #
-HOST=GNU
 EXT=0.9
 DEFINES=
 DEBUG=

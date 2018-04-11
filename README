@@ -3,5 +3,5 @@ doc	documentation
 kfun	kfun source code
 
 To build modules for all kfuns, just type 'make' (or whatever your GNU make
-command is).  On OS X, use 'make HOST=DARWIN'.  On Windows, use Visual Studio
-2010 with the solution file lpc-ext.sln, or use 'make EXT=dll' with Cygwin.
+command is).  On Windows, use Visual Studio 2010 with the solution file
+lpc-ext.sln, or use 'make EXT=dll' with Cygwin.
