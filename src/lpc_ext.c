@@ -11,6 +11,7 @@
 # include <stdarg.h>
 # include <sys/types.h>
 # include <sys/wait.h>
+# include <fcntl.h>
 
 
 /*
@@ -163,6 +164,8 @@ void lpc_ext_spawn(const char *program)
     if (pid > 0) {
 	in = input[0];
 	out = output[1];
+	fcntl(in, F_SETFD, FD_CLOEXEC);
+	fcntl(out, F_SETFD, FD_CLOEXEC);
 	close(input[1]);
 	close(output[0]);
 	do {
