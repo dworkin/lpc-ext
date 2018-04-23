@@ -212,7 +212,7 @@ void lpc_ext_spawn(const char *program)
  * NAME:	lpc_ext->read()
  * DESCRIPTION:	read input from the child process
  */
-int lpc_ext_read(char *buffer, int len)
+int lpc_ext_read(void *buffer, int len)
 {
     return read(in, buffer, len);
 }
@@ -221,7 +221,7 @@ int lpc_ext_read(char *buffer, int len)
  * NAME:	lpc_ext->write()
  * DESCRIPTION:	write output to the child process
  */
-int lpc_ext_write(const char *buffer, int len)
+int lpc_ext_write(const void *buffer, int len)
 {
     return write(out, buffer, len);
 }
