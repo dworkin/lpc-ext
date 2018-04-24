@@ -73,7 +73,8 @@ typedef int		      (*LPC_jit_init)(int, int, size_t, size_t,
 					      int);
 typedef void		      (*LPC_jit_compile)(uint64_t, uint64_t, int,
 						 uint8_t*, size_t, int,
-						 uint8_t*, int, uint8_t*, int);
+						 uint8_t*, size_t, uint8_t*,
+						 size_t);
 typedef int		      (*LPC_jit_execute)(uint64_t, uint64_t, int,
 						 LPC_value);
 
