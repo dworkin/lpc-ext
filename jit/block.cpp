@@ -1,13 +1,12 @@
 # include <stdlib.h>
 # include <stdint.h>
-# include <stdbool.h>
 extern "C" {
 # include "lpc_ext.h"
 }
 # include "data.h"
 # include "code.h"
 # include "block.h"
-# include "jit.h"
+# include "jitcomp.h"
 
 
 /*

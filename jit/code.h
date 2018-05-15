@@ -91,8 +91,8 @@ typedef struct Code {
 typedef struct {
     struct CodeContext *context;	/* code context */
     LPCType *proto;			/* function prototype */
+    uint8_t fclass;			/* function class */
     uint8_t nargs, vargs;		/* # arguments & optional arguments */
-    bool ellipsis;			/* has ellipsis? */
     uint8_t locals;			/* # locals */
     uint16_t stack;			/* stack depth */
     CodeByte *program, *lines;		/* program & line numbers */
@@ -100,6 +100,17 @@ typedef struct {
     CodeLine line;			/* current line */
     Code *list, *last;			/* list of code in this function */
 } CodeFunction;
+
+enum FunctionClass {
+    CLASS_PRIVATE = 0x01,
+    CLASS_STATIC = 0x02,
+    CLASS_NOMASK = 0x04,
+    CLASS_ELLIPSIS = 0x08,
+    CLASS_VARARGS = 0x08,
+    CLASS_ATOMIC = 0x10,
+    CLASS_TYPECHECKED = 0x20,
+    CLASS_UNDEFINED = 0x80
+};
 
 extern struct CodeContext *code_init	(int, int, size_t, size_t, CodeMap*,
 					 int, CodeByte*, int);
