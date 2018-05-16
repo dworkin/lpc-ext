@@ -8,6 +8,7 @@ OBJ=	code.o block.o disassemble.o jitcomp.o
 all:	jitcomp
 
 jitcomp: $(OBJ)
+	$(CXX) $(OBJ) -o jitcomp
 
 clean:
 	rm -f $(OBJ) jitcomp
