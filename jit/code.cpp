@@ -1,5 +1,6 @@
 # include <stdlib.h>
 # include <stdint.h>
+# include <new>
 # include <string.h>
 extern "C" {
 # include "lpc_ext.h"
@@ -42,8 +43,6 @@ extern "C" {
 # define FETCHI(pc, cc) (((cc)->inhSize > sizeof(char)) ? \
 			  FETCH2U(pc) : FETCH1U(pc))
 
-# define ELLIPSIS	0x08
-
 # define PROTO_CLASS(p)	((p)[0])
 # define PROTO_NARGS(p)	((p)[1])
 # define PROTO_VARGS(p)	((p)[2])
@@ -53,69 +52,46 @@ extern "C" {
 # define KF_CKRANGEF	52
 # define KF_CKRANGET	53
 
-typedef struct {
-    LPCType *proto;		/* return and argument types */
-    uint8_t nargs, vargs;	/* # arguments & optional arguments */
-    bool lval;			/* has lvalue arguments? */
-} CodeProto;
-
-typedef struct CodeContext {
-    size_t intSize;		/* integer size */
-    size_t inhSize;		/* inherit size */
-    CodeMap *map;		/* kfun mapping */
-    CodeProto *kfun;		/* kfun prototypes */
-    uint16_t nkfun;		/* # kfuns */
-
-    /* current object */
-    LPCInherit nInherits;	/* # inherits */
-    CodeByte **funcTypes;	/* function types */
-    CodeByte **varTypes;	/* variable types */
-} CodeContext;
+/*
+ * check VM version
+ */
+bool CodeContext::validVM(int major, int minor)
+{
+    return (major == VERSION_VM_MAJOR && minor <= VERSION_VM_MINOR);
+}
 
 /*
- * NAME:	Code->type()
- * DESCRIPTION:	retrieve a return type or argument type
+ * retrieve a return type or argument type
  */
-static CodeByte *code_type(CodeContext *context, CodeByte *pc, LPCType *type)
+CodeByte *CodeContext::type(CodeByte *pc, LPCType *vType)
 {
-    type->type = FETCH1U(pc);
-    if (type->type == LPC_TYPE_CLASS) {
-	type->inherit = FETCHI(pc, context);
-	type->index = FETCH2U(pc);
+    vType->type = FETCH1U(pc);
+    if (vType->type == LPC_TYPE_CLASS) {
+	vType->inherit = FETCHI(pc, this);
+	vType->index = FETCH2U(pc);
     }
 
     return pc;
 }
 
-/*
- * NAME:	Code->init()
- * DESCRIPTION:	initialize code retriever
- */
-CodeContext *code_init(int major, int minor, size_t intSize, size_t inhSize,
-		       CodeMap *map, int nMap, CodeByte *protos, int nProto)
+CodeContext::CodeContext(size_t intSize, size_t inhSize, KfunMap *map, int nMap,
+			 CodeByte *protos, int nProto)
 {
-    CodeContext *context;
     int i, size;
-    CodeProto *kfun;
+    Kfun *kfun;
     LPCType *proto;
 
-    /* check VM version */
-    if (major != VERSION_VM_MAJOR || minor > VERSION_VM_MINOR) {
-	return NULL;
-    }
-
     /* allocate code context */
-    context = alloc(CodeContext, 1);
-    context->intSize = intSize;
-    context->inhSize = inhSize;
-    context->map = alloc(CodeMap, nMap);
-    memcpy(context->map, map, nMap * sizeof(CodeMap));
+    this->intSize = intSize;
+    this->inhSize = inhSize;
+    this->map = new KfunMap[nMap];
+    memcpy(this->map, map, nMap * sizeof(KfunMap));
 
     /*
      * initialize kfun prototype table
      */
-    context->kfun = alloc(CodeProto, context->nkfun = nProto);
-    for (kfun = context->kfun, i = 0; i < context->nkfun; kfun++, i++) {
+    kfuns = new Kfun[nkfun = nProto];
+    for (kfun = kfuns, i = nkfun; i > 0; kfun++, --i) {
 	if (protos[0] == 0) {
 	    protos++;
 	    kfun->proto = NULL;
@@ -124,10 +100,10 @@ CodeContext *code_init(int major, int minor, size_t intSize, size_t inhSize,
 	    kfun->nargs = PROTO_NARGS(protos);
 	    kfun->vargs = PROTO_VARGS(protos);
 	    size = kfun->nargs + kfun->vargs + 1;
-	    kfun->proto = proto = alloc(LPCType, size);
+	    kfun->proto = proto = new LPCType[size];
 	    protos = &PROTO_FTYPE(protos);
 	    do {
-		protos = code_type(context, protos, proto);
+		protos = type(protos, proto);
 		if (proto->type == LPC_TYPE_LVALUE) {
 		    kfun->lval = true;
 		}
@@ -135,75 +111,35 @@ CodeContext *code_init(int major, int minor, size_t intSize, size_t inhSize,
 	    } while (--size != 0);
 	}
     }
-
-    context->nInherits = 0;
-    context->funcTypes = context->varTypes = NULL;
-    return context;
 }
 
-/*
- * NAME:	Code->freetypes()
- * DESCRIPTION:	free object type information
- */
-static void code_freetypes(CodeContext *context)
+CodeContext::~CodeContext()
 {
-    CodeByte **fTypes, **vTypes;
-    LPCInherit i;
-
-    if (context->nInherits != 0) {
-	for (fTypes = context->funcTypes, vTypes = context->varTypes,
-	     i = context->nInherits; i > 0; fTypes++, vTypes++, --i) {
-	    if (*fTypes != NULL) {
-		free(*fTypes);
-	    }
-	    if (*vTypes != NULL) {
-		free(*vTypes);
-	    }
-	}
-	free(context->funcTypes);
-	free(context->varTypes);
-    }
-}
-
-/*
- * NAME:	Code->clear()
- * DESCRIPTION:	clear code retriever
- */
-void code_clear(CodeContext *context)
-{
-    CodeProto *kfun;
+    Kfun *kfun;
     int i;
 
-    code_freetypes(context);
-    for (kfun = context->kfun, i = context->nkfun; i > 0; kfun++, --i) {
+    for (kfun = kfuns, i = nkfun; i > 0; kfun++, --i) {
 	if (kfun->proto != NULL) {
-	    free(kfun->proto);
+	    delete[] kfun->proto;
 	}
     }
-    free(context->kfun);
-
-    free(context);
+    delete[] kfuns;
 }
 
-/*
- * NAME:	Code->object()
- * DESCRIPTION:	prepare to retrieve code from object
- */
-void code_object(CodeContext *context, LPCInherit nInherits,
-		 CodeByte *funcTypes, CodeByte *varTypes)
+CodeObject::CodeObject(CodeContext *context, LPCInherit nInherits,
+		       CodeByte *funcTypes, CodeByte *varTypes)
 {
     CodeByte **fTypes, **vTypes, len;
     LPCInherit i;
 
-    code_freetypes(context);
-
-    context->nInherits = nInherits;
-    context->funcTypes = fTypes = alloc(CodeByte*, nInherits);
-    context->varTypes = vTypes = alloc(CodeByte*, nInherits);
+    this->context = context;
+    this->nInherits = nInherits;
+    this->funcTypes = fTypes = new CodeByte*[nInherits];
+    this->varTypes = vTypes = new CodeByte*[nInherits];
     for (i = nInherits; i > 0; --i) {
 	len = *funcTypes++;
 	if (len != 0) {
-	    *fTypes = alloc(CodeByte, len);
+	    *fTypes = new CodeByte[len];
 	    memcpy(*fTypes++, funcTypes, len);
 	    funcTypes += len;
 	} else {
@@ -211,7 +147,7 @@ void code_object(CodeContext *context, LPCInherit nInherits,
 	}
 	len = *varTypes++;
 	if (len != 0) {
-	    *vTypes = alloc(CodeByte, len);
+	    *vTypes = new CodeByte[len];
 	    memcpy(*vTypes++, varTypes, len);
 	    varTypes += len;
 	} else {
@@ -220,54 +156,88 @@ void code_object(CodeContext *context, LPCInherit nInherits,
     }
 }
 
+CodeObject::~CodeObject()
+{
+    CodeByte **fTypes, **vTypes;
+    LPCInherit i;
+
+    for (fTypes = funcTypes, vTypes = varTypes, i = nInherits; i > 0;
+	 fTypes++, vTypes++, --i) {
+	if (*fTypes != NULL) {
+	    delete[] *fTypes;
+	}
+	if (*vTypes != NULL) {
+	    delete[] *vTypes;
+	}
+    }
+    delete[] funcTypes;
+    delete[] varTypes;
+}
+
 /*
  * NAME:	Code->new()
  * DESCRIPTION:	create a function retriever
  */
-CodeFunction *code_new(CodeContext *context, CodeByte *pc)
+CodeFunction::CodeFunction(CodeObject *object, CodeByte *pc)
 {
-    CodeFunction *function;
+    CodeContext *context;
     uint16_t size;
     LPCType *proto;
 
-    function = alloc(CodeFunction, 1);
-    function->context = context;
+    this->object = object;
+    context = object->context;
 
     /* retrieve prototype */
-    function->nargs = PROTO_NARGS(pc);
-    function->vargs = PROTO_VARGS(pc);
-    size = function->nargs + function->vargs + 1;
-    function->proto = proto = alloc(LPCType, size);
-    function->fclass = PROTO_CLASS(pc);
+    nargs = PROTO_NARGS(pc);
+    vargs = PROTO_VARGS(pc);
+    size = nargs + vargs + 1;
+    this->proto = proto = new LPCType[size];
+    fclass = PROTO_CLASS(pc);
     pc = &PROTO_FTYPE(pc);
     do {
-	pc = code_type(context, pc, proto++);
+	pc = context->type(pc, proto++);
     } while (--size != 0);
 
-    /* prepare to retrieve code from function */
-    function->stack = FETCH2U(pc);
-    function->locals = FETCH1U(pc);
-    size = FETCH2U(pc);
-    function->program = pc;
-    function->lines = pc + size;
-    function->pc = function->lc = 0;
-    function->line = 0;
-    function->list = NULL;
+    /* retrieve code from function */
+    this->pc = lc = 0;
+    line = 0;
+    list = NULL;
+    if (!(fclass & CLASS_UNDEFINED)) {
+	stack = FETCH2U(pc);
+	locals = FETCH1U(pc);
+	size = FETCH2U(pc);
+	program = pc;
+	lines = pc + size;
 
-    return function;
+	while (program + this->pc != lines) {
+	    Code *code;
+
+	    /* add new code */
+	    code = new Code(this);
+	    code->next = NULL;
+	    if (list == NULL) {
+		list = last = code;
+	    } else {
+		last->next = code;
+		last = code;
+	    }
+	}
+    } else {
+	program = lines = pc;
+    }
 }
 
 /*
  * NAME:	Code->switch_int()
  * DESCRIPTION:	retrieve int switch
  */
-static CodeByte *code_switch_int(Code *code, CodeByte *pc)
+CodeByte *Code::switchInt(CodeByte *pc)
 {
-    CodeCaseInt *caseInt;
+    CaseInt *caseInt;
     int i, bytes;
 
-    code->size = FETCH2U(pc);
-    code->u.caseInt = caseInt = alloc(CodeCaseInt, i = code->size);
+    size = FETCH2U(pc);
+    this->caseInt = caseInt = new CaseInt[i = size];
     bytes = FETCH1U(pc);
 
     /* default */
@@ -357,13 +327,13 @@ static CodeByte *code_switch_int(Code *code, CodeByte *pc)
  * NAME:	Code->switch_range()
  * DESCRIPTION:	retrieve range switch
  */
-static CodeByte *code_switch_range(Code *code, CodeByte *pc)
+CodeByte *Code::switchRange(CodeByte *pc)
 {
-    CodeCaseRange *caseRange;
+    CaseRange *caseRange;
     int i, bytes;
 
-    code->size = FETCH2U(pc);
-    code->u.caseRange = caseRange = alloc(CodeCaseRange, i = code->size);
+    size = FETCH2U(pc);
+    this->caseRange = caseRange = new CaseRange[i = size];
     bytes = FETCH1U(pc);
 
     /* default */
@@ -462,14 +432,13 @@ static CodeByte *code_switch_range(Code *code, CodeByte *pc)
  * NAME:	Code->switch_string()
  * DESCRIPTION:	retrieve string switch
  */
-static CodeByte *code_switch_string(Code *code, CodeByte *pc,
-				    CodeContext *context)
+CodeByte *Code::switchStr(CodeByte *pc, CodeContext *context)
 {
-    CodeCaseString *caseString;
+    CaseString *caseString;
     int i;
 
-    code->size = FETCH2U(pc);
-    code->u.caseString = caseString = alloc(CodeCaseString, i = code->size);
+    size = FETCH2U(pc);
+    this->caseString = caseString = new CaseString[i = size];
 
     /* default */
     caseString->addr = FETCH2U(pc);
@@ -497,58 +466,42 @@ static CodeByte *code_switch_string(Code *code, CodeByte *pc,
     return pc;
 }
 
-/*
- * NAME:	Code->instr()
- * DESCRIPTION:	retrieve code from function
- */
-Code *code_instr(CodeFunction *function)
+Code::Code(CodeFunction *function)
 {
-    Code *code;
+    CodeContext *context;
     CodeByte *pc, *numbers, instr;
-    LPCFloat flt;
+    LPCFloat xfloat;
     uint16_t offset, fexp;
     int i;
-    CodeProto *kfun;
+    CodeContext::Kfun *kf;
 
+    context = function->object->context;
     pc = function->program + function->pc;
-    if (pc == function->lines) {
-	return NULL;	/* no more code to retrieve */
-    }
-
-    /* allocate new code */
-    code = alloc(Code, 1);
-    code->next = NULL;
-    if (function->list == NULL) {
-	function->list = function->last = code;
-    } else {
-	function->last->next = code;
-	function->last = code;
-    }
 
     /*
      * retrieve instruction
      */
-    code->addr = function->pc;
-    code->pop = false;
+    addr = function->pc;
+    pop = false;
     instr = FETCH1U(pc);
 
     /*
      * retrieve line number
      */
     numbers = function->lines + function->lc;
-    code->line = function->line;
+    line = function->line;
     offset = instr >> I_LINE_SHIFT;
     if (offset <= 2) {
-	code->line += offset;
+	line += offset;
     } else {
 	offset = FETCH1U(numbers);
 	if (offset >= 128) {
-	    code->line += offset - 128 - 64;
+	    line += offset - 128 - 64;
 	} else {
-	    code->line += ((offset << 8) | FETCH1U(numbers)) - 16384;
+	    line += ((offset << 8) | FETCH1U(numbers)) - 16384;
 	}
     }
-    function->line = code->line;
+    function->line = line;
     function->lc = numbers - function->lines;
 
     /*
@@ -556,425 +509,414 @@ Code *code_instr(CodeFunction *function)
      */
     switch (instr & I_INSTR_MASK) {
     case I_INT1:
-	code->u.num = FETCH1S(pc);
-	code->instruction = Code::INT;
+	num = FETCH1S(pc);
+	instruction = INT;
 	break;
 
     case I_INT2:
-	code->u.num = FETCH2S(pc);
-	code->instruction = Code::INT;
+	num = FETCH2S(pc);
+	instruction = INT;
 	break;
 
     case I_INT4:
-	code->u.num = FETCH4S(pc);
-	code->instruction = Code::INT;
+	num = FETCH4S(pc);
+	instruction = INT;
 	break;
 
     case I_INT8:
-	code->u.num = FETCH8S(pc);
-	code->instruction = Code::INT;
+	num = FETCH8S(pc);
+	instruction = INT;
 	break;
 
     case I_FLOAT6:
-	flt.high = FETCH2U(pc);
-	flt.low = FETCH4U(pc);
-	fexp = (flt.high & ~0x8000) >> 4;
+	xfloat.high = FETCH2U(pc);
+	xfloat.low = FETCH4U(pc);
+	fexp = (xfloat.high & ~0x8000) >> 4;
 	if (fexp == 0) {
-	    code->u.flt.high = 0;
-	    code->u.flt.low = 0;
+	    flt.high = 0;
+	    flt.low = 0;
 	} else {
-	    code->u.flt.high = (((flt.high & 0x8000) + fexp + 0x3c00) << 16) +
-			       ((flt.high & 0xf) << 12) + (flt.low >> 20);
-	    code->u.flt.low = flt.low << 44;
+	    flt.high = (((xfloat.high & 0x8000) + fexp + 0x3c00) << 16) +
+		       ((xfloat.high & 0xf) << 12) + (xfloat.low >> 20);
+	    flt.low = xfloat.low << 44;
 	}
-	code->instruction = Code::FLOAT;
+	instruction = FLOAT;
 	break;
 
     case I_FLOAT12:
-	code->u.flt.high = FETCH4U(pc);
-	code->u.flt.low = FETCH8U(pc);
-	code->instruction = Code::FLOAT;
+	flt.high = FETCH4U(pc);
+	flt.low = FETCH8U(pc);
+	instruction = FLOAT;
 	break;
 
     case I_STRING:
-	code->u.str.inherit = function->context->nInherits - 1;
-	code->u.str.index = FETCH1U(pc);
-	code->instruction = Code::STRING;
+	str.inherit = function->object->nInherits - 1;
+	str.index = FETCH1U(pc);
+	instruction = STRING;
 	break;
 
     case I_NEAR_STRING:
-	code->u.str.inherit = FETCH1U(pc);
-	code->u.str.index = FETCH1U(pc);
-	code->instruction = Code::STRING;
+	str.inherit = FETCH1U(pc);
+	str.index = FETCH1U(pc);
+	instruction = STRING;
 	break;
 
     case I_FAR_STRING:
-	code->u.str.inherit = FETCHI(pc, function->context);
-	code->u.str.index = FETCH2U(pc);
-	code->instruction = Code::STRING;
+	str.inherit = FETCHI(pc, context);
+	str.index = FETCH2U(pc);
+	instruction = STRING;
 	break;
 
     case I_LOCAL:
 	i = FETCH1S(pc);
 	if (i < 0) {
-	    code->u.local = -(i + 1);
-	    code->instruction = Code::LOCAL;
+	    local = -(i + 1);
+	    instruction = LOCAL;
 	} else {
-	    code->u.param = i;
-	    code->instruction = Code::PARAM;
+	    param = i;
+	    instruction = PARAM;
 	}
 	break;
 
     case I_GLOBAL:
-	code->u.var.inherit = function->context->nInherits - 1;
-	code->u.var.index = FETCH1U(pc);
-	code->u.var.type = function->context->varTypes[code->u.var.inherit]
-						      [code->u.var.index];
-	code->instruction = Code::GLOBAL;
+	var.inherit = function->object->nInherits - 1;
+	var.index = FETCH1U(pc);
+	var.type = function->object->varTypes[var.inherit][var.index];
+	instruction = GLOBAL;
 	break;
 
     case I_FAR_GLOBAL:
-	code->u.var.inherit = FETCHI(pc, function->context);
-	code->u.var.index = FETCH1U(pc);
-	code->u.var.type = function->context->varTypes[code->u.var.inherit]
-						      [code->u.var.index];
-	code->instruction = Code::GLOBAL;
+	var.inherit = FETCHI(pc, context);
+	var.index = FETCH1U(pc);
+	var.type = function->object->varTypes[var.inherit][var.index];
+	instruction = GLOBAL;
 	break;
 
     case I_INDEX | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_INDEX:
-	code->instruction = Code::INDEX;
+	instruction = INDEX;
 	break;
 
     case I_INDEX2:
-	code->instruction = Code::INDEX2;
+	instruction = INDEX2;
 	break;
 
     case I_AGGREGATE | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_AGGREGATE:
-	code->instruction = (FETCH1U(pc) == 0) ?
-			     Code::AGGREGATE : Code::MAP_AGGREGATE;
-	code->size = FETCH2U(pc);
+	instruction = (FETCH1U(pc) == 0) ? AGGREGATE : MAP_AGGREGATE;
+	size = FETCH2U(pc);
 	break;
 
     case I_SPREAD:
-	code->u.spread = FETCH1S(pc);
-	if (code->u.spread >= 0) {
-	    code->instruction = Code::SPREAD;
+	spread = FETCH1S(pc);
+	if (spread >= 0) {
+	    instruction = SPREAD;
 	} else {
-	    code->u.spread = -(code->u.spread + 2);
-	    code->instruction = Code::SPREAD_STORES;
+	    spread = -(spread + 2);
+	    instruction = SPREAD_STORES;
 	}
 	break;
 
     case I_CAST | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_CAST:
-	pc = code_type(function->context, pc, &code->u.type);
-	code->instruction = Code::CAST;
+	pc = context->type(pc, &type);
+	instruction = CAST;
 	break;
 
     case I_INSTANCEOF | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_INSTANCEOF:
-	code->u.str.inherit = FETCHI(pc, function->context);
-	code->u.str.index = FETCH2U(pc);
-	code->instruction = Code::INSTANCEOF;
+	str.inherit = FETCHI(pc, context);
+	str.index = FETCH2U(pc);
+	instruction = INSTANCEOF;
 	break;
 
     case I_STORES:
-	code->size = FETCH1U(pc);
-	code->instruction = Code::STORES;
+	size = FETCH1U(pc);
+	instruction = STORES;
 	break;
 
     case I_STORE_LOCAL | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_STORE_LOCAL:
 	i = FETCH1S(pc);
 	if (i < 0) {
-	    code->u.local = -(i + 1);
-	    code->instruction = Code::STORE_LOCAL;
+	    local = -(i + 1);
+	    instruction = STORE_LOCAL;
 	} else {
-	    code->u.param = i;
-	    code->instruction = Code::STORE_PARAM;
+	    param = i;
+	    instruction = STORE_PARAM;
 	}
 	break;
 
     case I_STORE_GLOBAL | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_STORE_GLOBAL:
-	code->u.var.inherit = function->context->nInherits - 1;
-	code->u.var.index = FETCH1U(pc);
-	code->instruction = Code::STORE_GLOBAL;
+	var.inherit = function->object->nInherits - 1;
+	var.index = FETCH1U(pc);
+	instruction = STORE_GLOBAL;
 	break;
 
     case I_STORE_FAR_GLOBAL | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_STORE_FAR_GLOBAL:
-	code->u.var.inherit = FETCHI(pc, function->context);
-	code->u.var.index = FETCH1U(pc);
-	code->instruction = Code::STORE_GLOBAL;
+	var.inherit = FETCHI(pc, context);
+	var.index = FETCH1U(pc);
+	instruction = STORE_GLOBAL;
 	break;
 
     case I_STORE_INDEX | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_STORE_INDEX:
-	code->instruction = Code::STORE_INDEX;
+	instruction = STORE_INDEX;
 	break;
 
     case I_STORE_LOCAL_INDEX | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_STORE_LOCAL_INDEX:
 	i = FETCH1S(pc);
 	if (i < 0) {
-	    code->u.local = -(i + 1);
-	    code->instruction = Code::STORE_LOCAL_INDEX;
+	    local = -(i + 1);
+	    instruction = STORE_LOCAL_INDEX;
 	} else {
-	    code->u.param = i;
-	    code->instruction = Code::STORE_PARAM_INDEX;
+	    param = i;
+	    instruction = STORE_PARAM_INDEX;
 	}
 	break;
 
     case I_STORE_GLOBAL_INDEX | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_STORE_GLOBAL_INDEX:
-	code->u.var.inherit = function->context->nInherits - 1;
-	code->u.var.index = FETCH1U(pc);
-	code->instruction = Code::STORE_GLOBAL_INDEX;
+	var.inherit = function->object->nInherits - 1;
+	var.index = FETCH1U(pc);
+	instruction = STORE_GLOBAL_INDEX;
 	break;
 
     case I_STORE_FAR_GLOBAL_INDEX | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_STORE_FAR_GLOBAL_INDEX:
-	code->u.var.inherit = FETCHI(pc, function->context);
-	code->u.var.index = FETCH1U(pc);
-	code->instruction = Code::STORE_GLOBAL_INDEX;
+	var.inherit = FETCHI(pc, context);
+	var.index = FETCH1U(pc);
+	instruction = STORE_GLOBAL_INDEX;
 	break;
 
     case I_STORE_INDEX_INDEX | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_STORE_INDEX_INDEX:
-	code->instruction = Code::STORE_INDEX_INDEX;
+	instruction = STORE_INDEX_INDEX;
 	break;
 
     case I_JUMP_ZERO:
-	code->pop = true;
-	code->u.addr = FETCH2U(pc);
-	code->instruction = Code::JUMP_ZERO;
+	pop = true;
+	target = FETCH2U(pc);
+	instruction = JUMP_ZERO;
 	break;
 
     case I_JUMP_NONZERO:
-	code->pop = true;
-	code->u.addr = FETCH2U(pc);
-	code->instruction = Code::JUMP_NONZERO;
+	pop = true;
+	target = FETCH2U(pc);
+	instruction = JUMP_NONZERO;
 	break;
 
     case I_JUMP:
-	code->u.addr = FETCH2U(pc);
-	code->instruction = Code::JUMP;
+	target = FETCH2U(pc);
+	instruction = JUMP;
 	break;
 
     case I_SWITCH:
-	code->pop = true;
+	pop = true;
 	switch (FETCH1U(pc)) {
 	case I_SWITCH_INT:
-	    pc = code_switch_int(code, pc);
-	    code->instruction = Code::SWITCH_INT;
+	    pc = switchInt(pc);
+	    instruction = SWITCH_INT;
 	    break;
 
 	case I_SWITCH_RANGE:
-	    pc = code_switch_range(code, pc);
-	    code->instruction = Code::SWITCH_RANGE;
+	    pc = switchRange(pc);
+	    instruction = SWITCH_RANGE;
 	    break;
 
 	case I_SWITCH_STRING:
-	    pc = code_switch_string(code, pc, function->context);
-	    code->instruction = Code::SWITCH_STRING;
+	    pc = switchStr(pc, context);
+	    instruction = SWITCH_STRING;
 	    break;
 	}
 	break;
 
     case I_CALL_KFUNC | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_CALL_KFUNC:
-	code->u.kfun.func = function->context->map[FETCH1U(pc)];
-	switch (code->u.kfun.func) {
+	kfun.func = context->map[FETCH1U(pc)];
+	switch (kfun.func) {
 	case KF_CKRANGEFT:
-	    code->instruction = Code::CHECK_RANGE;
+	    instruction = CHECK_RANGE;
 	    break;
 
 	case KF_CKRANGEF:
-	    code->instruction = Code::CHECK_RANGE_FROM;
+	    instruction = CHECK_RANGE_FROM;
 	    break;
 
 	case KF_CKRANGET:
-	    code->instruction = Code::CHECK_RANGE_TO;
+	    instruction = CHECK_RANGE_TO;
 	    break;
 
 	default:
-	    kfun = &function->context->kfun[code->u.kfun.func];
-	    if (kfun->vargs != 0) {
-		code->u.kfun.nargs = FETCH1U(pc);
+	    kf = &context->kfuns[kfun.func];
+	    if (kf->vargs != 0) {
+		kfun.nargs = FETCH1U(pc);
 	    } else {
-		code->u.kfun.nargs = kfun->nargs;
+		kfun.nargs = kf->nargs;
 	    }
-	    code->u.kfun.type = kfun->proto[0].type;
-	    code->instruction = (kfun->lval) ?
-				 Code::KFUNC_STORES : Code::KFUNC;
+	    kfun.type = kf->proto[0].type;
+	    instruction = (kf->lval) ? KFUNC_STORES : KFUNC;
 	    break;
 	}
 	break;
 
     case I_CALL_EFUNC | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_CALL_EFUNC:
-	code->u.kfun.func = function->context->map[FETCH2U(pc)];
-	kfun = &function->context->kfun[code->u.kfun.func];
-	if (kfun->vargs != 0) {
-	    code->u.kfun.nargs = FETCH1U(pc);
+	kfun.func = context->map[FETCH2U(pc)];
+	kf = &context->kfuns[kfun.func];
+	if (kf->vargs != 0) {
+	    kfun.nargs = FETCH1U(pc);
 	} else {
-	    code->u.kfun.nargs = kfun->nargs;
+	    kfun.nargs = kf->nargs;
 	}
-	code->u.kfun.type = kfun->proto[0].type;
-	code->instruction = (kfun->lval) ? Code::KFUNC_STORES : Code::KFUNC;
+	kfun.type = kf->proto[0].type;
+	instruction = (kf->lval) ? KFUNC_STORES : KFUNC;
 	break;
 
     case I_CALL_CKFUNC | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_CALL_CKFUNC:
-	code->u.kfun.func = function->context->map[FETCH1U(pc)];
-	code->u.kfun.nargs = FETCH1U(pc);
-	kfun = &function->context->kfun[code->u.kfun.func];
-	code->u.kfun.type = kfun->proto[0].type;
-	code->instruction = (kfun->lval) ? Code::KFUNC_STORES : Code::KFUNC;
+	kfun.func = context->map[FETCH1U(pc)];
+	kfun.nargs = FETCH1U(pc);
+	kf = &context->kfuns[kfun.func];
+	kfun.type = kf->proto[0].type;
+	instruction = (kf->lval) ? KFUNC_STORES : KFUNC;
 	break;
 
     case I_CALL_CEFUNC | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_CALL_CEFUNC:
-	code->u.kfun.func = function->context->map[FETCH2U(pc)];
-	code->u.kfun.nargs = FETCH1U(pc);
-	kfun = &function->context->kfun[code->u.kfun.func];
-	code->u.kfun.type = kfun->proto[0].type;
-	code->instruction = (kfun->lval) ? Code::KFUNC_STORES : Code::KFUNC;
+	kfun.func = context->map[FETCH2U(pc)];
+	kfun.nargs = FETCH1U(pc);
+	kf = &context->kfuns[kfun.func];
+	kfun.type = kf->proto[0].type;
+	instruction = (kf->lval) ? KFUNC_STORES : KFUNC;
 	break;
 
     case I_CALL_AFUNC | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_CALL_AFUNC:
-	code->u.dfun.inherit = 0;
-	code->u.dfun.func = FETCH1U(pc);
-	code->u.dfun.nargs = FETCH1U(pc);
-	code->u.dfun.type = function->context->funcTypes[0][code->u.dfun.func];
-	code->instruction = Code::DFUNC;
+	dfun.inherit = 0;
+	dfun.func = FETCH1U(pc);
+	dfun.nargs = FETCH1U(pc);
+	dfun.type = function->object->funcTypes[0][dfun.func];
+	instruction = DFUNC;
 	break;
 
     case I_CALL_DFUNC | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_CALL_DFUNC:
-	code->u.dfun.inherit = FETCHI(pc, function->context);
-	code->u.dfun.func = FETCH1U(pc);
-	code->u.dfun.nargs = FETCH1U(pc);
-	code->u.dfun.type = function->context->funcTypes[code->u.dfun.inherit]
-							[code->u.dfun.func];
-	code->instruction = Code::DFUNC;
+	dfun.inherit = FETCHI(pc, context);
+	dfun.func = FETCH1U(pc);
+	dfun.nargs = FETCH1U(pc);
+	dfun.type = function->object->funcTypes[dfun.inherit][dfun.func];
+	instruction = DFUNC;
 	break;
 
     case I_CALL_FUNC | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_CALL_FUNC:
-	code->u.fun.call = FETCH2U(pc);
-	code->u.fun.nargs = FETCH1U(pc);
-	code->instruction = Code::FUNC;
+	fun.call = FETCH2U(pc);
+	fun.nargs = FETCH1U(pc);
+	instruction = FUNC;
 	break;
 
     case I_CATCH | I_POP_BIT:
-	code->pop = true;
+	pop = true;
 	/* fall through */
     case I_CATCH:
-	code->u.addr = FETCH2U(pc);
-	code->instruction = Code::CATCH;
+	target = FETCH2U(pc);
+	instruction = CATCH;
 	break;
 
     case I_RLIMITS:
-	code->pop = true;
-	code->instruction = (FETCH1U(pc) != 0) ?
-			     Code::RLIMITS : Code::RLIMITS_CHECK;
+	pop = true;
+	instruction = (FETCH1U(pc) != 0) ? RLIMITS : RLIMITS_CHECK;
 	break;
 
     case I_RETURN:
-	code->instruction = Code::RETURN;
+	instruction = RETURN;
 	break;
 
     default:
 	fatal("retrieved unknown instruction 0x%02x", instr);
     }
     function->pc = pc - function->program;
-
-    return code;
 }
 
 /*
  * NAME:	Code->remove()
  * DESCRIPTION:	remove retrieved code
  */
-static void code_remove(Code *code)
+Code::~Code()
 {
-    switch (code->instruction) {
-    case Code::SWITCH_INT:
-	free(code->u.caseInt);
+    switch (instruction) {
+    case SWITCH_INT:
+	delete caseInt;
 	break;
 
-    case Code::SWITCH_RANGE:
-	free(code->u.caseRange);
+    case SWITCH_RANGE:
+	delete caseRange;
 	break;
 
-    case Code::SWITCH_STRING:
-	free(code->u.caseString);
+    case SWITCH_STRING:
+	delete caseString;
 	break;
 
     default:
 	break;
     }
-
-    free(code);
 }
 
 /*
  * NAME:	Code->del()
  * DESCRIPTION:	delete a function retriever
  */
-void code_del(CodeFunction *function)
+CodeFunction::~CodeFunction()
 {
     Code *code, *next;
 
     /* delete all code retrieved for this function */
-    for (code = function->list; code != NULL; code = next) {
+    for (code = list; code != NULL; code = next) {
 	next = code->next;
-	code_remove(code);
+	delete code;
     }
 
-    free(function->proto);
-    free(function);
+    delete[] proto;
 }

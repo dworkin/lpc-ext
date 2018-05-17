@@ -219,7 +219,7 @@ Block *Block::create(CodeFunction *function)
 	    /* create jump table with block entry points */
 	    follow = new Block*[code->size];
 	    for (i = 0; i < code->size; i++) {
-		b = b->split(code->u.caseInt[i].addr);
+		b = b->split(code->caseInt[i].addr);
 		if (b == NULL) {
 		    delete[] follow;
 		    clear(first);
@@ -250,7 +250,7 @@ Block *Block::create(CodeFunction *function)
 	    b->follow = follow = new Block*[code->size];
 	    b->nfollow = code->size;
 	    for (i = 0; i < code->size; i++) {
-		follow[i] = b = b->split(code->u.caseRange[i].addr);
+		follow[i] = b = b->split(code->caseRange[i].addr);
 		if (b == NULL) {
 		    delete[] follow;
 		    clear(first);
@@ -280,7 +280,7 @@ Block *Block::create(CodeFunction *function)
 	    b->follow = follow = new Block*[code->size];
 	    b->nfollow = code->size;
 	    for (i = 0; i < code->size; i++) {
-		follow[i] = b = b->split(code->u.caseString[i].addr);
+		follow[i] = b = b->split(code->caseString[i].addr);
 		if (b == NULL) {
 		    delete[] follow;
 		    clear(first);

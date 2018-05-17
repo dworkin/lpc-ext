@@ -33,36 +33,18 @@ void fatal(const char *format, ...)
     abort();
 }
 
-/*
- * NAME:	jit->alloc()
- * DESCRIPTION:	allocate memory in JIT compiler
- */
-void *jit_alloc(size_t size)
-{
-    void *mem;
-
-    mem = malloc(size);
-    if (mem == NULL) {
-	fatal("cannot allocate memory");
-    }
-    return mem;
-}
-
-static struct CodeContext *cc;
+static CodeContext *cc;
 
 static void jit_compile(int nInherits, uint8_t *prog, int nFunctions,
 			uint8_t *funcTypes, uint8_t *varTypes)
 {
-    CodeFunction *func;
+    if (nFunctions != 0) {
+	CodeObject object(cc, nInherits, funcTypes, varTypes);
+	CodeFunction func(&object, prog);
 
-    code_object(cc, nInherits, funcTypes, varTypes);
-    func = code_new(cc, prog);
-    if (!(func->fclass & CLASS_UNDEFINED)) {
-	while (code_instr(func) != NULL) ;
-	dis_program(func);
+	dis_program(&func);
 	fprintf(stderr, "\n");
     }
-    code_del(func);
 }
 
 static void filename(char *buffer, uint8_t *hash)
@@ -83,8 +65,6 @@ int main(int argc, char *argv[])
 {
     JitInfo info;
     uint8_t hash[16];
-    uint16_t *map;
-    uint8_t *protos;
     char reply;
 
     if (argc != 2 || chdir(argv[1]) < 0) {
@@ -95,25 +75,24 @@ int main(int argc, char *argv[])
     if (read(0, &info, sizeof(JitInfo)) != sizeof(JitInfo)) {
 	return 2;
     }
-    map = alloc(uint16_t, info.mapSize);
-    protos = alloc(uint8_t, info.protoSize);
+    uint16_t map[info.mapSize];
+    uint8_t protos[info.protoSize];
     if (read(0, map, info.mapSize * sizeof(uint16_t)) !=
 					    info.mapSize * sizeof(uint16_t) ||
 	read(0, protos, info.protoSize) != info.protoSize) {
 	return 2;
     }
 
-    cc = code_init(info.major, info.minor, info.intSize, info.inheritSize,
-		   map, info.mapSize, protos, info.nProtos);
-    if (cc == NULL) {
+    if (!CodeContext::validVM(info.major, info.minor)) {
 	reply = false;
 	write(1, &reply, 1);
 	return 3;
     }
+
+    cc = new CodeContext(info.intSize, info.inheritSize, map, info.mapSize,
+			 protos, info.nProtos);
     reply = true;
     write(1, &reply, 1);
-    free(protos);
-    free(map);
 
     while (read(0, hash, 16) == 16) {
 	char path[1000];

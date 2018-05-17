@@ -153,31 +153,31 @@ void dis_program(CodeFunction *func)
 
 	switch (code->instruction) {
 	case Code::INT:
-	    fprintf(stderr, "INT %lld\n", code->u.num);
+	    fprintf(stderr, "INT %lld\n", code->num);
 	    break;
 
 	case Code::FLOAT:
-	    fprintf(stderr, "FLOAT <%08X, %016llX>\n", code->u.flt.high,
-		   code->u.flt.low);
+	    fprintf(stderr, "FLOAT <%08X, %016llX>\n", code->flt.high,
+		   code->flt.low);
 	    break;
 
 	case Code::STRING:
-	    fprintf(stderr, "STRING <%d, %d>\n", code->u.str.inherit,
-		    code->u.str.index);
+	    fprintf(stderr, "STRING <%d, %d>\n", code->str.inherit,
+		    code->str.index);
 	    break;
 
 	case Code::PARAM:
-	    fprintf(stderr, "PARAM %d\n", code->u.param);
+	    fprintf(stderr, "PARAM %d\n", code->param);
 	    break;
 
 	case Code::LOCAL:
-	    fprintf(stderr, "LOCAL %d\n", code->u.local);
+	    fprintf(stderr, "LOCAL %d\n", code->local);
 	    break;
 
 	case Code::GLOBAL:
-	    fprintf(stderr, "GLOBAL <%d, %d> ", code->u.var.inherit,
-		    code->u.var.index);
-	    dis_type(code->u.var.type);
+	    fprintf(stderr, "GLOBAL <%d, %d> ", code->var.inherit,
+		    code->var.index);
+	    dis_type(code->var.type);
 	    fprintf(stderr, "\n");
 	    break;
 
@@ -190,11 +190,11 @@ void dis_program(CodeFunction *func)
 	    break;
 
 	case Code::SPREAD:
-	    fprintf(stderr, "SPREAD %d\n", code->u.spread);
+	    fprintf(stderr, "SPREAD %d\n", code->spread);
 	    break;
 
 	case Code::SPREAD_STORES:
-	    fprintf(stderr, "SPREAD_STORES %d\n", code->u.spread);
+	    fprintf(stderr, "SPREAD_STORES %d\n", code->spread);
 	    break;
 
 	case Code::AGGREGATE:
@@ -207,13 +207,13 @@ void dis_program(CodeFunction *func)
 
 	case Code::CAST:
 	    fprintf(stderr, "CAST ");
-	    dis_casttype(&code->u.type);
+	    dis_casttype(&code->type);
 	    fprintf(stderr, "\n");
 	    break;
 
 	case Code::INSTANCEOF:
-	    fprintf(stderr, "INSTANCEOF <%d, %d>\n", code->u.str.inherit,
-		   code->u.str.index);
+	    fprintf(stderr, "INSTANCEOF <%d, %d>\n", code->str.inherit,
+		   code->str.index);
 	    break;
 
 	case Code::CHECK_RANGE:
@@ -233,16 +233,16 @@ void dis_program(CodeFunction *func)
 	    break;
 
 	case Code::STORE_PARAM:
-	    fprintf(stderr, "STORE_PARAM %d\n", code->u.param);
+	    fprintf(stderr, "STORE_PARAM %d\n", code->param);
 	    break;
 
 	case Code::STORE_LOCAL:
-	    fprintf(stderr, "STORE_LOCAL %d\n", code->u.local);
+	    fprintf(stderr, "STORE_LOCAL %d\n", code->local);
 	    break;
 
 	case Code::STORE_GLOBAL:
-	    fprintf(stderr, "STORE_GLOBAL <%d, %d>\n", code->u.var.inherit,
-		    code->u.var.index);
+	    fprintf(stderr, "STORE_GLOBAL <%d, %d>\n", code->var.inherit,
+		    code->var.index);
 	    break;
 
 	case Code::STORE_INDEX:
@@ -250,16 +250,16 @@ void dis_program(CodeFunction *func)
 	    break;
 
 	case Code::STORE_PARAM_INDEX:
-	    fprintf(stderr, "STORE_PARAM_INDEX %d\n", code->u.param);
+	    fprintf(stderr, "STORE_PARAM_INDEX %d\n", code->param);
 	    break;
 
 	case Code::STORE_LOCAL_INDEX:
-	    fprintf(stderr, "STORE_LOCAL_INDEX %d\n", code->u.local);
+	    fprintf(stderr, "STORE_LOCAL_INDEX %d\n", code->local);
 	    break;
 
 	case Code::STORE_GLOBAL_INDEX:
 	    fprintf(stderr, "STORE_GLOBAL_INDEX <%d, %d>\n",
-		    code->u.var.inherit, code->u.var.index);
+		    code->var.inherit, code->var.index);
 	    break;
 
 	case Code::STORE_INDEX_INDEX:
@@ -267,76 +267,76 @@ void dis_program(CodeFunction *func)
 	    break;
 
 	case Code::JUMP:
-	    fprintf(stderr, "JUMP %04x\n", code->u.addr);
+	    fprintf(stderr, "JUMP %04x\n", code->target);
 	    break;
 
 	case Code::JUMP_ZERO:
-	    fprintf(stderr, "JUMP_ZERO %04x\n", code->u.addr);
+	    fprintf(stderr, "JUMP_ZERO %04x\n", code->target);
 	    break;
 
 	case Code::JUMP_NONZERO:
-	    fprintf(stderr, "JUMP_NONZERO %04x\n", code->u.addr);
+	    fprintf(stderr, "JUMP_NONZERO %04x\n", code->target);
 	    break;
 
 	case Code::SWITCH_INT:
-	    fprintf(stderr, "SWITCH_INT %04x\n", code->u.caseInt->addr);
+	    fprintf(stderr, "SWITCH_INT %04x\n", code->caseInt->addr);
 	    for (i = 1; i < code->size; i++) {
 		fprintf(stderr, "             case %lld: %04x\n",
-			code->u.caseInt[i].num, code->u.caseInt[i].addr);
+			code->caseInt[i].num, code->caseInt[i].addr);
 	    }
 	    break;
 
 	case Code::SWITCH_RANGE:
-	    fprintf(stderr, "SWITCH_RANGE %04x\n", code->u.caseRange->addr);
+	    fprintf(stderr, "SWITCH_RANGE %04x\n", code->caseRange->addr);
 	    for (i = 1; i < code->size; i++) {
 		fprintf(stderr, "             case %lld..%lld: %04x\n",
-			code->u.caseRange[i].from, code->u.caseRange[i].to,
-			code->u.caseRange[i].addr);
+			code->caseRange[i].from, code->caseRange[i].to,
+			code->caseRange[i].addr);
 	    }
 	    break;
 
 	case Code::SWITCH_STRING:
-	    fprintf(stderr, "SWITCH_STRING %04x\n", code->u.caseString->addr);
+	    fprintf(stderr, "SWITCH_STRING %04x\n", code->caseString->addr);
 	    for (i = 1; i < code->size; i++) {
-		if (code->u.caseString[i].str.inherit == 0 &&
-		    code->u.caseString[i].str.index == 0xffff) {
+		if (code->caseString[i].str.inherit == 0 &&
+		    code->caseString[i].str.index == 0xffff) {
 		    fprintf(stderr, "             case nil: %04x\n",
-			    code->u.caseString[i].addr);
+			    code->caseString[i].addr);
 		} else {
 		    fprintf(stderr, "             case <%d, %d>: %04x\n",
-			    code->u.caseString[i].str.inherit,
-			    code->u.caseString[i].str.index,
-			    code->u.caseString[i].addr);
+			    code->caseString[i].str.inherit,
+			    code->caseString[i].str.index,
+			    code->caseString[i].addr);
 		}
 	    }
 	    break;
 
 	case Code::KFUNC:
-	    fprintf(stderr, "KFUNC %d ", code->u.kfun.func);
-	    dis_type(code->u.kfun.type);
-	    fprintf(stderr, " (%d)\n", code->u.kfun.nargs);
+	    fprintf(stderr, "KFUNC %d ", code->kfun.func);
+	    dis_type(code->kfun.type);
+	    fprintf(stderr, " (%d)\n", code->kfun.nargs);
 	    break;
 
 	case Code::KFUNC_STORES:
-	    fprintf(stderr, "KFUNC_STORES %d ", code->u.kfun.func);
-	    dis_type(code->u.kfun.type);
-	    fprintf(stderr, " (%d)\n", code->u.kfun.nargs);
+	    fprintf(stderr, "KFUNC_STORES %d ", code->kfun.func);
+	    dis_type(code->kfun.type);
+	    fprintf(stderr, " (%d)\n", code->kfun.nargs);
 	    break;
 
 	case Code::DFUNC:
-	    fprintf(stderr, "DFUNC <%d, %d> ", code->u.dfun.inherit,
-		    code->u.dfun.nargs);
-	    dis_type(code->u.dfun.type);
-	    fprintf(stderr, " (%d)\n", code->u.dfun.func);
+	    fprintf(stderr, "DFUNC <%d, %d> ", code->dfun.inherit,
+		    code->dfun.nargs);
+	    dis_type(code->dfun.type);
+	    fprintf(stderr, " (%d)\n", code->dfun.func);
 	    break;
 
 	case Code::FUNC:
-	    fprintf(stderr, "FUNC %d (%d)\n", code->u.fun.call,
-		    code->u.fun.nargs);
+	    fprintf(stderr, "FUNC %d (%d)\n", code->fun.call,
+		    code->fun.nargs);
 	    break;
 
 	case Code::CATCH:
-	    fprintf(stderr, "CATCH %04x\n", code->u.addr);
+	    fprintf(stderr, "CATCH %04x\n", code->target);
 	    break;
 
 	case Code::END_CATCH:

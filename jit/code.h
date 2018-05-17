@@ -1,26 +1,94 @@
 typedef uint8_t CodeByte;		/* code byte */
 typedef uint16_t CodeSize;		/* function code size */
 typedef uint16_t CodeLine;		/* line number */
-typedef uint16_t CodeMap;		/* kfun map */
 
-typedef struct {
-    LPCInt num;				/* integer case label */
-    CodeSize addr;			/* case address */
-} CodeCaseInt;
+class CodeContext {
+public:
+    typedef uint16_t KfunMap;
+    class Kfun {
+    public:
+	LPCType *proto;		/* return and argument types */
+	uint8_t nargs, vargs;	/* # arguments & optional arguments */
+	bool lval;		/* has lvalue arguments? */
+    };
 
-typedef struct {
-    LPCInt from;			/* range from case label */
-    LPCInt to;				/* range to case label */
-    CodeSize addr;			/* case address */
-} CodeCaseRange;
+    CodeContext(size_t intSize, size_t inhSize, KfunMap *map, int nMap,
+		CodeByte *protos, int nProto);
+    virtual ~CodeContext();
 
-typedef struct {
-    LPCStringConst str;			/* string constant case label */
-    CodeSize addr;			/* case address */
-} CodeCaseString;
+    CodeByte *type(CodeByte *pc, LPCType *vType);
 
-typedef struct Code {
-    struct Code *next;			/* following instruction */
+    static bool validVM(int major, int minor);
+
+    size_t intSize;		/* integer size */
+    size_t inhSize;		/* inherit size */
+    KfunMap *map;		/* kfun mapping */
+    Kfun *kfuns;		/* kfun prototypes */
+    uint16_t nkfun;		/* # kfuns */
+};
+
+class CodeObject {
+public:
+    CodeObject(CodeContext *context, LPCInherit nInherits, CodeByte *funcTypes,
+	       CodeByte *varTypes);
+    virtual ~CodeObject();
+
+    CodeContext *context;	/* context */
+
+    LPCInherit nInherits;	/* # inherits */
+    CodeByte **funcTypes;	/* function types */
+    CodeByte **varTypes;	/* variable types */
+};
+
+class CodeFunction {
+public:
+    enum Class {
+	CLASS_PRIVATE = 0x01,
+	CLASS_STATIC = 0x02,
+	CLASS_NOMASK = 0x04,
+	CLASS_ELLIPSIS = 0x08,
+	CLASS_VARARGS = 0x08,
+	CLASS_ATOMIC = 0x10,
+	CLASS_TYPECHECKED = 0x20,
+	CLASS_UNDEFINED = 0x80
+    };
+
+    CodeFunction(CodeObject *object, CodeByte *pc);
+    virtual ~CodeFunction();
+
+    CodeObject *object;			/* code object */
+    LPCType *proto;			/* function prototype */
+    uint8_t fclass;			/* function class */
+    uint8_t nargs, vargs;		/* # arguments & optional arguments */
+    uint8_t locals;			/* # locals */
+    uint16_t stack;			/* stack depth */
+    CodeByte *program, *lines;		/* program & line numbers */
+    CodeSize pc, lc;			/* program counter and line counter */
+    CodeLine line;			/* current line */
+    class Code *list, *last;		/* list of code in this function */
+};
+
+
+class Code {
+public:
+    struct CaseInt {
+	LPCInt num;			/* integer case label */
+	CodeSize addr;			/* case address */
+    };
+    struct CaseRange {
+	LPCInt from;			/* range from case label */
+	LPCInt to;			/* range to case label */
+	CodeSize addr;			/* case address */
+    };
+    struct CaseString {
+	LPCStringConst str;		/* string constant case label */
+	CodeSize addr;			/* case address */
+    };
+
+    Code(CodeFunction *function);
+    virtual ~Code();
+
+    Code *next;				/* following instruction */
     CodeSize addr;			/* address of this instruction */
     CodeLine line;			/* line number of this instruction */
     bool pop;				/* pop stack? */
@@ -78,45 +146,17 @@ typedef struct Code {
 	LPCGlobal var;			/* global variable */
 	LPCType type;			/* type */
 	int8_t spread;			/* spread */
-	CodeSize addr;			/* address */
-	CodeCaseInt *caseInt;		/* int case labels */
-	CodeCaseRange *caseRange;	/* range case labels */
-	CodeCaseString *caseString;	/* string case labels */
+	CodeSize target;		/* target address */
+	CaseInt *caseInt;		/* int case labels */
+	CaseRange *caseRange;		/* range case labels */
+	CaseString *caseString;		/* string case labels */
 	LPCKFunc kfun;			/* kernel function call */
 	LPCDFunc dfun;			/* direct function call */
 	LPCVFunc fun;			/* virtual function call */
-    } u;
-} Code;
+    };
 
-typedef struct {
-    struct CodeContext *context;	/* code context */
-    LPCType *proto;			/* function prototype */
-    uint8_t fclass;			/* function class */
-    uint8_t nargs, vargs;		/* # arguments & optional arguments */
-    uint8_t locals;			/* # locals */
-    uint16_t stack;			/* stack depth */
-    CodeByte *program, *lines;		/* program & line numbers */
-    CodeSize pc, lc;			/* program counter and line counter */
-    CodeLine line;			/* current line */
-    Code *list, *last;			/* list of code in this function */
-} CodeFunction;
-
-enum FunctionClass {
-    CLASS_PRIVATE = 0x01,
-    CLASS_STATIC = 0x02,
-    CLASS_NOMASK = 0x04,
-    CLASS_ELLIPSIS = 0x08,
-    CLASS_VARARGS = 0x08,
-    CLASS_ATOMIC = 0x10,
-    CLASS_TYPECHECKED = 0x20,
-    CLASS_UNDEFINED = 0x80
+private:
+    CodeByte *switchInt(CodeByte *pc);
+    CodeByte *switchRange(CodeByte *pc);
+    CodeByte *switchStr(CodeByte *pc, CodeContext *context);
 };
-
-extern struct CodeContext *code_init	(int, int, size_t, size_t, CodeMap*,
-					 int, CodeByte*, int);
-extern void		   code_clear	(struct CodeContext*);
-extern void		   code_object	(struct CodeContext*, LPCInherit,
-					 CodeByte*, CodeByte*);
-extern CodeFunction	  *code_new	(struct CodeContext*, CodeByte*);
-extern void		   code_del	(CodeFunction*);
-extern Code		  *code_instr	(CodeFunction*);
