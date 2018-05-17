@@ -64,6 +64,7 @@ static pthread_mutex_t lock;
 static void md5hash(uint8_t *hash, unsigned char *buffer, size_t size)
 {
     uint32_t digest[4];
+    unsigned char tmp[64];
     size_t sz;
 
     /*
@@ -73,8 +74,8 @@ static void md5hash(uint8_t *hash, unsigned char *buffer, size_t size)
     for (sz = size; sz >= 64; buffer += 64, sz -= 64) {
 	(*lpc_md5_block)(digest, buffer);
     }
-    memcpy(hash, buffer, sz);
-    (*lpc_md5_end)(digest, hash, sz, size);
+    memcpy(tmp, buffer, sz);
+    (*lpc_md5_end)(hash, digest, tmp, sz, size);
 }
 
 /*

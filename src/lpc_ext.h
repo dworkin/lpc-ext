@@ -150,6 +150,7 @@ LPCEXT void			(*lpc_runtime_error)(LPC_frame, char*);
 LPCEXT void			(*lpc_md5_start)(uint32_t*);
 LPCEXT void			(*lpc_md5_block)(uint32_t*,
 						 const unsigned char*);
-LPCEXT void			(*lpc_md5_end)(uint32_t*, unsigned char*,
-					       uint16_t, uint32_t);
+LPCEXT void			(*lpc_md5_end)(unsigned char*, uint32_t*,
+					       unsigned char*, uint16_t,
+					       uint32_t);
 # endif	/* LPC_EXT_H */
