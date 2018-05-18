@@ -53,7 +53,7 @@ public:
 	CLASS_UNDEFINED = 0x80
     };
 
-    CodeFunction(CodeObject *object, CodeByte *pc);
+    CodeFunction(CodeObject *object, CodeByte **prog);
     virtual ~CodeFunction();
 
     CodeObject *object;			/* code object */

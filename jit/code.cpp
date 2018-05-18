@@ -66,7 +66,7 @@ bool CodeContext::validVM(int major, int minor)
 CodeByte *CodeContext::type(CodeByte *pc, LPCType *vType)
 {
     vType->type = FETCH1U(pc);
-    if (vType->type == LPC_TYPE_CLASS) {
+    if ((vType->type & LPC_TYPE_MASK) == LPC_TYPE_CLASS) {
 	vType->inherit = FETCHI(pc, this);
 	vType->index = FETCH2U(pc);
     }
@@ -178,9 +178,10 @@ CodeObject::~CodeObject()
  * NAME:	Code->new()
  * DESCRIPTION:	create a function retriever
  */
-CodeFunction::CodeFunction(CodeObject *object, CodeByte *pc)
+CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
 {
     CodeContext *context;
+    CodeByte *pc;
     uint16_t size;
     LPCType *proto;
 
@@ -188,6 +189,7 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte *pc)
     context = object->context;
 
     /* retrieve prototype */
+    pc = *prog;
     nargs = PROTO_NARGS(pc);
     vargs = PROTO_VARGS(pc);
     size = nargs + vargs + 1;
@@ -225,6 +227,8 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte *pc)
     } else {
 	program = lines = pc;
     }
+
+    *prog = lines + lc;
 }
 
 /*

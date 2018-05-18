@@ -40,10 +40,13 @@ static void jit_compile(int nInherits, uint8_t *prog, int nFunctions,
 {
     if (nFunctions != 0) {
 	CodeObject object(cc, nInherits, funcTypes, varTypes);
-	CodeFunction func(&object, prog);
-
-	dis_program(&func);
-	fprintf(stderr, "\n");
+	do {
+	    CodeFunction func(&object, &prog);
+	    if (func.list != NULL) {
+		dis_program(&func);
+	    }
+	    fprintf(stderr, "\n");
+	} while (--nFunctions != 0);
     }
 }
 
