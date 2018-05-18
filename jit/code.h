@@ -65,7 +65,7 @@ public:
     CodeByte *program, *lines;		/* program & line numbers */
     CodeSize pc, lc;			/* program counter and line counter */
     CodeLine line;			/* current line */
-    class Code *list, *last;		/* list of code in this function */
+    class Code *first, *last;		/* code in this function */
 };
 
 

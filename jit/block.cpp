@@ -154,15 +154,21 @@ Block *Block::create(CodeFunction *function)
     Block *first, *b, **follow;
     int i;
 
-    code = function->list;
+    code = function->first;
+    if (code == NULL) {
+	return NULL;
+    }
+
     first = new Block(code, function->last, function->pc);
-    first->t.left = first->t.right = NULL;
+    first->next = first->t.left = first->t.right = NULL;
+    first->follow = NULL;
+    first->nfollow = 0;
 
     for (b = first; code != NULL; code = code->next) {
 	switch (code->instruction) {
 	case Code::JUMP:
 	    /* split at jump target */
-	    b = b->split(code->addr);
+	    b = b->split(code->target);
 	    if (b == NULL) {
 		clear(first);
 		return NULL;
@@ -191,7 +197,7 @@ Block *Block::create(CodeFunction *function)
 	case Code::JUMP_NONZERO:
 	case Code::CATCH:
 	    /* split at jump target */
-	    b = b->split(code->addr);
+	    b = b->split(code->target);
 	    if (b == NULL) {
 		clear(first);
 		return NULL;
@@ -247,8 +253,7 @@ Block *Block::create(CodeFunction *function)
 	case Code::SWITCH_RANGE:
 	    /* create jump table with block entry points */
 	    b = b->find(code->addr);
-	    b->follow = follow = new Block*[code->size];
-	    b->nfollow = code->size;
+	    follow = new Block*[code->size];
 	    for (i = 0; i < code->size; i++) {
 		follow[i] = b = b->split(code->caseRange[i].addr);
 		if (b == NULL) {
@@ -277,8 +282,7 @@ Block *Block::create(CodeFunction *function)
 	case Code::SWITCH_STRING:
 	    /* create jump table with block entry points */
 	    b = b->find(code->addr);
-	    b->follow = follow = new Block*[code->size];
-	    b->nfollow = code->size;
+	    follow = new Block*[code->size];
 	    for (i = 0; i < code->size; i++) {
 		follow[i] = b = b->split(code->caseString[i].addr);
 		if (b == NULL) {
@@ -310,4 +314,116 @@ Block *Block::create(CodeFunction *function)
     }
 
     return first;
+}
+
+/*
+ * add block to the list
+ */
+void Block::push(Block **list, int offset)
+{
+    if (f.start == UNLISTED) {
+	f.list = *list;
+	*list = this;
+	f.start = offset;
+    } else if (f.start != offset) {
+	fatal("catch/rlimits branch mismatch");
+    }
+}
+
+/*
+ * transform RETURN into END_CATCH or END_RLIMITS, as required
+ */
+void Block::analyze(Block *b)
+{
+    Block *list;
+    CodeSize size;
+    Code *code;
+    int c, i;
+
+    list = b;
+
+    /* initially, no blocks are in the list */
+    while (b != NULL) {
+	b->f.start = b->f.end = UNLISTED;
+	size = b->last->addr;
+	b = b->next;
+    }
+
+    Context context[size];	/* too large but we need some limit */
+    c = NONE;
+
+    list->f.start = c;
+    list->f.list = NULL;
+
+    /*
+     * determine the catch/rlimits context at the start and end of each block
+     */
+    while (list != NULL) {
+	b = list;
+	list = b->f.list;
+
+	if (b->f.end != UNLISTED) {
+	    fatal("block list corrupted");
+	}
+	b->f.end = b->f.start;
+
+	/*
+	 * go through the code and make adjustments as needed
+	 */
+	for (code = b->first; ; code = code->next) {
+	    switch (code->instruction) {
+	    case Code::CATCH:
+		context[++c].type = Context::CATCH;
+		context[c].next = b->f.end;
+		b->f.end = c;
+		break;
+
+	    case Code::RLIMITS:
+	    case Code::RLIMITS_CHECK:
+		context[++c].type = Context::RLIMITS;
+		context[c].next = b->f.end;
+		b->f.end = c;
+		break;
+
+	    case Code::RETURN:
+		if (b->f.end != NONE) {
+		    if (context[b->f.end].type == Context::CATCH) {
+			code->instruction = Code::END_CATCH;
+		    } else {
+			code->instruction = Code::END_RLIMITS;
+		    }
+		    b->f.end = context[b->f.end].next;
+		}
+
+	    default:
+		break;
+	    }
+
+	    if (code == b->last) {
+		break;
+	    }
+	}
+
+	if (b->nfollow != 0) {
+	    /* add followups to the list */
+	    if (code->instruction == Code::CATCH) {
+		/*
+		 * special case for CATCH: the context will be gone after an
+		 * exception occurs
+		 */
+		b->follow[0]->push(&list, b->f.end);
+		b->follow[1]->push(&list, context[b->f.end].next);
+	    } else {
+		for (i = 0; i < b->nfollow; i++) {
+		    b->follow[i]->push(&list, b->f.end);
+		}
+	    }
+	} else if (b->next != NULL && code->instruction != Code::RETURN) {
+	    /* add the next block to the list */
+	    b->next->push(&list, b->f.end);
+	} else if (b->f.end != NONE) {
+	    /* function ended within a catch/rlimits context */
+	    fatal("catch/rlimits return mismatch");
+	}
+    }
 }

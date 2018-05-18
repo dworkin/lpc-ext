@@ -203,7 +203,7 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
     /* retrieve code from function */
     this->pc = lc = 0;
     line = 0;
-    list = NULL;
+    first = NULL;
     if (!(fclass & CLASS_UNDEFINED)) {
 	stack = FETCH2U(pc);
 	locals = FETCH1U(pc);
@@ -217,8 +217,8 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
 	    /* add new code */
 	    code = new Code(this);
 	    code->next = NULL;
-	    if (list == NULL) {
-		list = last = code;
+	    if (first == NULL) {
+		first = last = code;
 	    } else {
 		last->next = code;
 		last = code;
@@ -917,7 +917,7 @@ CodeFunction::~CodeFunction()
     Code *code, *next;
 
     /* delete all code retrieved for this function */
-    for (code = list; code != NULL; code = next) {
+    for (code = first; code != NULL; code = next) {
 	next = code->next;
 	delete code;
     }
