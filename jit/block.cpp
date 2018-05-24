@@ -394,6 +394,7 @@ void Block::analyze(Block *b)
 		    }
 		    b->f.end = context[b->f.end].next;
 		}
+		break;
 
 	    default:
 		break;

@@ -1,7 +1,7 @@
 #
 # Makefile for kfun shared objects
 #
-EXT=0.9
+EXT=0.10
 DEFINES=
 DEBUG=-ggdb
 CCFLAGS=$(DEFINES) $(DEBUG) -Isrc

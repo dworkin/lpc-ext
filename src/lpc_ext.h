@@ -6,7 +6,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	9
+# define LPC_EXT_VERSION_MINOR	10
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
