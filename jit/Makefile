@@ -3,7 +3,7 @@ DEBUG=
 CXX=c++
 CXXFLAGS=$(DEFINES) $(DEBUG) -I../src
 
-OBJ=	code.o block.o disassemble.o jitcomp.o
+OBJ=	code.o block.o disasm.o jitcomp.o
 
 all:	jitcomp
 

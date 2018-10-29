@@ -13,15 +13,14 @@ extern "C" {
 Block::Block(Code *first, Code *last, CodeSize size) :
     first(first), last(last), size(size)
 {
-    follow = NULL;
-    nfollow = 0;
+    from = to = NULL;
+    nFrom = nTo = 0;
 }
 
 Block::~Block()
 {
-    if (follow != NULL) {
-	delete[] follow;
-    }
+    delete[] from;
+    delete[] to;
 }
 
 /*
@@ -40,12 +39,12 @@ Block *Block::find(CodeSize addr)
 		break;			/* found */
 	    }
 
-	    t = n->t.right;
+	    t = n->right;
 	    if (t == NULL) {
 		return NULL;		/* out of range */
 	    }
 	    if (t->first->addr + t->size > addr) {
-		l->t.right = n;
+		l->right = n;
 		l = n;
 		n = t;
 		if (t->first->addr <= addr) {
@@ -53,36 +52,36 @@ Block *Block::find(CodeSize addr)
 		}
 	    } else {
 		/* rotate */
-		n->t.right = t->t.left;
-		t->t.left = n;
-		l->t.right = t;
+		n->right = t->left;
+		t->left = n;
+		l->right = t;
 		l = t;
-		n = t->t.right;
+		n = t->right;
 		if (n == NULL) {
 		    return NULL;	/* out of range */
 		}
 	    }
 	} else {
-	    t = n->t.left;
+	    t = n->left;
 	    if (t->first->addr <= addr) {
-		r->t.left = n;
+		r->left = n;
 		r = n;
 		n = t;
 	    } else {
 		/* rotate */
-		n->t.left = t->t.right;
-		t->t.right = n;
-		r->t.left = t;
+		n->left = t->right;
+		t->right = n;
+		r->left = t;
 		r = t;
-		n = t->t.left;
+		n = t->left;
 	    }
 	}
     }
 
-    l->t.right = n->t.left;
-    r->t.left = n->t.right;
-    n->t.right = b.t.left;
-    n->t.left = b.t.right;
+    l->right = n->left;
+    r->left = n->right;
+    n->right = b.left;
+    n->left = b.right;
     return n;
 }
 
@@ -111,20 +110,20 @@ Block *Block::split(CodeSize addr)
 
 	/* split block */
 	size = last->next->addr - b->first->addr;
-	n = new Block(last->next, b->last, b->size - size);
+	n = produce(last->next, b->last, b->size - size);
 	n->next = b->next;
-	n->follow = b->follow;
-	n->nfollow = b->nfollow;
+	n->to = b->to;
+	n->nTo = b->nTo;
 	b->next = n;
 	b->last = last;
 	b->size = size;
-	b->follow = NULL;
-	b->nfollow = 0;
+	b->to = NULL;
+	b->nTo = 0;
 
 	/* insert at root of tree */
-	n->t.left = b;
-	n->t.right = b->t.right;
-	b->t.right = NULL;
+	n->left = b;
+	n->right = b->right;
+	b->right = NULL;
 	b = n;
     }
 
@@ -132,45 +131,34 @@ Block *Block::split(CodeSize addr)
 }
 
 /*
- * delete a list of blocks
+ * track this block
  */
-void Block::clear(Block *b)
+void Block::track(Block **list, CodeSize offset)
 {
-    Block *next;
-
-    while (b != NULL) {
-	next = b->next;
-	delete b;
-	b = next;
+    if (start == UNLISTED) {
+	this->list = *list;
+	*list = this;
+	start = offset;
+    } else if (start != offset) {
+	fatal("catch/rlimits branch mismatch");
     }
 }
 
 /*
- * break up a function into code blocks
+ * split function into blocks
  */
-Block *Block::create(CodeFunction *function)
+Block *Block::pass1()
 {
     Code *code;
-    Block *first, *b, **follow;
-    int i;
+    Block *b, **follow;
+    CodeSize i;
 
-    code = function->first;
-    if (code == NULL) {
-	return NULL;
-    }
-
-    first = new Block(code, function->last, function->pc);
-    first->next = first->t.left = first->t.right = NULL;
-    first->follow = NULL;
-    first->nfollow = 0;
-
-    for (b = first; code != NULL; code = code->next) {
+    for (b = this, code = this->first; code != NULL; code = code->next) {
 	switch (code->instruction) {
 	case Code::JUMP:
 	    /* split at jump target */
 	    b = b->split(code->target);
 	    if (b == NULL) {
-		clear(first);
 		return NULL;
 	    }
 	    /* one followup */
@@ -182,15 +170,14 @@ Block *Block::create(CodeFunction *function)
 		b = b->split(code->next->addr);
 		if (b == NULL) {
 		    delete[] follow;
-		    clear(first);
 		    return NULL;
 		}
 	    }
 
 	    /* set followups */
 	    b = b->find(code->addr);
-	    b->follow = follow;
-	    b->nfollow = 1;
+	    b->to = follow;
+	    b->nTo = 1;
 	    break;
 
 	case Code::JUMP_ZERO:
@@ -199,7 +186,6 @@ Block *Block::create(CodeFunction *function)
 	    /* split at jump target */
 	    b = b->split(code->target);
 	    if (b == NULL) {
-		clear(first);
 		return NULL;
 	    }
 	    /* two followups */
@@ -207,31 +193,27 @@ Block *Block::create(CodeFunction *function)
 	    follow[1] = b;
 
 	    /* start new block */
-	    if (code->next == NULL ||
-		(b=b->split(code->next->addr)) == NULL) {
+	    if (code->next == NULL || (b=b->split(code->next->addr)) == NULL) {
 		delete[] follow;
-		clear(first);
 		return NULL;
 	    }
 	    follow[0] = b;
 
 	    /* set followups */
 	    b = b->find(code->addr);
-	    b->follow = follow;
-	    b->nfollow = 2;
+	    b->to = follow;
+	    b->nTo = 2;
 	    break;
 
 	case Code::SWITCH_INT:
 	    /* create jump table with block entry points */
 	    follow = new Block*[code->size];
 	    for (i = 0; i < code->size; i++) {
-		b = b->split(code->caseInt[i].addr);
+		follow[i] = b = b->split(code->caseInt[i].addr);
 		if (b == NULL) {
 		    delete[] follow;
-		    clear(first);
 		    return NULL;
 		}
-		follow[i] = b;
 	    }
 
 	    /* start new block */
@@ -239,26 +221,23 @@ Block *Block::create(CodeFunction *function)
 		b = b->split(code->next->addr);
 		if (b == NULL) {
 		    delete[] follow;
-		    clear(first);
 		    return NULL;
 		}
 	    }
 
 	    /* set followups */
 	    b = b->find(code->addr);
-	    b->follow = follow;
-	    b->nfollow = code->size;
+	    b->to = follow;
+	    b->nTo = code->size;
 	    break;
 
 	case Code::SWITCH_RANGE:
 	    /* create jump table with block entry points */
-	    b = b->find(code->addr);
 	    follow = new Block*[code->size];
 	    for (i = 0; i < code->size; i++) {
 		follow[i] = b = b->split(code->caseRange[i].addr);
 		if (b == NULL) {
 		    delete[] follow;
-		    clear(first);
 		    return NULL;
 		}
 	    }
@@ -268,26 +247,23 @@ Block *Block::create(CodeFunction *function)
 		b = b->split(code->next->addr);
 		if (b == NULL) {
 		    delete[] follow;
-		    clear(first);
 		    return NULL;
 		}
 	    }
 
 	    /* set followups */
 	    b = b->find(code->addr);
-	    b->follow = follow;
-	    b->nfollow = code->size;
+	    b->to = follow;
+	    b->nTo = code->size;
 	    break;
 
 	case Code::SWITCH_STRING:
 	    /* create jump table with block entry points */
-	    b = b->find(code->addr);
 	    follow = new Block*[code->size];
 	    for (i = 0; i < code->size; i++) {
 		follow[i] = b = b->split(code->caseString[i].addr);
 		if (b == NULL) {
 		    delete[] follow;
-		    clear(first);
 		    return NULL;
 		}
 	    }
@@ -297,15 +273,14 @@ Block *Block::create(CodeFunction *function)
 		b = b->split(code->next->addr);
 		if (b == NULL) {
 		    delete[] follow;
-		    clear(first);
 		    return NULL;
 		}
 	    }
 
 	    /* set followups */
 	    b = b->find(code->addr);
-	    b->follow = follow;
-	    b->nfollow = code->size;
+	    b->to = follow;
+	    b->nTo = code->size;
 	    break;
 
 	default:
@@ -313,38 +288,24 @@ Block *Block::create(CodeFunction *function)
 	}
     }
 
-    return first;
-}
-
-/*
- * add block to the list
- */
-void Block::push(Block **list, int offset)
-{
-    if (f.start == UNLISTED) {
-	f.list = *list;
-	*list = this;
-	f.start = offset;
-    } else if (f.start != offset) {
-	fatal("catch/rlimits branch mismatch");
-    }
+    return b;
 }
 
 /*
  * transform RETURN into END_CATCH or END_RLIMITS, as required
  */
-void Block::analyze(Block *b)
+void Block::pass2()
 {
-    Block *list;
+    Block *b, *list;
     CodeSize size;
     Code *code;
-    int c, i;
+    CodeSize c, i;
 
-    list = b;
+    list = b = this;
 
     /* initially, no blocks are in the list */
     while (b != NULL) {
-	b->f.start = b->f.end = UNLISTED;
+	b->start = b->end = UNLISTED;
 	size = b->last->addr;
 	b = b->next;
     }
@@ -352,20 +313,20 @@ void Block::analyze(Block *b)
     Context context[size];	/* too large but we need some limit */
     c = NONE;
 
-    list->f.start = c;
-    list->f.list = NULL;
+    list->start = c;
+    list->list = NULL;
 
     /*
      * determine the catch/rlimits context at the start and end of each block
      */
     while (list != NULL) {
 	b = list;
-	list = b->f.list;
+	list = b->list;
 
-	if (b->f.end != UNLISTED) {
+	if (b->end != UNLISTED) {
 	    fatal("block list corrupted");
 	}
-	b->f.end = b->f.start;
+	b->end = b->start;
 
 	/*
 	 * go through the code and make adjustments as needed
@@ -374,25 +335,25 @@ void Block::analyze(Block *b)
 	    switch (code->instruction) {
 	    case Code::CATCH:
 		context[++c].type = Context::CATCH;
-		context[c].next = b->f.end;
-		b->f.end = c;
+		context[c].next = b->end;
+		b->end = c;
 		break;
 
 	    case Code::RLIMITS:
 	    case Code::RLIMITS_CHECK:
 		context[++c].type = Context::RLIMITS;
-		context[c].next = b->f.end;
-		b->f.end = c;
+		context[c].next = b->end;
+		b->end = c;
 		break;
 
 	    case Code::RETURN:
-		if (b->f.end != NONE) {
-		    if (context[b->f.end].type == Context::CATCH) {
+		if (b->end != NONE) {
+		    if (context[b->end].type == Context::CATCH) {
 			code->instruction = Code::END_CATCH;
 		    } else {
 			code->instruction = Code::END_RLIMITS;
 		    }
-		    b->f.end = context[b->f.end].next;
+		    b->end = context[b->end].next;
 		}
 		break;
 
@@ -405,26 +366,159 @@ void Block::analyze(Block *b)
 	    }
 	}
 
-	if (b->nfollow != 0) {
+	if (b->nTo != 0) {
 	    /* add followups to the list */
 	    if (code->instruction == Code::CATCH) {
 		/*
 		 * special case for CATCH: the context will be gone after an
 		 * exception occurs
 		 */
-		b->follow[0]->push(&list, b->f.end);
-		b->follow[1]->push(&list, context[b->f.end].next);
+		b->to[0]->track(&list, b->end);
+		b->to[1]->track(&list, context[b->end].next);
 	    } else {
-		for (i = 0; i < b->nfollow; i++) {
-		    b->follow[i]->push(&list, b->f.end);
+		for (i = 0; i < b->nTo; i++) {
+		    b->to[i]->track(&list, b->end);
 		}
 	    }
 	} else if (b->next != NULL && code->instruction != Code::RETURN) {
 	    /* add the next block to the list */
-	    b->next->push(&list, b->f.end);
-	} else if (b->f.end != NONE) {
+	    b->next->track(&list, b->end);
+	} else if (b->end != NONE) {
 	    /* function ended within a catch/rlimits context */
 	    fatal("catch/rlimits return mismatch");
 	}
     }
+}
+
+/*
+ * determine nFroms
+ */
+void Block::pass3(Block *b)
+{
+    Block *f;
+    Code *code;
+    CodeSize i;
+
+    for (f = this; f != NULL; f = f->next) {
+	code = f->last;
+	switch (code->instruction) {
+	case Code::JUMP:
+	case Code::JUMP_ZERO:
+	case Code::JUMP_NONZERO:
+	case Code::CATCH:
+	case Code::SWITCH_INT:
+	case Code::SWITCH_RANGE:
+	case Code::SWITCH_STRING:
+	    for (i = 0; i < f->nTo; i++) {
+		f->to[i]->nFrom++;
+	    }
+	    break;
+
+	case Code::RETURN:
+	    break;
+
+	default:
+	    /* make transition explicit */
+	    f->nTo = 1;
+	    f->to = new Block*[1];
+	    f->to[0] = b = b->find(code->next->addr);
+	    b->nFrom++;
+	    break;
+	}
+    }
+}
+
+
+/*
+ * determine froms
+ */
+void Block::pass4()
+{
+    Block *f, *b;
+    CodeSize i;
+
+    for (f = this; f != NULL; f = f->next) {
+	for (i = 0; i < f->nTo; i++) {
+	    b = f->to[i];
+	    if (b->from == NULL) {
+		b->from = new Block*[b->nFrom];
+		b->nFrom = 0;
+	    }
+	    b->from[b->nFrom++] = f;
+	}
+    }
+}
+
+void Block::emit()
+{
+}
+
+
+/*
+ * delete a list of blocks
+ */
+void Block::clear()
+{
+    Block *b, *next;
+
+    b = this;
+    while (b != NULL) {
+	next = b->next;
+	delete b;
+	b = next;
+    }
+}
+
+/*
+ * break up a function into code blocks
+ */
+Block *Block::blocks(CodeFunction *function)
+{
+    Block *first, *tree;
+    CodeSize size;
+
+    if (function->first == NULL) {
+	return NULL;
+    }
+
+    function->getPC(&size);
+    first = produce(function->first, function->last, size);
+    first->next = first->left = first->right = NULL;
+
+    tree = first->pass1();
+    if (tree == NULL) {
+	first->clear();
+	return NULL;
+    }
+    first->pass2();
+    first->pass3(tree);
+    first->pass4();
+
+    return first;
+}
+
+/*
+ * produce a block
+ */
+Block *Block::create(Code *first, Code *last, CodeSize size)
+{
+    return new Block(first, last, size);
+}
+
+Block *(*Block::factory)(Code*, Code*, CodeSize) = &create;
+
+/*
+ * set the factory which produces blocks
+ */
+void Block::producer(Block *(*factory)(Code*, Code*, CodeSize))
+{
+    Block::factory = factory;
+}
+
+/*
+ * let the factory produce a block
+ */
+Block *Block::produce(Code *first, Code *last, CodeSize size)
+{
+    return (*factory)(first, last, size);
 }

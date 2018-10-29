@@ -25,6 +25,7 @@ typedef struct {
     uint16_t index;		/* optional class string index */
 } LPCType;
 
+typedef uint8_t LPCParam;
 typedef uint8_t LPCLocal;
 
 typedef struct {
@@ -33,20 +34,22 @@ typedef struct {
     Type type;			/* type of variable */
 } LPCGlobal;
 
+typedef uint16_t LPCKfun;
+
 typedef struct {
-    uint16_t func;		/* index in kfun table */
-    uint8_t nargs;		/* # arguments */
+    LPCKfun func;		/* index in kfun table */
+    LPCParam nargs;		/* # arguments */
     Type type;			/* return type */
 } LPCKFunc;
 
 typedef struct {
     LPCInherit inherit;		/* program */
     uint8_t func;		/* index in function table */
-    uint8_t nargs;		/* # arguments */
+    LPCParam nargs;		/* # arguments */
     Type type;			/* return type */
 } LPCDFunc;
 
 typedef struct {
     uint16_t call;		/* index in call table */
-    uint8_t nargs;		/* # arguments */
+    LPCParam nargs;		/* # arguments */
 } LPCVFunc;

@@ -4,15 +4,14 @@ typedef uint16_t CodeLine;		/* line number */
 
 class CodeContext {
 public:
-    typedef uint16_t KfunMap;
     class Kfun {
     public:
 	LPCType *proto;		/* return and argument types */
-	uint8_t nargs, vargs;	/* # arguments & optional arguments */
+	LPCParam nargs, vargs;	/* # arguments & optional arguments */
 	bool lval;		/* has lvalue arguments? */
     };
 
-    CodeContext(size_t intSize, size_t inhSize, KfunMap *map, int nMap,
+    CodeContext(size_t intSize, size_t inhSize, LPCKfun *map, int nMap,
 		CodeByte *protos, int nProto);
     virtual ~CodeContext();
 
@@ -22,9 +21,9 @@ public:
 
     size_t intSize;		/* integer size */
     size_t inhSize;		/* inherit size */
-    KfunMap *map;		/* kfun mapping */
+    LPCKfun *map;		/* kfun mapping */
     Kfun *kfuns;		/* kfun prototypes */
-    uint16_t nkfun;		/* # kfuns */
+    LPCKfun nkfun;		/* # kfuns */
 };
 
 class CodeObject {
@@ -33,9 +32,13 @@ public:
 	       CodeByte *varTypes);
     virtual ~CodeObject();
 
-    CodeContext *context;	/* context */
+    Type varType(LPCGlobal *var);
+    Type funcType(LPCDFunc *func);
 
+    CodeContext *context;	/* context */
     LPCInherit nInherits;	/* # inherits */
+
+private:
     CodeByte **funcTypes;	/* function types */
     CodeByte **varTypes;	/* variable types */
 };
@@ -56,16 +59,22 @@ public:
     CodeFunction(CodeObject *object, CodeByte **prog);
     virtual ~CodeFunction();
 
+    CodeByte *getPC(CodeSize *addr);
+    void setPC(CodeByte *pc);
+    CodeLine getLine(CodeByte instr);
+
     CodeObject *object;			/* code object */
     LPCType *proto;			/* function prototype */
     uint8_t fclass;			/* function class */
-    uint8_t nargs, vargs;		/* # arguments & optional arguments */
-    uint8_t locals;			/* # locals */
+    LPCParam nargs, vargs;		/* # arguments & optional arguments */
+    LPCLocal locals;			/* # locals */
     uint16_t stack;			/* stack depth */
+    class Code *first, *last;		/* code in this function */
+
+private:
     CodeByte *program, *lines;		/* program & line numbers */
     CodeSize pc, lc;			/* program counter and line counter */
     CodeLine line;			/* current line */
-    class Code *first, *last;		/* code in this function */
 };
 
 
@@ -88,6 +97,13 @@ public:
     Code(CodeFunction *function);
     virtual ~Code();
 
+    virtual CodeLine emit(CodeLine line);
+
+    static Code *create(CodeFunction *function);
+    static Code *produce(CodeFunction *function);
+    static void producer(Code *(*factory)(CodeFunction*));
+
+    CodeFunction *function;		/* function this code is in */
     Code *next;				/* following instruction */
     CodeSize addr;			/* address of this instruction */
     CodeLine line;			/* line number of this instruction */
@@ -136,7 +152,7 @@ public:
 	END_RLIMITS,
 	RETURN
     } instruction;
-    uint16_t size;			/* size */
+    CodeSize size;			/* size */
     union {
 	LPCInt num;			/* integer */
 	LPCFloat flt;			/* float */
@@ -159,4 +175,6 @@ private:
     CodeByte *switchInt(CodeByte *pc);
     CodeByte *switchRange(CodeByte *pc);
     CodeByte *switchStr(CodeByte *pc, CodeContext *context);
+
+    static Code *(*factory)(CodeFunction*);
 };

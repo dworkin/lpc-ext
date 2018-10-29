@@ -142,7 +142,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
     sprintf(path, "%s/cache/%c%c", configDir, file[0], file[1]);
     mkdir(path, 0750);
     sprintf(path + strlen(path), "/%s", file);
-    fd = open(path, O_CREAT | O_WRONLY, 0640);
+    fd = open(path, O_CREAT | O_TRUNC | O_WRONLY, 0640);
     write(fd, buffer, size);
     close(fd);
 

@@ -74,8 +74,8 @@ CodeByte *CodeContext::type(CodeByte *pc, LPCType *vType)
     return pc;
 }
 
-CodeContext::CodeContext(size_t intSize, size_t inhSize, KfunMap *map, int nMap,
-			 CodeByte *protos, int nProto)
+CodeContext::CodeContext(size_t intSize, size_t inhSize, LPCKfun *map,
+			 int nMap, CodeByte *protos, int nProto)
 {
     int i, size;
     Kfun *kfun;
@@ -84,8 +84,8 @@ CodeContext::CodeContext(size_t intSize, size_t inhSize, KfunMap *map, int nMap,
     /* allocate code context */
     this->intSize = intSize;
     this->inhSize = inhSize;
-    this->map = new KfunMap[nMap];
-    memcpy(this->map, map, nMap * sizeof(KfunMap));
+    this->map = new LPCKfun[nMap];
+    memcpy(this->map, map, nMap * sizeof(LPCKfun));
 
     /*
      * initialize kfun prototype table
@@ -124,7 +124,9 @@ CodeContext::~CodeContext()
 	}
     }
     delete[] kfuns;
+    delete[] map;
 }
+
 
 CodeObject::CodeObject(CodeContext *context, LPCInherit nInherits,
 		       CodeByte *funcTypes, CodeByte *varTypes)
@@ -175,8 +177,24 @@ CodeObject::~CodeObject()
 }
 
 /*
- * NAME:	Code->new()
- * DESCRIPTION:	create a function retriever
+ * return variable type
+ */
+Type CodeObject::varType(LPCGlobal *var)
+{
+    return varTypes[var->inherit][var->index];
+}
+
+/*
+ * return function type
+ */
+Type CodeObject::funcType(LPCDFunc *func)
+{
+    return funcTypes[func->inherit][func->func];
+}
+
+
+/*
+ * create a function retriever
  */
 CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
 {
@@ -215,7 +233,7 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
 	    Code *code;
 
 	    /* add new code */
-	    code = new Code(this);
+	    code = Code::produce(this);
 	    code->next = NULL;
 	    if (first == NULL) {
 		first = last = code;
@@ -229,6 +247,64 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
     }
 
     *prog = lines + lc;
+}
+
+/*
+ * delete a function retriever
+ */
+CodeFunction::~CodeFunction()
+{
+    Code *code, *next;
+
+    /* delete all code retrieved for this function */
+    for (code = first; code != NULL; code = next) {
+	next = code->next;
+	delete code;
+    }
+
+    delete[] proto;
+}
+
+/*
+ * get the current program
+ */
+CodeByte *CodeFunction::getPC(CodeSize *addr)
+{
+    *addr = pc;
+    return program + pc;
+}
+
+/*
+ * set the current program
+ */
+void CodeFunction::setPC(CodeByte *pc)
+{
+    this->pc = pc - program;
+}
+
+/*
+ * get the current line from a function
+ */
+CodeLine CodeFunction::getLine(CodeByte instr)
+{
+    uint16_t offset;
+    CodeByte *numbers;
+
+    offset = instr >> I_LINE_SHIFT;
+    if (offset <= 2) {
+	line += offset;
+    } else {
+	numbers = lines + lc;
+	offset = FETCH1U(numbers);
+	if (offset >= 128) {
+	    line += offset - 128 - 64;
+	} else {
+	    line += ((offset << 8) | FETCH1U(numbers)) - 16384;
+	}
+	lc = numbers - lines;
+    }
+
+    return line;
 }
 
 /*
@@ -473,40 +549,26 @@ CodeByte *Code::switchStr(CodeByte *pc, CodeContext *context)
 Code::Code(CodeFunction *function)
 {
     CodeContext *context;
-    CodeByte *pc, *numbers, instr;
+    CodeByte *pc, instr;
     LPCFloat xfloat;
-    uint16_t offset, fexp;
+    uint16_t fexp;
     int i;
     CodeContext::Kfun *kf;
 
+    this->function = function;
     context = function->object->context;
-    pc = function->program + function->pc;
+    pc = function->getPC(&addr);
 
     /*
      * retrieve instruction
      */
-    addr = function->pc;
     pop = false;
     instr = FETCH1U(pc);
 
     /*
      * retrieve line number
      */
-    numbers = function->lines + function->lc;
-    line = function->line;
-    offset = instr >> I_LINE_SHIFT;
-    if (offset <= 2) {
-	line += offset;
-    } else {
-	offset = FETCH1U(numbers);
-	if (offset >= 128) {
-	    line += offset - 128 - 64;
-	} else {
-	    line += ((offset << 8) | FETCH1U(numbers)) - 16384;
-	}
-    }
-    function->line = line;
-    function->lc = numbers - function->lines;
+    line = function->getLine(instr);
 
     /*
      * process instruction
@@ -585,14 +647,14 @@ Code::Code(CodeFunction *function)
     case I_GLOBAL:
 	var.inherit = function->object->nInherits - 1;
 	var.index = FETCH1U(pc);
-	var.type = function->object->varTypes[var.inherit][var.index];
+	var.type = function->object->varType(&var);
 	instruction = GLOBAL;
 	break;
 
     case I_FAR_GLOBAL:
 	var.inherit = FETCHI(pc, context);
 	var.index = FETCH1U(pc);
-	var.type = function->object->varTypes[var.inherit][var.index];
+	var.type = function->object->varType(&var);
 	instruction = GLOBAL;
 	break;
 
@@ -837,7 +899,7 @@ Code::Code(CodeFunction *function)
 	dfun.inherit = 0;
 	dfun.func = FETCH1U(pc);
 	dfun.nargs = FETCH1U(pc);
-	dfun.type = function->object->funcTypes[0][dfun.func];
+	dfun.type = function->object->funcType(&dfun);
 	instruction = DFUNC;
 	break;
 
@@ -848,7 +910,7 @@ Code::Code(CodeFunction *function)
 	dfun.inherit = FETCHI(pc, context);
 	dfun.func = FETCH1U(pc);
 	dfun.nargs = FETCH1U(pc);
-	dfun.type = function->object->funcTypes[dfun.inherit][dfun.func];
+	dfun.type = function->object->funcType(&dfun);
 	instruction = DFUNC;
 	break;
 
@@ -881,7 +943,7 @@ Code::Code(CodeFunction *function)
     default:
 	fatal("retrieved unknown instruction 0x%02x", instr);
     }
-    function->pc = pc - function->program;
+    function->setPC(pc);
 }
 
 /*
@@ -908,19 +970,33 @@ Code::~Code()
     }
 }
 
-/*
- * NAME:	Code->del()
- * DESCRIPTION:	delete a function retriever
- */
-CodeFunction::~CodeFunction()
+CodeLine Code::emit(CodeLine line)
 {
-    Code *code, *next;
+    return line;
+}
 
-    /* delete all code retrieved for this function */
-    for (code = first; code != NULL; code = next) {
-	next = code->next;
-	delete code;
-    }
+/*
+ * produce code
+ */
+Code *Code::create(CodeFunction *function)
+{
+    return new Code(function);
+}
 
-    delete[] proto;
+Code *(*Code::factory)(CodeFunction*) = create;
+
+/*
+ * set the factory which produces code
+ */
+void Code::producer(Code *(*factory)(CodeFunction*))
+{
+    Code::factory = factory;
+}
+
+/*
+ * let the factory produce code
+ */
+Code *Code::produce(CodeFunction *function)
+{
+    return (*factory)(function);
 }

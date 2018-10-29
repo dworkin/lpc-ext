@@ -14,7 +14,7 @@ extern "C" {
 # include "data.h"
 # include "code.h"
 # include "block.h"
-# include "disassemble.h"
+# include "disasm.h"
 # include "jitcomp.h"
 
 /*
@@ -40,14 +40,15 @@ static void jit_compile(int nInherits, uint8_t *prog, int nFunctions,
 			uint8_t *funcTypes, uint8_t *varTypes)
 {
     if (nFunctions != 0) {
+	Code::producer(&DisCode::create);
+	Block::producer(&DisBlock::create);
 	CodeObject object(cc, nInherits, funcTypes, varTypes);
 	do {
 	    CodeFunction func(&object, &prog);
-	    Block *b = Block::create(&func);
+	    Block *b = Block::blocks(&func);
 	    if (b != NULL) {
-		Block::analyze(b);
-		dis_program(&func, b);
-		Block::clear(b);
+		b->emit();
+		b->clear();
 	    }
 	    fprintf(stderr, "\n");
 	} while (--nFunctions != 0);
