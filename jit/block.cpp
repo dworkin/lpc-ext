@@ -6,6 +6,7 @@ extern "C" {
 }
 # include "data.h"
 # include "code.h"
+# include "stack.h"
 # include "block.h"
 # include "jitcomp.h"
 
@@ -133,9 +134,9 @@ Block *Block::split(CodeSize addr)
 /*
  * track this block
  */
-void Block::track(Block **list, CodeSize offset)
+void Block::track(Block **list, StackSize offset)
 {
-    if (start == UNLISTED) {
+    if (start == STACK_INVALID) {
 	this->list = *list;
 	*list = this;
 	start = offset;
@@ -299,21 +300,19 @@ void Block::pass2()
     Block *b, *list;
     CodeSize size;
     Code *code;
-    CodeSize c, i;
+    CodeSize i;
 
     list = b = this;
+    Stack<Context> context(size);	/* too large but we need some limit */
 
     /* initially, no blocks are in the list */
     while (b != NULL) {
-	b->start = b->end = UNLISTED;
+	b->start = b->end = STACK_INVALID;
 	size = b->last->addr;
 	b = b->next;
     }
 
-    Context context[size];	/* too large but we need some limit */
-    c = NONE;
-
-    list->start = c;
+    list->start = STACK_EMPTY;
     list->list = NULL;
 
     /*
@@ -323,7 +322,7 @@ void Block::pass2()
 	b = list;
 	list = b->list;
 
-	if (b->end != UNLISTED) {
+	if (b->end != STACK_INVALID) {
 	    fatal("block list corrupted");
 	}
 	b->end = b->start;
@@ -334,26 +333,22 @@ void Block::pass2()
 	for (code = b->first; ; code = code->next) {
 	    switch (code->instruction) {
 	    case Code::CATCH:
-		context[++c].type = Context::CATCH;
-		context[c].next = b->end;
-		b->end = c;
+		b->end = context.push(b->end, Block::CATCH);
 		break;
 
 	    case Code::RLIMITS:
 	    case Code::RLIMITS_CHECK:
-		context[++c].type = Context::RLIMITS;
-		context[c].next = b->end;
-		b->end = c;
+		b->end = context.push(b->end, Block::RLIMITS);
 		break;
 
 	    case Code::RETURN:
-		if (b->end != NONE) {
-		    if (context[b->end].type == Context::CATCH) {
+		if (b->end != STACK_EMPTY) {
+		    if (context.get(b->end) == Block::CATCH) {
 			code->instruction = Code::END_CATCH;
 		    } else {
 			code->instruction = Code::END_RLIMITS;
 		    }
-		    b->end = context[b->end].next;
+		    b->end = context.pop(b->end);
 		}
 		break;
 
@@ -374,7 +369,7 @@ void Block::pass2()
 		 * exception occurs
 		 */
 		b->to[0]->track(&list, b->end);
-		b->to[1]->track(&list, context[b->end].next);
+		b->to[1]->track(&list, context.pop(b->end));
 	    } else {
 		for (i = 0; i < b->nTo; i++) {
 		    b->to[i]->track(&list, b->end);
@@ -383,7 +378,7 @@ void Block::pass2()
 	} else if (b->next != NULL && code->instruction != Code::RETURN) {
 	    /* add the next block to the list */
 	    b->next->track(&list, b->end);
-	} else if (b->end != NONE) {
+	} else if (b->end != STACK_EMPTY) {
 	    /* function ended within a catch/rlimits context */
 	    fatal("catch/rlimits return mismatch");
 	}

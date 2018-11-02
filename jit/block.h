@@ -21,28 +21,21 @@ public:
     CodeSize size;			/* size of block */
 
 private:
-    struct Context {
-	enum {
-	    CATCH,
-	    RLIMITS
-	} type;
-	CodeSize next;
-    };
-    enum {
-	UNLISTED,
-	NONE
+    enum Context {
+	CATCH,
+	RLIMITS
     };
 
     Block *find(CodeSize addr);
     Block *split(CodeSize addr);
-    void track(Block **list, CodeSize offset);
+    void track(Block **list, StackSize offset);
     Block *pass1();
     void pass2();
     void pass3(Block *b);
     void pass4();
 
     Block *left, *right;		/* left and right child in tree */
-    CodeSize start, end;		/* start and end context */
+    StackSize start, end;		/* start and end context */
     Block *list;
 
     static Block *(*factory)(Code*, Code*, CodeSize);

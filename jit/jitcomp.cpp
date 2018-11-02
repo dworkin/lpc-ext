@@ -13,6 +13,7 @@ extern "C" {
 }
 # include "data.h"
 # include "code.h"
+# include "stack.h"
 # include "block.h"
 # include "disasm.h"
 # include "jitcomp.h"
