@@ -194,8 +194,8 @@ CodeLine DisCode::emit(CodeLine line)
 	fprintf(stderr, "SPREAD %d\n", spread);
 	break;
 
-    case SPREAD_STORES:
-	fprintf(stderr, "SPREAD_STORES %d\n", spread);
+    case SPREADX:
+	fprintf(stderr, "SPREADX %d\n", spread);
 	break;
 
     case AGGREGATE:
@@ -208,6 +208,12 @@ CodeLine DisCode::emit(CodeLine line)
 
     case CAST:
 	fprintf(stderr, "CAST ");
+	dis_casttype(&type);
+	fprintf(stderr, "\n");
+	break;
+
+    case CASTX:
+	fprintf(stderr, "CASTX ");
 	dis_casttype(&type);
 	fprintf(stderr, "\n");
 	break;
@@ -263,6 +269,39 @@ CodeLine DisCode::emit(CodeLine line)
 
     case STORE_INDEX_INDEX:
 	fprintf(stderr, "STORE_INDEX_INDEX\n");
+	break;
+
+    case STOREX_PARAM:
+	fprintf(stderr, "STOREX_PARAM %d\n", param);
+	break;
+
+    case STOREX_LOCAL:
+	fprintf(stderr, "STOREX_LOCAL %d\n", local);
+	break;
+
+    case STOREX_GLOBAL:
+	fprintf(stderr, "STOREX_GLOBAL <%d, %d>\n", var.inherit, var.index);
+	break;
+
+    case STOREX_INDEX:
+	fprintf(stderr, "STOREX_INDEX\n");
+	break;
+
+    case STOREX_PARAM_INDEX:
+	fprintf(stderr, "STOREX_PARAM_INDEX %d\n", param);
+	break;
+
+    case STOREX_LOCAL_INDEX:
+	fprintf(stderr, "STOREX_LOCAL_INDEX %d\n", local);
+	break;
+
+    case STOREX_GLOBAL_INDEX:
+	fprintf(stderr, "STOREX_GLOBAL_INDEX <%d, %d>\n", var.inherit,
+		var.index);
+	break;
+
+    case STOREX_INDEX_INDEX:
+	fprintf(stderr, "STOREX_INDEX_INDEX\n");
 	break;
 
     case JUMP:

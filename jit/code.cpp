@@ -221,6 +221,7 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
     /* retrieve code from function */
     this->pc = lc = 0;
     line = 0;
+    stores = 0;
     first = NULL;
     if (!(fclass & CLASS_UNDEFINED)) {
 	stack = FETCH2U(pc);
@@ -235,6 +236,55 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
 	    /* add new code */
 	    code = Code::produce(this);
 	    code->next = NULL;
+	    if (code->instruction == Code::STORES) {
+		stores = code->size;
+	    } else if (stores != 0) {
+		switch (code->instruction) {
+		case Code::CAST:
+		    code->instruction = Code::CASTX;
+		    break;
+
+		case Code::STORE_PARAM:
+		    code->instruction = Code::STOREX_PARAM;
+		    --stores;
+		    break;
+
+		case Code::STORE_LOCAL:
+		    code->instruction = Code::STOREX_LOCAL;
+		    --stores;
+		    break;
+
+		case Code::STORE_GLOBAL:
+		    code->instruction = Code::STOREX_GLOBAL;
+		    --stores;
+		    break;
+
+		case Code::STORE_INDEX:
+		    code->instruction = Code::STOREX_INDEX;
+		    --stores;
+		    break;
+
+		case Code::STORE_PARAM_INDEX:
+		    code->instruction = Code::STOREX_PARAM_INDEX;
+		    --stores;
+		    break;
+
+		case Code::STORE_LOCAL_INDEX:
+		    code->instruction = Code::STOREX_LOCAL_INDEX;
+		    --stores;
+		    break;
+
+		case Code::STORE_GLOBAL_INDEX:
+		    code->instruction = Code::STOREX_GLOBAL_INDEX;
+		    --stores;
+		    break;
+
+		case Code::STORE_INDEX_INDEX:
+		    code->instruction = Code::STOREX_INDEX_INDEX;
+		    --stores;
+		    break;
+		}
+	    }
 	    if (first == NULL) {
 		first = last = code;
 	    } else {
@@ -683,7 +733,7 @@ Code::Code(CodeFunction *function)
 	    instruction = SPREAD;
 	} else {
 	    spread = -(spread + 2);
-	    instruction = SPREAD_STORES;
+	    instruction = SPREADX;
 	}
 	break;
 

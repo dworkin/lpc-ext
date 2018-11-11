@@ -75,6 +75,7 @@ private:
     CodeByte *program, *lines;		/* program & line numbers */
     CodeSize pc, lc;			/* program counter and line counter */
     CodeLine line;			/* current line */
+    CodeSize stores;			/* current stores context */
 };
 
 
@@ -118,10 +119,11 @@ public:
 	INDEX,
 	INDEX2,
 	SPREAD,
-	SPREAD_STORES,
+	SPREADX,
 	AGGREGATE,
 	MAP_AGGREGATE,
 	CAST,
+	CASTX,
 	INSTANCEOF,
 	CHECK_RANGE,
 	CHECK_RANGE_FROM,
@@ -135,6 +137,14 @@ public:
 	STORE_LOCAL_INDEX,
 	STORE_GLOBAL_INDEX,
 	STORE_INDEX_INDEX,
+	STOREX_PARAM,
+	STOREX_LOCAL,
+	STOREX_GLOBAL,
+	STOREX_INDEX,
+	STOREX_PARAM_INDEX,
+	STOREX_LOCAL_INDEX,
+	STOREX_GLOBAL_INDEX,
+	STOREX_INDEX_INDEX,
 	JUMP,
 	JUMP_ZERO,
 	JUMP_NONZERO,
