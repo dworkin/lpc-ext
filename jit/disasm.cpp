@@ -191,11 +191,17 @@ CodeLine DisCode::emit(CodeLine line)
 	break;
 
     case SPREAD:
-	fprintf(stderr, "SPREAD %d\n", spread);
+	fprintf(stderr, "SPREAD\n");
+	break;
+
+    case SPREAD_STORES:
+	fprintf(stderr, "SPREAD_STORES %d\n", spread);
 	break;
 
     case SPREADX:
-	fprintf(stderr, "SPREADX %d\n", spread);
+	fprintf(stderr, "SPREADX %d ", spread);
+	dis_casttype(&type);
+	fprintf(stderr, "\n");
 	break;
 
     case AGGREGATE:

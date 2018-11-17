@@ -236,60 +236,62 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
 	    /* add new code */
 	    code = Code::produce(this);
 	    code->next = NULL;
-	    if (code->instruction == Code::STORES) {
-		stores = code->size;
-	    } else if (stores != 0) {
-		switch (code->instruction) {
-		case Code::CAST:
-		    code->instruction = Code::CASTX;
-		    break;
-
-		case Code::STORE_PARAM:
-		    code->instruction = Code::STOREX_PARAM;
-		    --stores;
-		    break;
-
-		case Code::STORE_LOCAL:
-		    code->instruction = Code::STOREX_LOCAL;
-		    --stores;
-		    break;
-
-		case Code::STORE_GLOBAL:
-		    code->instruction = Code::STOREX_GLOBAL;
-		    --stores;
-		    break;
-
-		case Code::STORE_INDEX:
-		    code->instruction = Code::STOREX_INDEX;
-		    --stores;
-		    break;
-
-		case Code::STORE_PARAM_INDEX:
-		    code->instruction = Code::STOREX_PARAM_INDEX;
-		    --stores;
-		    break;
-
-		case Code::STORE_LOCAL_INDEX:
-		    code->instruction = Code::STOREX_LOCAL_INDEX;
-		    --stores;
-		    break;
-
-		case Code::STORE_GLOBAL_INDEX:
-		    code->instruction = Code::STOREX_GLOBAL_INDEX;
-		    --stores;
-		    break;
-
-		case Code::STORE_INDEX_INDEX:
-		    code->instruction = Code::STOREX_INDEX_INDEX;
-		    --stores;
-		    break;
-		}
-	    }
 	    if (first == NULL) {
 		first = last = code;
 	    } else {
 		last->next = code;
 		last = code;
+	    }
+
+	    if (code->instruction == Code::STORES) {
+		stores = code->size;
+	    } else if (stores != 0) {
+		switch (code->instruction) {
+		case Code::SPREAD:
+		    code->instruction = Code::SPREADX;
+		    break;
+
+		case Code::CAST:
+		    code->instruction = Code::CASTX;
+		    continue;
+
+		case Code::STORE_PARAM:
+		    code->instruction = Code::STOREX_PARAM;
+		    break;
+
+		case Code::STORE_LOCAL:
+		    code->instruction = Code::STOREX_LOCAL;
+		    break;
+
+		case Code::STORE_GLOBAL:
+		    code->instruction = Code::STOREX_GLOBAL;
+		    break;
+
+		case Code::STORE_INDEX:
+		    code->instruction = Code::STOREX_INDEX;
+		    break;
+
+		case Code::STORE_PARAM_INDEX:
+		    code->instruction = Code::STOREX_PARAM_INDEX;
+		    break;
+
+		case Code::STORE_LOCAL_INDEX:
+		    code->instruction = Code::STOREX_LOCAL_INDEX;
+		    break;
+
+		case Code::STORE_GLOBAL_INDEX:
+		    code->instruction = Code::STOREX_GLOBAL_INDEX;
+		    break;
+
+		case Code::STORE_INDEX_INDEX:
+		    code->instruction = Code::STOREX_INDEX_INDEX;
+		    break;
+
+		default:
+		    fatal("unexpected code %d", code->instruction);
+		    break;
+		}
+		--stores;
 	    }
 	}
     } else {
@@ -728,12 +730,15 @@ Code::Code(CodeFunction *function)
 	break;
 
     case I_SPREAD:
+	instruction = SPREAD;
 	spread = FETCH1S(pc);
 	if (spread >= 0) {
-	    instruction = SPREAD;
+	    pc = context->type(pc, &type);
 	} else {
 	    spread = -(spread + 2);
-	    instruction = SPREADX;
+	    if (spread >= 0) {
+		instruction = SPREAD_STORES;
+	    }
 	}
 	break;
 
@@ -754,6 +759,9 @@ Code::Code(CodeFunction *function)
 	instruction = INSTANCEOF;
 	break;
 
+    case I_STORES | I_POP_BIT:
+	pop = true;
+	/* fall through */
     case I_STORES:
 	size = FETCH1U(pc);
 	instruction = STORES;
