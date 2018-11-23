@@ -84,11 +84,8 @@ int main(int argc, char *argv[])
     if (read(0, &info, sizeof(JitInfo)) != sizeof(JitInfo)) {
 	return 2;
     }
-    uint16_t map[info.mapSize];
     uint8_t protos[info.protoSize];
-    if (read(0, map, info.mapSize * sizeof(uint16_t)) !=
-					    info.mapSize * sizeof(uint16_t) ||
-	read(0, protos, info.protoSize) != info.protoSize) {
+    if (read(0, protos, info.protoSize) != info.protoSize) {
 	return 2;
     }
 
@@ -98,8 +95,8 @@ int main(int argc, char *argv[])
 	return 3;
     }
 
-    cc = new CodeContext(info.intSize, info.inheritSize, map, info.mapSize,
-			 protos, info.nProtos);
+    cc = new CodeContext(info.intSize, info.inheritSize, protos, info.nBuiltins,
+			 info.nKfuns);
     reply = true;
     write(1, &reply, 1);
 

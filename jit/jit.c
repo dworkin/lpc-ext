@@ -18,8 +18,8 @@
  * DESCRIPTION:	initialize JIT compiler interface
  */
 static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
-		    uint16_t *map, int mapSize, uint8_t *protos,
-		    size_t protoSize, int nProtos)
+		    int nBuiltins, int nKfuns, uint8_t *protos,
+		    size_t protoSize)
 {
     JitInfo info;
     bool result;
@@ -31,13 +31,11 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
     info.minor = minor;
     info.intSize = intSize;
     info.inheritSize = inheritSize;
-    info.mapSize = mapSize;
-    info.nProtos = nProtos;
+    info.nBuiltins = nBuiltins;
+    info.nKfuns = nKfuns;
     info.protoSize = protoSize;
 
     return (lpc_ext_write(&info, sizeof(JitInfo)) == sizeof(JitInfo) &&
-	    lpc_ext_write(map, mapSize * sizeof(uint16_t)) ==
-						mapSize * sizeof(uint16_t) &&
 	    lpc_ext_write(protos, protoSize) == protoSize &&
 	    lpc_ext_read(&result, 1) == 1 &&
 	    result);

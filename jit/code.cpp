@@ -51,13 +51,69 @@ extern "C" {
 # define KF_CKRANGEFT	51
 # define KF_CKRANGEF	52
 # define KF_CKRANGET	53
+# define KF_BUILTINS	128
 
-/*
- * check VM version
- */
-bool CodeContext::validVM(int major, int minor)
+CodeContext::CodeContext(size_t intSize, size_t inhSize, CodeByte *protos,
+			 int nBuiltins, int nKfuns)
 {
-    return (major == VERSION_VM_MAJOR && minor <= VERSION_VM_MINOR);
+    int i, size;
+    Kfun *kfun;
+    LPCType *proto;
+
+    /* allocate code context */
+    this->intSize = intSize;
+    this->inhSize = inhSize;
+
+    /*
+     * initialize kfun prototype table
+     */
+    kfuns = new Kfun[nkfun = KF_BUILTINS + nKfuns];
+    for (kfun = kfuns, i = nBuiltins; i > 0; kfun++, --i) {
+	kfun->lval = false;
+	kfun->nargs = PROTO_NARGS(protos);
+	kfun->vargs = PROTO_VARGS(protos);
+	size = kfun->nargs + kfun->vargs + 1;
+	kfun->proto = proto = new LPCType[size];
+	protos = &PROTO_FTYPE(protos);
+	do {
+	    protos = type(protos, proto);
+	    if (proto->type == LPC_TYPE_LVALUE) {
+		kfun->lval = true;
+	    }
+	    proto++;
+	} while (--size != 0);
+    }
+    for (i = nBuiltins; i < KF_BUILTINS; kfun++, i++) {
+	kfun->proto = NULL;
+    }
+    for (i = nKfuns; i > 0; kfun++, --i) {
+	kfun->lval = false;
+	kfun->nargs = PROTO_NARGS(protos);
+	kfun->vargs = PROTO_VARGS(protos);
+	size = kfun->nargs + kfun->vargs + 1;
+	kfun->proto = proto = new LPCType[size];
+	protos = &PROTO_FTYPE(protos);
+	do {
+	    protos = type(protos, proto);
+	    if (proto->type == LPC_TYPE_LVALUE) {
+		kfun->lval = true;
+	    }
+	    proto++;
+	} while (--size != 0);
+    }
+}
+
+CodeContext::~CodeContext()
+{
+    Kfun *kfun;
+    int i;
+
+    for (kfun = kfuns, i = nkfun; i > 0; kfun++, --i) {
+	if (kfun->proto != NULL) {
+	    delete[] kfun->proto;
+	}
+    }
+    delete[] kfuns;
 }
 
 /*
@@ -74,57 +130,12 @@ CodeByte *CodeContext::type(CodeByte *pc, LPCType *vType)
     return pc;
 }
 
-CodeContext::CodeContext(size_t intSize, size_t inhSize, LPCKfun *map,
-			 int nMap, CodeByte *protos, int nProto)
+/*
+ * check VM version
+ */
+bool CodeContext::validVM(int major, int minor)
 {
-    int i, size;
-    Kfun *kfun;
-    LPCType *proto;
-
-    /* allocate code context */
-    this->intSize = intSize;
-    this->inhSize = inhSize;
-    this->map = new LPCKfun[nMap];
-    memcpy(this->map, map, nMap * sizeof(LPCKfun));
-
-    /*
-     * initialize kfun prototype table
-     */
-    kfuns = new Kfun[nkfun = nProto];
-    for (kfun = kfuns, i = nkfun; i > 0; kfun++, --i) {
-	if (protos[0] == 0) {
-	    protos++;
-	    kfun->proto = NULL;
-	} else {
-	    kfun->lval = false;
-	    kfun->nargs = PROTO_NARGS(protos);
-	    kfun->vargs = PROTO_VARGS(protos);
-	    size = kfun->nargs + kfun->vargs + 1;
-	    kfun->proto = proto = new LPCType[size];
-	    protos = &PROTO_FTYPE(protos);
-	    do {
-		protos = type(protos, proto);
-		if (proto->type == LPC_TYPE_LVALUE) {
-		    kfun->lval = true;
-		}
-		proto++;
-	    } while (--size != 0);
-	}
-    }
-}
-
-CodeContext::~CodeContext()
-{
-    Kfun *kfun;
-    int i;
-
-    for (kfun = kfuns, i = nkfun; i > 0; kfun++, --i) {
-	if (kfun->proto != NULL) {
-	    delete[] kfun->proto;
-	}
-    }
-    delete[] kfuns;
-    delete[] map;
+    return (major == VERSION_VM_MAJOR && minor <= VERSION_VM_MINOR);
 }
 
 
@@ -886,7 +897,7 @@ Code::Code(CodeFunction *function)
 	pop = true;
 	/* fall through */
     case I_CALL_KFUNC:
-	kfun.func = context->map[FETCH1U(pc)];
+	kfun.func = FETCH1U(pc);
 	switch (kfun.func) {
 	case KF_CKRANGEFT:
 	    instruction = CHECK_RANGE;
@@ -917,7 +928,7 @@ Code::Code(CodeFunction *function)
 	pop = true;
 	/* fall through */
     case I_CALL_EFUNC:
-	kfun.func = context->map[FETCH2U(pc)];
+	kfun.func = FETCH2U(pc);
 	kf = &context->kfuns[kfun.func];
 	if (kf->vargs != 0) {
 	    kfun.nargs = FETCH1U(pc);
@@ -932,7 +943,7 @@ Code::Code(CodeFunction *function)
 	pop = true;
 	/* fall through */
     case I_CALL_CKFUNC:
-	kfun.func = context->map[FETCH1U(pc)];
+	kfun.func = FETCH1U(pc);
 	kfun.nargs = FETCH1U(pc);
 	kf = &context->kfuns[kfun.func];
 	kfun.type = kf->proto[0].type;
@@ -943,7 +954,7 @@ Code::Code(CodeFunction *function)
 	pop = true;
 	/* fall through */
     case I_CALL_CEFUNC:
-	kfun.func = context->map[FETCH2U(pc)];
+	kfun.func = FETCH2U(pc);
 	kfun.nargs = FETCH1U(pc);
 	kf = &context->kfuns[kfun.func];
 	kfun.type = kf->proto[0].type;

@@ -354,21 +354,22 @@ CodeLine DisCode::emit(CodeLine line)
 	break;
 
     case KFUNC:
-	fprintf(stderr, "KFUNC %d ", kfun.func);
+	fprintf(stderr, "KFUNC %d (%d) ", kfun.func, kfun.nargs);
 	dis_type(kfun.type);
-	fprintf(stderr, " (%d)\n", kfun.nargs);
+	fprintf(stderr, "\n");
 	break;
 
     case KFUNC_STORES:
-	fprintf(stderr, "KFUNC_STORES %d ", kfun.func);
+	fprintf(stderr, "KFUNC_STORES %d (%d) ", kfun.func, kfun.nargs);
 	dis_type(kfun.type);
-	fprintf(stderr, " (%d)\n", kfun.nargs);
+	fprintf(stderr, "\n");
 	break;
 
     case DFUNC:
-	fprintf(stderr, "DFUNC <%d, %d> ", dfun.inherit, dfun.nargs);
+	fprintf(stderr, "DFUNC <%d, %d> (%d) ", dfun.inherit, dfun.func,
+		dfun.nargs);
 	dis_type(dfun.type);
-	fprintf(stderr, " (%d)\n", dfun.func);
+	fprintf(stderr, "\n");
 	break;
 
     case FUNC:

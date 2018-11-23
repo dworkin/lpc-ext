@@ -11,8 +11,8 @@ public:
 	bool lval;		/* has lvalue arguments? */
     };
 
-    CodeContext(size_t intSize, size_t inhSize, LPCKfun *map, int nMap,
-		CodeByte *protos, int nProto);
+    CodeContext(size_t intSize, size_t inhSize, CodeByte *protos, int nBuiltins,
+		int nKfuns);
     virtual ~CodeContext();
 
     CodeByte *type(CodeByte *pc, LPCType *vType);
@@ -21,7 +21,6 @@ public:
 
     size_t intSize;		/* integer size */
     size_t inhSize;		/* inherit size */
-    LPCKfun *map;		/* kfun mapping */
     Kfun *kfuns;		/* kfun prototypes */
     LPCKfun nkfun;		/* # kfuns */
 };
