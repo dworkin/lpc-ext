@@ -303,7 +303,6 @@ void Block::pass2()
     CodeSize i;
 
     list = b = this;
-    Stack<Context> context(size);	/* too large but we need some limit */
 
     /* initially, no blocks are in the list */
     while (b != NULL) {
@@ -312,6 +311,7 @@ void Block::pass2()
 	b = b->next;
     }
 
+    Stack<Context> context(size);	/* too large but we need some limit */
     list->start = STACK_EMPTY;
     list->list = NULL;
 
