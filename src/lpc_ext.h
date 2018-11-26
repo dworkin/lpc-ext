@@ -6,7 +6,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	10
+# define LPC_EXT_VERSION_MINOR	11
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -18,6 +18,7 @@
 # define LPC_TYPE_LWOBJ		7
 # define LPC_TYPE_MIXED		8
 # define LPC_TYPE_VOID		9
+# define LPC_TYPE_LVALUE	10
 # define LPC_TYPE_VARARGS	16
 # define LPC_TYPE_ELLIPSIS	16
 # define LPC_TYPE_ARRAY_OF(t)	((t) + 16)

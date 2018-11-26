@@ -42,6 +42,9 @@ be accessed using the relevant lpc_frame_*() functions listed below, and the
 return value, if any, should be stored in the retval value using one of the
 lpc_*_putval() functions.  The default return value is nil.
 
+Functions with lvalue parameters should put the values to be assigned in an
+array, which is stored in the scratch value returned by lpc_value_temp().
+
 Kfuns can call lpc_runtime_error() to indicate that an error occurred.  Errors
 will interrupt the flow of execution, so lpc_runtime_error() is best called
 before any LPC values are constructed or changed, including the return value of
@@ -65,6 +68,7 @@ represented as a 0-terminated array of chars.  For example, the LPC prototypes
     int foo(int *a, varargs object **b);
     void bar(void);
     void gnu();
+    int sscanf(string str, string format, mixed...);	/* lvalue arguments */
 
 would be represented as
 
@@ -77,11 +81,12 @@ would be represented as
 			 0 };
     char bar_proto[] = { LPC_TYPE_VOID, LPC_TYPE_VOID, 0 };
     char gnu_proto[] = { LPC_TYPE_VOID, 0 };
+    char sscanf_proto[] = { LPC_TYPE_INT, LPC_TYPE_STRING, LPC_TYPE_STRING,
+			    LPC_TYPE_LVALUE, LPC_TYPE_ELLIPSIS, 0 };
 
 Note that the prototypes of bar() and gnu() are effectively identical, just
 as they would be for LPC functions; also note that varargs must be specified
-in the new way, among the arguments of the prototype rather than in front of
-the return type.
+among the arguments of the prototype rather than in front of the return type.
 
 The building blocks for prototypes are:
 
@@ -93,6 +98,7 @@ The building blocks for prototypes are:
     LPC_TYPE_ARRAY_OF(lpc_type)
     LPC_TYPE_MAPPING
     LPC_TYPE_MIXED
+    LPC_TYPE_LVALUE
     LPC_TYPE_VARARGS
     LPC_TYPE_ELLIPSIS
 
@@ -142,9 +148,9 @@ by the proper functions.  Light-weight objects cannot be manipulated by an
 extension kfun, at all.
 
     int		lpc_value_type(LPC_value val);
-    LPC_value	lpc_value_nil();		/* the nil value */
-    LPC_value	lpc_value_temp();		/* a temporary value */
-    LPC_value	lpc_value_temp2();		/* another temporary value */
+    LPC_value	lpc_value_nil();			/* the nil value */
+    LPC_value	lpc_value_temp(LPC_datspace data);	/* temporary value 1 */
+    LPC_value	lpc_value_temp2(LPC_datspace data);	/* temporary value 2 */
 
 To save data, it must first be stored in a value.  Since LPC_value is actually
 a pointer, there is no way to construct a new value.  lpc_value_temp() can be

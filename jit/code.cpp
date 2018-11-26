@@ -1001,7 +1001,6 @@ Code::Code(CodeFunction *function)
 	break;
 
     case I_RLIMITS:
-	pop = true;
 	instruction = (FETCH1U(pc) != 0) ? RLIMITS : RLIMITS_CHECK;
 	break;
 
