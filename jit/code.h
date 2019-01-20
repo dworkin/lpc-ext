@@ -55,12 +55,13 @@ public:
 	CLASS_UNDEFINED = 0x80
     };
 
-    CodeFunction(CodeObject *object, CodeByte **prog);
+    CodeFunction(CodeObject *object, CodeByte *prog);
     virtual ~CodeFunction();
 
     CodeByte *getPC(CodeSize *addr);
     void setPC(CodeByte *pc);
     CodeLine getLine(CodeByte instr);
+    CodeByte *endProg();
 
     CodeObject *object;			/* code object */
     LPCType *proto;			/* function prototype */
@@ -68,13 +69,11 @@ public:
     LPCParam nargs, vargs;		/* # arguments & optional arguments */
     LPCLocal locals;			/* # locals */
     uint16_t stack;			/* stack depth */
-    class Code *first, *last;		/* code in this function */
 
 private:
     CodeByte *program, *lines;		/* program & line numbers */
     CodeSize pc, lc;			/* program counter and line counter */
     CodeLine line;			/* current line */
-    CodeSize stores;			/* current stores context */
 };
 
 
@@ -97,6 +96,7 @@ public:
     Code(CodeFunction *function);
     virtual ~Code();
 
+    virtual void evaluate(class BlockContext *context);
     virtual CodeLine emit(CodeLine line);
 
     static Code *create(CodeFunction *function);
@@ -167,7 +167,7 @@ public:
 	LPCInt num;			/* integer */
 	LPCFloat flt;			/* float */
 	LPCStringConst str;		/* string constant */
-	LPCLocal param;			/* function parameter */
+	LPCParam param;			/* function parameter */
 	LPCLocal local;			/* local variable */
 	LPCGlobal var;			/* global variable */
 	LPCType type;			/* type */

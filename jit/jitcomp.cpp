@@ -45,12 +45,13 @@ static void jit_compile(int nInherits, uint8_t *prog, int nFunctions,
 	Block::producer(&DisBlock::create);
 	CodeObject object(cc, nInherits, funcTypes, varTypes);
 	do {
-	    CodeFunction func(&object, &prog);
+	    CodeFunction func(&object, prog);
 	    Block *b = Block::blocks(&func);
 	    if (b != NULL) {
 		b->emit();
 		b->clear();
 	    }
+	    prog = func.endProg();
 	    fprintf(stderr, "\n");
 	} while (--nFunctions != 0);
     }

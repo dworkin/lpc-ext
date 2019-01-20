@@ -205,12 +205,11 @@ Type CodeObject::funcType(LPCDFunc *func)
 
 
 /*
- * create a function retriever
+ * create a function
  */
-CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
+CodeFunction::CodeFunction(CodeObject *object, CodeByte *prog)
 {
     CodeContext *context;
-    CodeByte *pc;
     uint16_t size;
     LPCType *proto;
 
@@ -218,98 +217,29 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
     context = object->context;
 
     /* retrieve prototype */
-    pc = *prog;
-    nargs = PROTO_NARGS(pc);
-    vargs = PROTO_VARGS(pc);
+    program = prog;
+    nargs = PROTO_NARGS(program);
+    vargs = PROTO_VARGS(program);
     size = nargs + vargs + 1;
     this->proto = proto = new LPCType[size];
-    fclass = PROTO_CLASS(pc);
-    pc = &PROTO_FTYPE(pc);
+    fclass = PROTO_CLASS(program);
+    program = &PROTO_FTYPE(program);
     do {
-	pc = context->type(pc, proto++);
+	program = context->type(program, proto++);
     } while (--size != 0);
 
     /* retrieve code from function */
     this->pc = lc = 0;
     line = 0;
-    stores = 0;
-    first = NULL;
     if (!(fclass & CLASS_UNDEFINED)) {
-	stack = FETCH2U(pc);
-	locals = FETCH1U(pc);
-	size = FETCH2U(pc);
-	program = pc;
-	lines = pc + size;
-
-	while (program + this->pc != lines) {
-	    Code *code;
-
-	    /* add new code */
-	    code = Code::produce(this);
-	    code->next = NULL;
-	    if (first == NULL) {
-		first = last = code;
-	    } else {
-		last->next = code;
-		last = code;
-	    }
-
-	    if (code->instruction == Code::STORES) {
-		stores = code->size;
-	    } else if (stores != 0) {
-		switch (code->instruction) {
-		case Code::SPREAD:
-		    code->instruction = Code::SPREADX;
-		    break;
-
-		case Code::CAST:
-		    code->instruction = Code::CASTX;
-		    continue;
-
-		case Code::STORE_PARAM:
-		    code->instruction = Code::STOREX_PARAM;
-		    break;
-
-		case Code::STORE_LOCAL:
-		    code->instruction = Code::STOREX_LOCAL;
-		    break;
-
-		case Code::STORE_GLOBAL:
-		    code->instruction = Code::STOREX_GLOBAL;
-		    break;
-
-		case Code::STORE_INDEX:
-		    code->instruction = Code::STOREX_INDEX;
-		    break;
-
-		case Code::STORE_PARAM_INDEX:
-		    code->instruction = Code::STOREX_PARAM_INDEX;
-		    break;
-
-		case Code::STORE_LOCAL_INDEX:
-		    code->instruction = Code::STOREX_LOCAL_INDEX;
-		    break;
-
-		case Code::STORE_GLOBAL_INDEX:
-		    code->instruction = Code::STOREX_GLOBAL_INDEX;
-		    break;
-
-		case Code::STORE_INDEX_INDEX:
-		    code->instruction = Code::STOREX_INDEX_INDEX;
-		    break;
-
-		default:
-		    fatal("unexpected code %d", code->instruction);
-		    break;
-		}
-		--stores;
-	    }
-	}
+	stack = FETCH2U(program);
+	locals = FETCH1U(program);
+	size = FETCH2U(program);
+	lines = program + size;
     } else {
-	program = lines = pc;
+	stack = locals = size = 0;
+	lines = program;
     }
-
-    *prog = lines + lc;
 }
 
 /*
@@ -317,14 +247,6 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte **prog)
  */
 CodeFunction::~CodeFunction()
 {
-    Code *code, *next;
-
-    /* delete all code retrieved for this function */
-    for (code = first; code != NULL; code = next) {
-	next = code->next;
-	delete code;
-    }
-
     delete[] proto;
 }
 
@@ -370,9 +292,14 @@ CodeLine CodeFunction::getLine(CodeByte instr)
     return line;
 }
 
+CodeByte *CodeFunction::endProg()
+{
+    return (program + pc == lines) ? lines + lc : NULL;
+}
+
+
 /*
- * NAME:	Code->switch_int()
- * DESCRIPTION:	retrieve int switch
+ * retrieve int switch
  */
 CodeByte *Code::switchInt(CodeByte *pc)
 {
@@ -467,8 +394,7 @@ CodeByte *Code::switchInt(CodeByte *pc)
 }
 
 /*
- * NAME:	Code->switch_range()
- * DESCRIPTION:	retrieve range switch
+ * retrieve range switch
  */
 CodeByte *Code::switchRange(CodeByte *pc)
 {
@@ -572,8 +498,7 @@ CodeByte *Code::switchRange(CodeByte *pc)
 }
 
 /*
- * NAME:	Code->switch_string()
- * DESCRIPTION:	retrieve string switch
+ * retrieve string switch
  */
 CodeByte *Code::switchStr(CodeByte *pc, CodeContext *context)
 {
@@ -1015,8 +940,7 @@ Code::Code(CodeFunction *function)
 }
 
 /*
- * NAME:	Code->remove()
- * DESCRIPTION:	remove retrieved code
+ * remove retrieved code
  */
 Code::~Code()
 {
@@ -1036,6 +960,10 @@ Code::~Code()
     default:
 	break;
     }
+}
+
+void Code::evaluate(class BlockContext *context)
+{
 }
 
 CodeLine Code::emit(CodeLine line)
