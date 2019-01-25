@@ -39,6 +39,7 @@ typedef uint16_t LPCKfun;
 typedef struct {
     LPCKfun func;		/* index in kfun table */
     LPCParam nargs;		/* # arguments */
+    LPCParam lval;		/* # non-lvalue parameters or 0 */
     Type type;			/* return type */
 } LPCKFunc;
 

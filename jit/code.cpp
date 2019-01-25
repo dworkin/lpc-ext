@@ -844,7 +844,13 @@ Code::Code(CodeFunction *function)
 		kfun.nargs = kf->nargs;
 	    }
 	    kfun.type = kf->proto[0].type;
-	    instruction = (kf->lval) ? KFUNC_STORES : KFUNC;
+	    if (kf->lval) {
+		kfun.lval = kf->nargs;
+		instruction = KFUNC_STORES;
+	    } else {
+		kfun.lval = 0;
+		instruction = KFUNC;
+	    }
 	    break;
 	}
 	break;

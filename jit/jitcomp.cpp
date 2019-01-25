@@ -15,6 +15,7 @@ extern "C" {
 # include "code.h"
 # include "stack.h"
 # include "block.h"
+# include "typed.h"
 # include "disasm.h"
 # include "jitcomp.h"
 
@@ -44,11 +45,19 @@ static void jit_compile(int nInherits, uint8_t *prog, int nFunctions,
 	Code::producer(&DisCode::create);
 	Block::producer(&DisBlock::create);
 	CodeObject object(cc, nInherits, funcTypes, varTypes);
+
 	do {
 	    CodeFunction func(&object, prog);
-	    Block *b = Block::blocks(&func);
+	    CodeSize size;
+	    Block *b = Block::function(&func);
+
 	    if (b != NULL) {
-		b->emit();
+		size = b->fragment();
+		if (size != 0) {
+		    BlockContext *context = b->evaluate(size);
+		    b->emit(context);
+		    delete context;
+		}
 		b->clear();
 	    }
 	    prog = func.endProg();

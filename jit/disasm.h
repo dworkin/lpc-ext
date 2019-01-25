@@ -1,4 +1,4 @@
-class DisCode : public Code {
+class DisCode : public TypedCode {
 public:
     DisCode(CodeFunction *function);
     virtual ~DisCode();
@@ -8,12 +8,12 @@ public:
     static Code *create(CodeFunction *function);
 };
 
-class DisBlock : public Block {
+class DisBlock : public TypedBlock {
 public:
     DisBlock(Code *fist, Code *last, CodeSize size);
     virtual ~DisBlock();
 
-    virtual void emit();
+    virtual void emit(BlockContext *context);
 
     static Block *create(Code *first, Code *last, CodeSize size);
 };

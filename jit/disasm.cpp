@@ -9,11 +9,12 @@ extern "C" {
 # include "code.h"
 # include "stack.h"
 # include "block.h"
+# include "typed.h"
 # include "disasm.h"
 # include "jitcomp.h"
 
 
-DisCode::DisCode(CodeFunction *function) : Code(function) { }
+DisCode::DisCode(CodeFunction *function) : TypedCode(function) { }
 
 DisCode::~DisCode() { }
 
@@ -157,169 +158,165 @@ CodeLine DisCode::emit(CodeLine line)
 
     switch (instruction) {
     case INT:
-	fprintf(stderr, "INT %lld\n", num);
+	fprintf(stderr, "INT %lld", num);
 	break;
 
     case FLOAT:
-	fprintf(stderr, "FLOAT <%08X, %016llX>\n", flt.high, flt.low);
+	fprintf(stderr, "FLOAT <%08X, %016llX>", flt.high, flt.low);
 	break;
 
     case STRING:
-	fprintf(stderr, "STRING <%d, %d>\n", str.inherit, str.index);
+	fprintf(stderr, "STRING <%d, %d>", str.inherit, str.index);
 	break;
 
     case PARAM:
-	fprintf(stderr, "PARAM %d\n", param);
+	fprintf(stderr, "PARAM %d", param);
 	break;
 
     case LOCAL:
-	fprintf(stderr, "LOCAL %d\n", local);
+	fprintf(stderr, "LOCAL %d", local);
 	break;
 
     case GLOBAL:
 	fprintf(stderr, "GLOBAL <%d, %d> ", var.inherit, var.index);
 	dis_type(var.type);
-	fprintf(stderr, "\n");
 	break;
 
     case INDEX:
-	fprintf(stderr, "INDEX\n");
+	fprintf(stderr, "INDEX");
 	break;
 
     case INDEX2:
-	fprintf(stderr, "INDEX2\n");
+	fprintf(stderr, "INDEX2");
 	break;
 
     case SPREAD:
-	fprintf(stderr, "SPREAD\n");
+	fprintf(stderr, "SPREAD");
 	break;
 
     case SPREAD_STORES:
-	fprintf(stderr, "SPREAD_STORES %d\n", spread);
+	fprintf(stderr, "SPREAD_STORES %d", spread);
 	break;
 
     case SPREADX:
 	fprintf(stderr, "SPREADX %d ", spread);
 	dis_casttype(&type);
-	fprintf(stderr, "\n");
 	break;
 
     case AGGREGATE:
-	fprintf(stderr, "AGGREGATE %d\n", size);
+	fprintf(stderr, "AGGREGATE %d", size);
 	break;
 
     case MAP_AGGREGATE:
-	fprintf(stderr, "MAP_AGGREGATE %d\n", size);
+	fprintf(stderr, "MAP_AGGREGATE %d", size);
 	break;
 
     case CAST:
 	fprintf(stderr, "CAST ");
 	dis_casttype(&type);
-	fprintf(stderr, "\n");
 	break;
 
     case CASTX:
 	fprintf(stderr, "CASTX ");
 	dis_casttype(&type);
-	fprintf(stderr, "\n");
 	break;
 
     case INSTANCEOF:
-	fprintf(stderr, "INSTANCEOF <%d, %d>\n", str.inherit, str.index);
+	fprintf(stderr, "INSTANCEOF <%d, %d>", str.inherit, str.index);
 	break;
 
     case CHECK_RANGE:
-	fprintf(stderr, "CHECK_RANGE\n");
+	fprintf(stderr, "CHECK_RANGE");
 	break;
 
     case CHECK_RANGE_FROM:
-	fprintf(stderr, "CHECK_RANGE_FROM\n");
+	fprintf(stderr, "CHECK_RANGE_FROM");
 	break;
 
     case CHECK_RANGE_TO:
-	fprintf(stderr, "CHECK_RANGE_TO\n");
+	fprintf(stderr, "CHECK_RANGE_TO");
 	break;
 
     case STORES:
-	fprintf(stderr, "STORES %d\n", size);
+	fprintf(stderr, "STORES %d", size);
 	break;
 
     case STORE_PARAM:
-	fprintf(stderr, "STORE_PARAM %d\n", param);
+	fprintf(stderr, "STORE_PARAM %d", param);
 	break;
 
     case STORE_LOCAL:
-	fprintf(stderr, "STORE_LOCAL %d\n", local);
+	fprintf(stderr, "STORE_LOCAL %d", local);
 	break;
 
     case STORE_GLOBAL:
-	fprintf(stderr, "STORE_GLOBAL <%d, %d>\n", var.inherit, var.index);
+	fprintf(stderr, "STORE_GLOBAL <%d, %d>", var.inherit, var.index);
 	break;
 
     case STORE_INDEX:
-	fprintf(stderr, "STORE_INDEX\n");
+	fprintf(stderr, "STORE_INDEX");
 	break;
 
     case STORE_PARAM_INDEX:
-	fprintf(stderr, "STORE_PARAM_INDEX %d\n", param);
+	fprintf(stderr, "STORE_PARAM_INDEX %d", param);
 	break;
 
     case STORE_LOCAL_INDEX:
-	fprintf(stderr, "STORE_LOCAL_INDEX %d\n", local);
+	fprintf(stderr, "STORE_LOCAL_INDEX %d", local);
 	break;
 
     case STORE_GLOBAL_INDEX:
-	fprintf(stderr, "STORE_GLOBAL_INDEX <%d, %d>\n", var.inherit,
+	fprintf(stderr, "STORE_GLOBAL_INDEX <%d, %d>", var.inherit,
 		var.index);
 	break;
 
     case STORE_INDEX_INDEX:
-	fprintf(stderr, "STORE_INDEX_INDEX\n");
+	fprintf(stderr, "STORE_INDEX_INDEX");
 	break;
 
     case STOREX_PARAM:
-	fprintf(stderr, "STOREX_PARAM %d\n", param);
+	fprintf(stderr, "STOREX_PARAM %d", param);
 	break;
 
     case STOREX_LOCAL:
-	fprintf(stderr, "STOREX_LOCAL %d\n", local);
+	fprintf(stderr, "STOREX_LOCAL %d", local);
 	break;
 
     case STOREX_GLOBAL:
-	fprintf(stderr, "STOREX_GLOBAL <%d, %d>\n", var.inherit, var.index);
+	fprintf(stderr, "STOREX_GLOBAL <%d, %d>", var.inherit, var.index);
 	break;
 
     case STOREX_INDEX:
-	fprintf(stderr, "STOREX_INDEX\n");
+	fprintf(stderr, "STOREX_INDEX");
 	break;
 
     case STOREX_PARAM_INDEX:
-	fprintf(stderr, "STOREX_PARAM_INDEX %d\n", param);
+	fprintf(stderr, "STOREX_PARAM_INDEX %d", param);
 	break;
 
     case STOREX_LOCAL_INDEX:
-	fprintf(stderr, "STOREX_LOCAL_INDEX %d\n", local);
+	fprintf(stderr, "STOREX_LOCAL_INDEX %d", local);
 	break;
 
     case STOREX_GLOBAL_INDEX:
-	fprintf(stderr, "STOREX_GLOBAL_INDEX <%d, %d>\n", var.inherit,
+	fprintf(stderr, "STOREX_GLOBAL_INDEX <%d, %d>", var.inherit,
 		var.index);
 	break;
 
     case STOREX_INDEX_INDEX:
-	fprintf(stderr, "STOREX_INDEX_INDEX\n");
+	fprintf(stderr, "STOREX_INDEX_INDEX");
 	break;
 
     case JUMP:
-	fprintf(stderr, "JUMP %04x\n", target);
+	fprintf(stderr, "JUMP %04x", target);
 	break;
 
     case JUMP_ZERO:
-	fprintf(stderr, "JUMP_ZERO %04x\n", target);
+	fprintf(stderr, "JUMP_ZERO %04x", target);
 	break;
 
     case JUMP_NONZERO:
-	fprintf(stderr, "JUMP_NONZERO %04x\n", target);
+	fprintf(stderr, "JUMP_NONZERO %04x", target);
 	break;
 
     case SWITCH_INT:
@@ -356,52 +353,49 @@ CodeLine DisCode::emit(CodeLine line)
     case KFUNC:
 	fprintf(stderr, "KFUNC %d (%d) ", kfun.func, kfun.nargs);
 	dis_type(kfun.type);
-	fprintf(stderr, "\n");
 	break;
 
     case KFUNC_STORES:
 	fprintf(stderr, "KFUNC_STORES %d (%d) ", kfun.func, kfun.nargs);
 	dis_type(kfun.type);
-	fprintf(stderr, "\n");
 	break;
 
     case DFUNC:
 	fprintf(stderr, "DFUNC <%d, %d> (%d) ", dfun.inherit, dfun.func,
 		dfun.nargs);
 	dis_type(dfun.type);
-	fprintf(stderr, "\n");
 	break;
 
     case FUNC:
-	fprintf(stderr, "FUNC %d (%d)\n", fun.call, fun.nargs);
+	fprintf(stderr, "FUNC %d (%d)", fun.call, fun.nargs);
 	break;
 
     case CATCH:
-	fprintf(stderr, "CATCH %04x\n", target);
+	fprintf(stderr, "CATCH %04x", target);
 	break;
 
     case END_CATCH:
-	fprintf(stderr, "END_CATCH\n");
+	fprintf(stderr, "END_CATCH");
 	break;
 
     case RLIMITS:
-	fprintf(stderr, "RLIMITS\n");
+	fprintf(stderr, "RLIMITS");
 	break;
 
     case RLIMITS_CHECK:
-	fprintf(stderr, "RLIMITS_CHECK\n");
+	fprintf(stderr, "RLIMITS_CHECK");
 	break;
 
     case END_RLIMITS:
-	fprintf(stderr, "END_RLIMITS\n");
+	fprintf(stderr, "END_RLIMITS");
 	break;
 
     case RETURN:
-	fprintf(stderr, "RETURN\n");
+	fprintf(stderr, "RETURN");
 	break;
 
     default:
-	fatal("unknown instruction %d\n", instruction);
+	fatal("unknown instruction %d", instruction);
     }
 
     return line;
@@ -409,7 +403,8 @@ CodeLine DisCode::emit(CodeLine line)
 
 
 DisBlock::DisBlock(Code *first, Code *last, CodeSize size) :
-    Block(first, last, size) {
+    TypedBlock(first, last, size)
+{
 }
 
 DisBlock::~DisBlock() { }
@@ -422,7 +417,7 @@ Block *DisBlock::create(Code *first, Code *last, CodeSize size)
 /*
  * emit program disassembly
  */
-void DisBlock::emit()
+void DisBlock::emit(BlockContext *context)
 {
     CodeLine line;
     Block *b;
@@ -431,6 +426,9 @@ void DisBlock::emit()
 
     line = 0;
     for (b = this; b != NULL; b = b->next) {
+	if (b->nFrom == 0 && b != this) {
+	    continue;
+	}
 	fprintf(stderr, "{");
 	if (b->nFrom != 0) {
 	    fprintf(stderr, " [");
@@ -445,6 +443,16 @@ void DisBlock::emit()
 	fprintf(stderr, "\n");
 	for (code = b->first; ; code = code->next) {
 	    line = code->emit(line);
+	    switch (code->instruction) {
+	    case Code::SWITCH_INT:
+	    case Code::SWITCH_RANGE:
+	    case Code::SWITCH_STRING:
+		break;
+
+	    default:
+		fprintf(stderr, "\t; %d\n",
+			context->depth(((TypedCode *) code)->stackPointer()));
+	    }
 	    if (code == b->last) {
 		break;
 	    }

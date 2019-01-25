@@ -146,7 +146,7 @@ Block *Block::split(CodeSize addr)
 /*
  * obtain single block for function
  */
-Block *Block::pass0(CodeFunction *function)
+Block *Block::function(CodeFunction *function)
 {
     Code *code, *first, *last;
     CodeByte *program, *end;
@@ -377,11 +377,10 @@ void Block::startVisits(Block **list)
 {
     Block *b;
 
-    start = STACK_EMPTY;
-    end = STACK_INVALID;
+    sp = STACK_EMPTY;
     *list = visit = NULL;
     for (b = next; b != NULL; b = b->next) {
-	b->start = b->end = STACK_INVALID;
+	b->sp = STACK_INVALID;
 	b->visit = b;
     }
 }
@@ -391,18 +390,16 @@ void Block::startVisits(Block **list)
  */
 bool Block::visited()
 {
-    return (start != STACK_INVALID);
+    return (sp != STACK_INVALID);
 }
 
 /*
  * add block to visitation list
  */
-void Block::toVisit(Block **list, StackSize offset)
+void Block::toVisit(Block **list, StackSize stackPointer)
 {
-    if (start == STACK_INVALID) {
-	start = offset;
-    } else if (start != offset) {
-	fatal("start stack mismatch");
+    if (sp == STACK_INVALID) {
+	sp = stackPointer;
     }
 
     if (visit == this) {
@@ -414,15 +411,9 @@ void Block::toVisit(Block **list, StackSize offset)
 /*
  * visit next block in the list
  */
-Block *Block::nextVisit(Block **list, StackSize offset)
+Block *Block::nextVisit(Block **list)
 {
     Block *b;
-
-    if (end == STACK_INVALID) {
-	end = offset;
-    } else if (end != offset) {
-	fatal("end stack mismatch");
-    }
 
     b = *list;
     if (b != NULL) {
@@ -435,10 +426,10 @@ Block *Block::nextVisit(Block **list, StackSize offset)
 /*
  * prepare to visit, but only once
  */
-void Block::toVisitOnce(Block **list, StackSize offset)
+void Block::toVisitOnce(Block **list, StackSize stackPointer)
 {
     if (!visited()) {
-	toVisit(list, offset);
+	toVisit(list, stackPointer);
     }
 }
 
@@ -450,14 +441,14 @@ void Block::pass2(CodeSize size)
     Stack<Context> context(size);	/* too large but we need some limit */
     Block *b, *list;
     Code *code;
-    CodeSize offset, i;
+    CodeSize stackPointer, i;
 
     /*
      * determine the catch/rlimits context at the start and end of each block
      */
     startVisits(&list);
-    for (b = this; b != NULL; b = b->nextVisit(&list, offset)) {
-	offset = b->offset();
+    for (b = this; b != NULL; b = b->nextVisit(&list)) {
+	stackPointer = b->stackPointer();
 
 	/*
 	 * go through the code and make adjustments as needed
@@ -465,22 +456,22 @@ void Block::pass2(CodeSize size)
 	for (code = b->first; ; code = code->next) {
 	    switch (code->instruction) {
 	    case Code::CATCH:
-		offset = context.push(offset, Block::CATCH);
+		stackPointer = context.push(stackPointer, Block::CATCH);
 		break;
 
 	    case Code::RLIMITS:
 	    case Code::RLIMITS_CHECK:
-		offset = context.push(offset, Block::RLIMITS);
+		stackPointer = context.push(stackPointer, Block::RLIMITS);
 		break;
 
 	    case Code::RETURN:
-		if (offset != STACK_EMPTY) {
-		    if (context.get(offset) == Block::CATCH) {
+		if (stackPointer != STACK_EMPTY) {
+		    if (context.get(stackPointer) == Block::CATCH) {
 			code->instruction = Code::END_CATCH;
 		    } else {
 			code->instruction = Code::END_RLIMITS;
 		    }
-		    offset = context.pop(offset);
+		    stackPointer = context.pop(stackPointer);
 		}
 		break;
 
@@ -500,17 +491,17 @@ void Block::pass2(CodeSize size)
 		 * special case for CATCH: the context will be gone after an
 		 * exception occurs
 		 */
-		b->to[0]->toVisitOnce(&list, offset);
-		b->to[1]->toVisitOnce(&list, context.pop(offset));
+		b->to[0]->toVisitOnce(&list, stackPointer);
+		b->to[1]->toVisitOnce(&list, context.pop(stackPointer));
 	    } else {
 		for (i = 0; i < b->nTo; i++) {
-		    b->to[i]->toVisitOnce(&list, offset);
+		    b->to[i]->toVisitOnce(&list, stackPointer);
 		}
 	    }
 	} else if (b->next != NULL && code->instruction != Code::RETURN) {
 	    /* add the next block to the list */
-	    b->next->toVisitOnce(&list, offset);
-	} else if (offset != STACK_EMPTY) {
+	    b->next->toVisitOnce(&list, stackPointer);
+	} else if (stackPointer != STACK_EMPTY) {
 	    /* function ended within a catch/rlimits context */
 	    fatal("catch/rlimits return mismatch");
 	}
@@ -576,11 +567,12 @@ void Block::pass4()
     }
 }
 
-void Block::evaluate(class BlockContext *context)
+class BlockContext *Block::evaluate(StackSize size)
 {
+    return NULL;
 }
 
-void Block::emit()
+void Block::emit(class BlockContext *context)
 {
 }
 
@@ -601,29 +593,25 @@ void Block::clear()
 }
 
 /*
- * break up a function into code blocks
+ * break up a function block
  */
-Block *Block::blocks(CodeFunction *function)
+CodeSize Block::fragment()
 {
-    Block *first, *tree;
-    CodeSize size;
+    Block *tree;
+    CodeSize funcSize;
 
-    first = pass0(function);
-    if (first == NULL) {
-	return NULL;
-    }
-    size = first->size;
+    funcSize = size;
 
-    tree = first->pass1();
+    tree = pass1();
     if (tree == NULL) {
-	first->clear();
-	return NULL;
+	return 0;
     }
-    first->pass2(size);
-    first->pass3(tree);
-    first->pass4();
 
-    return first;
+    pass2(funcSize);
+    pass3(tree);
+    pass4();
+
+    return funcSize;
 }
 
 /*
