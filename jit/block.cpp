@@ -149,13 +149,13 @@ Block *Block::split(CodeSize addr)
 Block *Block::function(CodeFunction *function)
 {
     Code *code, *first, *last;
-    CodeByte *program, *end;
+    CodeByte *program;
     CodeSize addr, stores;
 
     first = NULL;
     program = function->getPC(&addr);
     stores = 0;
-    while ((end=function->endProg()) == NULL) {
+    while (function->endProg() == NULL) {
 	/* add new code */
 	code = Code::produce(function);
 	code->next = NULL;
@@ -436,7 +436,7 @@ void Block::toVisitOnce(Block **list, StackSize stackPointer)
 /*
  * transform RETURN into END_CATCH or END_RLIMITS, as required
  */
-void Block::pass2(CodeSize size)
+Block *Block::pass2(Block *tree, CodeSize size)
 {
     Stack<Context> context(size);	/* too large but we need some limit */
     Block *b, *list;
@@ -472,6 +472,8 @@ void Block::pass2(CodeSize size)
 			code->instruction = Code::END_RLIMITS;
 		    }
 		    stackPointer = context.pop(stackPointer);
+		} else if (code != b->last) {
+		    tree = tree->split(code->next->addr);
 		}
 		break;
 
@@ -506,6 +508,8 @@ void Block::pass2(CodeSize size)
 	    fatal("catch/rlimits return mismatch");
 	}
     }
+
+    return tree;
 }
 
 /*
@@ -607,7 +611,7 @@ CodeSize Block::fragment()
 	return 0;
     }
 
-    pass2(funcSize);
+    tree = pass2(tree, funcSize);
     pass3(tree);
     pass4();
 

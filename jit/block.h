@@ -40,7 +40,7 @@ private:
     Block *split(CodeSize addr);
     void toVisitOnce(Block **list, StackSize stackPointer);
     Block *pass1();
-    void pass2(StackSize size);
+    Block *pass2(Block *tree, StackSize size);
     void pass3(Block *b);
     void pass4();
 
