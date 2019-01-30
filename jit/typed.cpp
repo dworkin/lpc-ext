@@ -445,9 +445,13 @@ BlockContext *TypedBlock::evaluate(StackSize size)
 
     context = new BlockContext(size);
     startVisits(&list);
+    sp = STACK_EMPTY;
+    for (b = next; b != NULL; b = b->next) {
+	b->sp = STACK_INVALID;
+    }
 
     for (b = this; b != NULL; b = b->nextVisit(&list)) {
-	context->setStackPointer(b->stackPointer());
+	context->setStackPointer(b->sp);
 	for (code = b->first; ; code = code->next) {
 	    code->evaluate(context);
 	    if (code == b->last) {
@@ -458,8 +462,9 @@ BlockContext *TypedBlock::evaluate(StackSize size)
 
 	for (i = 0; i < b->nTo; i++) {
 	    to = b->to[i];
-	    if (!to->visited()) {
-		to->toVisit(&list, sp);
+	    if (to->sp == STACK_INVALID) {
+		to->sp = sp;
+		to->toVisit(&list);
 	    }
 	}
     }

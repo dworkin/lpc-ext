@@ -4,12 +4,8 @@ public:
     virtual ~Block();
 
     void startVisits(Block **list);
-    bool visited();
-    void toVisit(Block **list, StackSize stackPointer);
+    void toVisit(Block **list);
     Block *nextVisit(Block **List);
-    StackSize stackPointer() {
-	return sp;
-    }
 
     CodeSize fragment();
     void clear();
@@ -29,6 +25,7 @@ public:
     CodeSize nFrom;			/* # entrance blocks */
     CodeSize nTo;			/* # following blocks */
     CodeSize size;			/* size of block */
+    StackSize sp;			/* stack pointer */
 
 private:
     enum Context {
@@ -45,7 +42,6 @@ private:
     void pass4();
 
     Block *left, *right;		/* left and right child in tree */
-    StackSize sp;			/* start stack pointer */
     Block *visit;			/* next in visit list */
 
     static Block *(*factory)(Code*, Code*, CodeSize);

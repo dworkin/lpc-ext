@@ -377,31 +377,17 @@ void Block::startVisits(Block **list)
 {
     Block *b;
 
-    sp = STACK_EMPTY;
     *list = visit = NULL;
     for (b = next; b != NULL; b = b->next) {
-	b->sp = STACK_INVALID;
 	b->visit = b;
     }
 }
 
 /*
- * block already visited this round?
- */
-bool Block::visited()
-{
-    return (sp != STACK_INVALID);
-}
-
-/*
  * add block to visitation list
  */
-void Block::toVisit(Block **list, StackSize stackPointer)
+void Block::toVisit(Block **list)
 {
-    if (sp == STACK_INVALID) {
-	sp = stackPointer;
-    }
-
     if (visit == this) {
 	visit = *list;
 	*list = this;
@@ -428,8 +414,9 @@ Block *Block::nextVisit(Block **list)
  */
 void Block::toVisitOnce(Block **list, StackSize stackPointer)
 {
-    if (!visited()) {
-	toVisit(list, stackPointer);
+    if (sp == STACK_INVALID) {
+	sp = stackPointer;
+	toVisit(list);
     }
 }
 
@@ -447,8 +434,12 @@ Block *Block::pass2(Block *tree, CodeSize size)
      * determine the catch/rlimits context at the start and end of each block
      */
     startVisits(&list);
+    sp = STACK_EMPTY;
+    for (b = next; b != NULL; b = b->next) {
+	b->sp = STACK_INVALID;
+    }
     for (b = this; b != NULL; b = b->nextVisit(&list)) {
-	stackPointer = b->stackPointer();
+	stackPointer = b->sp;
 
 	/*
 	 * go through the code and make adjustments as needed
@@ -517,11 +508,13 @@ Block *Block::pass2(Block *tree, CodeSize size)
  */
 void Block::pass3(Block *b)
 {
-    Block *f;
+    Block *list, *f;
     Code *code;
     CodeSize i;
 
-    for (f = this; f != NULL; f = f->next) {
+    nFrom++;
+    startVisits(&list);
+    for (f = this; f != NULL; f = f->nextVisit(&list)) {
 	code = f->last;
 	switch (code->instruction) {
 	case Code::JUMP:
@@ -532,7 +525,9 @@ void Block::pass3(Block *b)
 	case Code::SWITCH_RANGE:
 	case Code::SWITCH_STRING:
 	    for (i = 0; i < f->nTo; i++) {
-		f->to[i]->nFrom++;
+		if (f->to[i]->nFrom++ == 0) {
+		    f->to[i]->toVisit(&list);
+		}
 	    }
 	    break;
 
@@ -544,10 +539,13 @@ void Block::pass3(Block *b)
 	    f->nTo = 1;
 	    f->to = new Block*[1];
 	    f->to[0] = b = b->find(code->next->addr);
-	    b->nFrom++;
+	    if (b->nFrom++ == 0) {
+		b->toVisit(&list);
+	    }
 	    break;
 	}
     }
+    --nFrom;
 }
 
 
@@ -556,15 +554,17 @@ void Block::pass3(Block *b)
  */
 void Block::pass4()
 {
-    Block *f, *b;
+    Block *list, *f, *b;
     CodeSize i;
 
-    for (f = this; f != NULL; f = f->next) {
+    startVisits(&list);
+    for (f = this; f != NULL; f = f->nextVisit(&list)) {
 	for (i = 0; i < f->nTo; i++) {
 	    b = f->to[i];
 	    if (b->from == NULL) {
 		b->from = new Block*[b->nFrom];
 		b->nFrom = 0;
+		b->toVisit(&list);
 	    }
 	    b->from[b->nFrom++] = f;
 	}
