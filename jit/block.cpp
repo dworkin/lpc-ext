@@ -538,7 +538,10 @@ void Block::pass3(Block *b)
 	    /* make transition explicit */
 	    f->nTo = 1;
 	    f->to = new Block*[1];
-	    f->to[0] = b = b->find(code->next->addr);
+	    code = code->next;
+	    b = b->find((code->instruction == Code::JUMP) ?
+			 code->target : code->addr);
+	    f->to[0] = b;
 	    if (b->nFrom++ == 0) {
 		b->toVisit(&list);
 	    }
