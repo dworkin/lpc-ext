@@ -9,7 +9,7 @@ public:
 
 class BlockContext {
 public:
-    BlockContext(StackSize size);
+    BlockContext(CodeFunction *func, StackSize size);
     virtual ~BlockContext();
 
     void push(TypeVal val);
@@ -28,6 +28,7 @@ public:
     }
     TypeVal getParam(LPCParam param);
     TypeVal getLocal(LPCLocal local);
+    TypeVal indexed();
     void stores(int count, bool pop);
     void storeN();
     void castX(Type type) {
@@ -48,8 +49,13 @@ public:
 	return sp;
     }
     StackSize depth(StackSize stackPointer);
+    Type topType(StackSize stackPointer);
 
 private:
+    Type *params;
+    Type *locals;
+    int nParams;
+    int nLocals;
     Stack<TypeVal> *stack;
     StackSize sp;
     Type castType;
@@ -79,7 +85,7 @@ public:
     TypedBlock(Code *first, Code *last, CodeSize size);
     virtual ~TypedBlock();
 
-    virtual BlockContext *evaluate(StackSize size);
+    virtual BlockContext *evaluate(CodeFunction *func, StackSize size);
 
     static Block *create(Code *first, Code *last, CodeSize size);
 };

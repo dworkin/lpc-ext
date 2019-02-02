@@ -54,7 +54,7 @@ static void jit_compile(int nInherits, uint8_t *prog, int nFunctions,
 	    if (b != NULL) {
 		size = b->fragment();
 		if (size != 0) {
-		    BlockContext *context = b->evaluate(size);
+		    BlockContext *context = b->evaluate(&func, size);
 		    b->emit(context);
 		    delete context;
 		}

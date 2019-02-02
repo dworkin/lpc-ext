@@ -574,7 +574,7 @@ void Block::pass4()
     }
 }
 
-class BlockContext *Block::evaluate(StackSize size)
+class BlockContext *Block::evaluate(CodeFunction *func, StackSize size)
 {
     return NULL;
 }

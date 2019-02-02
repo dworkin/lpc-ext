@@ -9,7 +9,7 @@ public:
 
     CodeSize fragment();
     void clear();
-    virtual class BlockContext *evaluate(StackSize size);
+    virtual class BlockContext *evaluate(CodeFunction *func, StackSize size);
     virtual void emit(BlockContext *context);
 
     static Block *function(CodeFunction *function);

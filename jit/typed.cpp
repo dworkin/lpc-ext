@@ -12,8 +12,24 @@ extern "C" {
 # include "jitcomp.h"
 
 
-BlockContext::BlockContext(StackSize size)
+BlockContext::BlockContext(CodeFunction *func, StackSize size)
 {
+    int i;
+
+    nParams = func->nargs + func->vargs;
+    nLocals = func->locals;
+    params = (nParams != 0) ? new Type[nParams] : NULL;
+    locals = (nLocals != 0) ? new Type[nLocals] : NULL;
+    for (i = 1; i <= nParams; i++) {
+	params[nParams - i] = func->proto[i].type;
+    }
+    if (func->fclass & CodeFunction::CLASS_ELLIPSIS) {
+	params[0] = LPC_TYPE_ARRAY;
+    }
+    for (i = 0; i < nLocals; i++) {
+	locals[i] = LPC_TYPE_NIL;
+    }
+
     stack = new Stack<TypeVal>(size);
     sp = STACK_EMPTY;
     storeCount = 0;
@@ -23,6 +39,8 @@ BlockContext::BlockContext(StackSize size)
 
 BlockContext::~BlockContext()
 {
+    delete params;
+    delete locals;
     delete stack;
 }
 
@@ -61,70 +79,102 @@ void BlockContext::storeN()
 
 void BlockContext::setParam(LPCParam param, TypeVal val)
 {
+    params[param] = val.type;
 }
 
 void BlockContext::setLocal(LPCLocal local, TypeVal val)
 {
+    locals[local] = val.type;
 }
 
 TypeVal BlockContext::getParam(LPCParam param)
 {
-    return TypeVal(LPC_TYPE_INT, 0);
+    return TypeVal(params[param], 0);
 }
 
 TypeVal BlockContext::getLocal(LPCLocal local)
 {
-    return TypeVal(LPC_TYPE_INT, 0);
+    return TypeVal(locals[local], 0);
+}
+
+TypeVal BlockContext::indexed()
+{
+    return stack->get(stack->pop(sp));
 }
 
 # define KF_SUM		89
+# define SUM_SIMPLE	-2
 # define SUM_AGGREGATE	-6
 
 Type BlockContext::kfun(LPCKFunc *kf)
 {
-    int i, j;
-    TypeVal val;
+    int nargs, i;
+    Type type, summand;
+    LPCInt val;
 
-    i = kf->nargs;
+    nargs = kf->nargs;
     if (kf->func == KF_SUM) {
-	while (i != 0) {
-	    val = pop();
-	    if (val.val < 0) {
-		if (val.val <= SUM_AGGREGATE) {
+	type = LPC_TYPE_VOID;
+	while (nargs != 0) {
+	    val = pop().val;
+	    if (val < 0) {
+		if (val <= SUM_AGGREGATE) {
 		    /* aggregate */
-		    for (j = SUM_AGGREGATE - val.val; j != 0; --j) {
+		    for (i = SUM_AGGREGATE - val; i != 0; --i) {
 			pop();
 		    }
+		    summand = LPC_TYPE_ARRAY;
+		} else if (val == SUM_SIMPLE) {
+		    /* simple argument */
+		    summand = pop().type;
 		} else {
+		    /* allocate array */
 		    pop();
+		    summand = LPC_TYPE_ARRAY;
 		}
 	    } else {
 		/* subrange */
 		pop();
-		pop();
+		summand = pop().type;
 	    }
-	    --i;
+
+	    if (type == LPC_TYPE_VOID) {
+		type = summand;
+	    } else if (type != summand) {
+		if (type == LPC_TYPE_STRING || summand == LPC_TYPE_STRING) {
+		    type = LPC_TYPE_STRING;
+		} else if (type == LPC_TYPE_ARRAY || summand == LPC_TYPE_ARRAY)
+		{
+		    type = LPC_TYPE_ARRAY;
+		} else {
+		    type = LPC_TYPE_MIXED;
+		}
+	    }
+
+	    --nargs;
 	}
     } else {
 	if (kf->lval != 0) {
 	    /* pop non-lval arguments */
-	    for (i = kf->lval; i != 0; --i) {
+	    for (nargs = kf->lval; nargs != 0; --nargs) {
 		pop();
 	    }
 	    push(LPC_TYPE_ARRAY);
 	} else {
 	    if (spreadArgs) {
-		--i;
+		--nargs;
 	    }
-	    while (i != 0) {
+	    while (nargs != 0) {
 		pop();
-		--i;
+		--nargs;
 	    }
 	}
-    }
-    spreadArgs = false;
 
-    return LPC_TYPE_INT;
+	type = kf->type;
+    }
+
+    spreadArgs = false;
+    return type;
 }
 
 void BlockContext::args(int nargs)
@@ -152,6 +202,11 @@ StackSize BlockContext::depth(StackSize stackPointer)
     return depth;
 }
 
+Type BlockContext::topType(StackSize stackPointer)
+{
+    return stack->get(stackPointer).type;
+}
+
 
 TypedCode::TypedCode(CodeFunction *function) :
     Code(function)
@@ -165,7 +220,7 @@ TypedCode::~TypedCode()
 
 Type TypedCode::simplifiedType(Type type)
 {
-    return type;
+    return (LPC_TYPE_REF(type) != 0) ? LPC_TYPE_ARRAY : type;
 }
 
 void TypedCode::evaluate(BlockContext *context)
@@ -187,7 +242,7 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case PARAM:
-	context->push(context->getParam(param));
+	context->push(simplifiedType(context->getParam(param).type));
 	break;
 
     case LOCAL:
@@ -199,13 +254,16 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case INDEX:
+	val = context->indexed();
 	context->pop();
 	context->pop();
-	context->push(LPC_TYPE_MIXED);
+	context->push((val.type == LPC_TYPE_STRING) ?
+		       LPC_TYPE_INT : LPC_TYPE_MIXED);
 	break;
 
     case INDEX2:
-	context->push(LPC_TYPE_MIXED);
+	context->push((context->indexed().type == LPC_TYPE_STRING) ?
+		       LPC_TYPE_INT : LPC_TYPE_MIXED);
 	break;
 
     case SPREAD:
@@ -273,16 +331,14 @@ void TypedCode::evaluate(BlockContext *context)
     case STORE_PARAM_INDEX:
 	val = context->pop();
 	context->pop();
-	context->pop();
-	context->setParam(param, val);
+	context->setParam(param, context->pop());
 	context->push(val);
 	break;
 
     case STORE_LOCAL_INDEX:
 	val = context->pop();
 	context->pop();
-	context->pop();
-	context->setLocal(local, val);
+	context->setLocal(local, context->pop());
 	context->push(val);
 	break;
 
@@ -338,15 +394,13 @@ void TypedCode::evaluate(BlockContext *context)
 
     case STOREX_PARAM_INDEX:
 	context->pop();
-	context->pop();
-	context->setParam(param, context->typeX());
+	context->setParam(param, context->pop());
 	context->storeN();
 	break;
 
     case STOREX_LOCAL_INDEX:
 	context->pop();
-	context->pop();
-	context->setLocal(local, context->typeX());
+	context->setLocal(local, context->pop());
 	context->storeN();
 	break;
 
@@ -435,7 +489,7 @@ TypedBlock::~TypedBlock()
 {
 }
 
-BlockContext *TypedBlock::evaluate(StackSize size)
+BlockContext *TypedBlock::evaluate(CodeFunction *func, StackSize size)
 {
     Block *list, *b, *to;
     StackSize sp;
@@ -443,7 +497,7 @@ BlockContext *TypedBlock::evaluate(StackSize size)
     Code *code;
     CodeSize i;
 
-    context = new BlockContext(size);
+    context = new BlockContext(func, size);
     startVisits(&list);
     sp = STACK_EMPTY;
     for (b = next; b != NULL; b = b->next) {
