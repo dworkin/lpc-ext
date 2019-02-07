@@ -517,10 +517,15 @@ void Block::pass3(Block *b)
     for (f = this; f != NULL; f = f->nextVisit(&list)) {
 	code = f->last;
 	switch (code->instruction) {
-	case Code::JUMP:
 	case Code::JUMP_ZERO:
 	case Code::JUMP_NONZERO:
 	case Code::CATCH:
+	    code = code->next;
+	    if (code->instruction == Code::JUMP) {
+		f->to[0] = b = b->find(code->target);
+	    }
+	    /* fall through */
+	case Code::JUMP:
 	case Code::SWITCH_INT:
 	case Code::SWITCH_RANGE:
 	case Code::SWITCH_STRING:
