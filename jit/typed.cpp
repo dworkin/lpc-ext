@@ -1,6 +1,7 @@
 # include <stdlib.h>
 # include <stdint.h>
 # include <new>
+# include <string.h>
 extern "C" {
 # include "lpc_ext.h"
 }
@@ -14,62 +15,164 @@ extern "C" {
 
 BlockContext::BlockContext(CodeFunction *func, StackSize size)
 {
-    int i;
+    LPCParam i;
 
+    /*
+     * construct BlockContext from function and expected stack space
+     */
     nParams = func->nargs + func->vargs;
+    if (nParams != 0) {
+	params = new Type[nParams];
+	origParams = new Type[nParams];
+
+	for (i = 1; i <= nParams; i++) {
+	    params[nParams - i] = func->proto[i].type;
+	}
+	if (func->fclass & CodeFunction::CLASS_ELLIPSIS) {
+	    params[0] = LPC_TYPE_ARRAY;
+	}
+	memcpy(origParams, params, nParams);
+    } else {
+	origParams = params = NULL;
+    }
+
     nLocals = func->locals;
-    params = (nParams != 0) ? new Type[nParams] : NULL;
-    locals = (nLocals != 0) ? new Type[nLocals] : NULL;
-    for (i = 1; i <= nParams; i++) {
-	params[nParams - i] = func->proto[i].type;
-    }
-    if (func->fclass & CodeFunction::CLASS_ELLIPSIS) {
-	params[0] = LPC_TYPE_ARRAY;
-    }
-    for (i = 0; i < nLocals; i++) {
-	locals[i] = LPC_TYPE_NIL;
+    if (nLocals != 0) {
+	locals = new Type[nLocals];
+	origLocals = new Type[nLocals];
+
+	for (i = 0; i < nLocals; i++) {
+	    locals[i] = LPC_TYPE_NIL;
+	}
+	memcpy(origLocals, locals, nLocals);
+    } else {
+	origLocals = locals = NULL;
     }
 
     stack = new Stack<TypeVal>(size);
-    sp = STACK_EMPTY;
+    altSp = sp = STACK_EMPTY;
     storeCount = 0;
     storePop = false;
     spreadArgs = false;
+    merging = false;
 }
 
 BlockContext::~BlockContext()
 {
-    delete params;
-    delete locals;
+    delete[] params;
+    delete[] origParams;
+    delete[] locals;
+    delete[] origLocals;
     delete stack;
 }
 
+/*
+ * merge two types
+ */
+Type BlockContext::mergeType(Type type1, Type type2)
+{
+    if (type1 != LPC_TYPE_MIXED && type1 != type2) {
+	if (type1 == LPC_TYPE_NIL && type2 >= LPC_TYPE_STRING) {
+	    return type2;
+	}
+	if (type2 == LPC_TYPE_NIL && type1 >= LPC_TYPE_STRING) {
+	    return type1;
+	}
+	return LPC_TYPE_MIXED;
+    }
+
+    return type1;
+}
+
+/*
+ * prepare before evaluating a block
+ */
+void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
+			    StackSize mergeSp, Block *b)
+{
+    memcpy(params, mergeParams, nParams);
+    memcpy(origParams, mergeParams, nParams);
+    memcpy(locals, mergeLocals, nLocals);
+    memcpy(origLocals, mergeLocals, nLocals);
+    sp = mergeSp;
+
+    if (b->sp != STACK_INVALID) {
+	StackSize blockSp;
+
+	/*
+	 * merge stacks before evaluating block
+	 */
+	sp = blockSp = b->from[0]->sp;
+	while (blockSp != mergeSp) {
+	    TypeVal val = stack->get(blockSp);
+	    val.type = mergeType(val.type, stack->get(mergeSp).type);
+	    stack->set(blockSp, val);
+
+	    blockSp = stack->pop(blockSp);
+	    mergeSp = stack->pop(mergeSp);
+	}
+
+	merging = true;
+    } else {
+	merging = false;
+    }
+}
+
+/*
+ * push type on stack
+ */
 void BlockContext::push(TypeVal val)
 {
-    sp = stack->push(sp, val);
+    if (merging) {
+	altStack[altSp++] = val;
+    } else {
+	sp = stack->push(sp, val);
+    }
 }
 
+/*
+ * return top of stack
+ */
 TypeVal BlockContext::top()
 {
-    return stack->get(sp);
+    if (altSp != STACK_EMPTY) {
+	return altStack[altSp - 1];
+    } else {
+	return stack->get(sp);
+    }
 }
 
+/*
+ * pop type from stack
+ */
 TypeVal BlockContext::pop()
 {
-    if (sp == STACK_EMPTY) {
+    if (altSp != STACK_EMPTY) {
+	return altStack[--altSp];
+    } else if (sp == STACK_EMPTY) {
 	fatal("pop empty stack");
     }
+
     TypeVal val = stack->get(sp);
     sp = stack->pop(sp);
     return val;
 }
 
+/*
+ * prepare for N stores
+ */
 void BlockContext::stores(int count, bool pop)
 {
     storeCount = count;
     storePop = pop;
+    if (count == 0 && pop) {
+	this->pop();
+    }
 }
 
+/*
+ * handle store N
+ */
 void BlockContext::storeN()
 {
     if (--storeCount == 0 && storePop) {
@@ -77,26 +180,9 @@ void BlockContext::storeN()
     }
 }
 
-void BlockContext::setParam(LPCParam param, TypeVal val)
-{
-    params[param] = val.type;
-}
-
-void BlockContext::setLocal(LPCLocal local, TypeVal val)
-{
-    locals[local] = val.type;
-}
-
-TypeVal BlockContext::getParam(LPCParam param)
-{
-    return TypeVal(params[param], 0);
-}
-
-TypeVal BlockContext::getLocal(LPCLocal local)
-{
-    return TypeVal(locals[local], 0);
-}
-
+/*
+ * return indexed type on the stack, skipping index
+ */
 TypeVal BlockContext::indexed()
 {
     return stack->get(stack->pop(sp));
@@ -106,6 +192,9 @@ TypeVal BlockContext::indexed()
 # define SUM_SIMPLE	-2
 # define SUM_AGGREGATE	-6
 
+/*
+ * handle a kfun call and return the resulting type
+ */
 Type BlockContext::kfun(LPCKFunc *kf)
 {
     int nargs, i;
@@ -114,6 +203,10 @@ Type BlockContext::kfun(LPCKFunc *kf)
 
     nargs = kf->nargs;
     if (kf->func == KF_SUM) {
+	/*
+	 * summand: check values on the stack to determine actual number
+	 * of arguments to pop
+	 */
 	type = LPC_TYPE_VOID;
 	while (nargs != 0) {
 	    val = pop().val;
@@ -177,6 +270,9 @@ Type BlockContext::kfun(LPCKFunc *kf)
     return type;
 }
 
+/*
+ * pop function arguments
+ */
 void BlockContext::args(int nargs)
 {
     if (spreadArgs) {
@@ -189,6 +285,40 @@ void BlockContext::args(int nargs)
     spreadArgs = false;
 }
 
+/*
+ * merge stacks after evaluating code
+ */
+StackSize BlockContext::merge(StackSize codeSp)
+{
+    if (codeSp != STACK_INVALID) {
+	sp = codeSp;
+
+	while (altSp != STACK_EMPTY) {
+	    TypeVal val = stack->get(codeSp);
+	    val.type = mergeType(val.type, altStack[altSp - 1].type);
+	    stack->set(codeSp, val);
+
+	    codeSp = stack->pop(codeSp);
+	    --altSp;
+	}
+    }
+
+    return sp;
+}
+
+/*
+ * propagate changes to following blocks?
+ */
+bool BlockContext::changed()
+{
+    return (sp != STACK_EMPTY ||
+	    memcmp(origParams, params, nParams) != 0 ||
+	    memcmp(origLocals, locals, nLocals) != 0);
+}
+
+/*
+ * calculate stack depth
+ */
 StackSize BlockContext::depth(StackSize stackPointer)
 {
     StackSize depth;
@@ -202,6 +332,9 @@ StackSize BlockContext::depth(StackSize stackPointer)
     return depth;
 }
 
+/*
+ * return the top type of a particular stack pointer
+ */
 Type BlockContext::topType(StackSize stackPointer)
 {
     return stack->get(stackPointer).type;
@@ -218,15 +351,21 @@ TypedCode::~TypedCode()
 {
 }
 
+/*
+ * simplify type
+ */
 Type TypedCode::simplifiedType(Type type)
 {
     return (LPC_TYPE_REF(type) != 0) ? LPC_TYPE_ARRAY : type;
 }
 
+/*
+ * evaluate type changes
+ */
 void TypedCode::evaluate(BlockContext *context)
 {
     TypeVal val;
-    int i;
+    CodeSize i;
 
     switch (instruction) {
     case INT:
@@ -242,11 +381,11 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case PARAM:
-	context->push(simplifiedType(context->getParam(param).type));
+	context->push(simplifiedType(context->params[param]));
 	break;
 
     case LOCAL:
-	context->push(context->getLocal(local));
+	context->push(context->locals[local]);
 	break;
 
     case GLOBAL:
@@ -311,11 +450,11 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case STORE_PARAM:
-	context->setParam(param, context->top());
+	context->params[param] = context->top().type;
 	break;
 
     case STORE_LOCAL:
-	context->setLocal(local, context->top());
+	context->locals[local] = context->top().type;
 	break;
 
     case STORE_GLOBAL:
@@ -331,14 +470,14 @@ void TypedCode::evaluate(BlockContext *context)
     case STORE_PARAM_INDEX:
 	val = context->pop();
 	context->pop();
-	context->setParam(param, context->pop());
+	context->params[param] = context->pop().type;
 	context->push(val);
 	break;
 
     case STORE_LOCAL_INDEX:
 	val = context->pop();
 	context->pop();
-	context->setLocal(local, context->pop());
+	context->locals[local] = context->pop().type;
 	context->push(val);
 	break;
 
@@ -360,63 +499,72 @@ void TypedCode::evaluate(BlockContext *context)
 
     case STORES:
 	context->pop();
+	sp = context->merge(sp);
 	context->stores(size, pop);
-	sp = context->stackPointer();
 	return;
 
     case SPREADX:
+	sp = context->merge(sp);
 	context->storeN();
-	break;
+	return;
 
     case CASTX:
-	context->castX(simplifiedType(type.type));
+	context->castType = simplifiedType(type.type);
 	break;
 
     case STOREX_PARAM:
-	context->setParam(param, context->typeX());
+	context->params[param] = context->castType;
+	sp = context->merge(sp);
 	context->storeN();
-	break;
+	return;
 
     case STOREX_LOCAL:
-	context->setLocal(local, context->typeX());
+	context->locals[local] = context->castType;
+	sp = context->merge(sp);
 	context->storeN();
-	break;
+	return;
 
     case STOREX_GLOBAL:
+	sp = context->merge(sp);
 	context->storeN();
-	break;
+	return;
 
     case STOREX_INDEX:
 	context->pop();
 	context->pop();
+	sp = context->merge(sp);
 	context->storeN();
-	break;
+	return;
 
     case STOREX_PARAM_INDEX:
 	context->pop();
-	context->setParam(param, context->pop());
+	context->params[param] = context->pop().type;
+	sp = context->merge(sp);
 	context->storeN();
-	break;
+	return;
 
     case STOREX_LOCAL_INDEX:
 	context->pop();
-	context->setLocal(local, context->pop());
+	context->locals[local] = context->pop().type;
+	sp = context->merge(sp);
 	context->storeN();
-	break;
+	return;
 
     case STOREX_GLOBAL_INDEX:
 	context->pop();
 	context->pop();
+	sp = context->merge(sp);
 	context->storeN();
-	break;
+	return;
 
     case STOREX_INDEX_INDEX:
 	context->pop();
 	context->pop();
 	context->pop();
 	context->pop();
+	sp = context->merge(sp);
 	context->storeN();
-	break;
+	return;
 
     case JUMP:
     case JUMP_ZERO:
@@ -459,7 +607,7 @@ void TypedCode::evaluate(BlockContext *context)
 
     case RETURN:
 	context->pop();
-	if (context->stackPointer() != STACK_EMPTY) {
+	if (context->sp != STACK_EMPTY) {
 	    fatal("stack not empty");
 	}
 	break;
@@ -468,12 +616,16 @@ void TypedCode::evaluate(BlockContext *context)
 	fatal("unknown instruction");
     }
 
+    sp = context->merge(sp);
+
     if (pop) {
 	context->pop();
     }
-    sp = context->stackPointer();
 }
 
+/*
+ * create a typed code
+ */
 Code *TypedCode::create(CodeFunction *function)
 {
     return new TypedCode(function);
@@ -483,12 +635,76 @@ Code *TypedCode::create(CodeFunction *function)
 TypedBlock::TypedBlock(Code *first, Code *last, CodeSize size) :
     Block(first, last, size)
 {
+    params = NULL;
+    locals = NULL;
 }
 
 TypedBlock::~TypedBlock()
 {
+    delete[] params;
+    delete[] locals;
 }
 
+/*
+ * prepare a context with params, locals and stack from this block
+ */
+void TypedBlock::setContext(BlockContext *context, Block *b)
+{
+    context->prologue(params, locals, sp, b);
+}
+
+/*
+ * evaluate code in a block
+ */
+void TypedBlock::evaluate(BlockContext *context, Block **list)
+{
+    Code *code;
+    CodeSize i, j;
+    Block *b;
+
+    for (code = first; ; code = code->next) {
+	code->evaluate(context);
+	if (code == last) {
+	    break;
+	}
+    }
+
+    if (sp == STACK_INVALID || context->changed()) {
+	/*
+	 * save state
+	 */
+	if (sp == STACK_INVALID) {
+	    sp = context->sp;
+	    if (context->nParams != 0) {
+		params = new Type[context->nParams];
+	    }
+	    if (context->nLocals != 0) {
+		locals = new Type[context->nLocals];
+	    }
+	}
+	memcpy(params, context->params, context->nParams);
+	memcpy(locals, context->locals, context->nLocals);
+
+	/* followups */
+	for (i = 0; i < nTo; i++) {
+	    b = to[i];
+
+	    /* find proper from */
+	    for (j = 0; b->from[j] != this; j++) ;
+
+	    if (!b->fromVisit[j]) {
+		b->fromVisit[j] = true;
+		if (b != this) {
+		    b->toVisit(list);
+		}
+	    }
+	}
+    }
+}
+
+/*
+ * evaluate all blocks
+ */
 BlockContext *TypedBlock::evaluate(CodeFunction *func, StackSize size)
 {
     Block *list, *b, *to;
@@ -499,26 +715,24 @@ BlockContext *TypedBlock::evaluate(CodeFunction *func, StackSize size)
 
     context = new BlockContext(func, size);
     startVisits(&list);
-    sp = STACK_EMPTY;
-    for (b = next; b != NULL; b = b->next) {
+    for (b = this; b != NULL; b = b->next) {
 	b->sp = STACK_INVALID;
     }
 
-    for (b = this; b != NULL; b = b->nextVisit(&list)) {
-	context->setStackPointer(b->sp);
-	for (code = b->first; ; code = code->next) {
-	    code->evaluate(context);
-	    if (code == b->last) {
+    /* eval this block */
+    evaluate(context, &list);
+
+    for (b = this; b != NULL; ) {
+	for (i = 0; ; i++) {
+	    if (i == b->nFrom) {
+		b = b->nextVisit(&list);
 		break;
 	    }
-	}
-	sp = context->stackPointer();
-
-	for (i = 0; i < b->nTo; i++) {
-	    to = b->to[i];
-	    if (to->sp == STACK_INVALID) {
-		to->sp = sp;
-		to->toVisit(&list);
+	    if (b->fromVisit[i]) {
+		b->fromVisit[i] = false;
+		b->from[i]->setContext(context, b);
+		b->evaluate(context, &list);
+		break;
 	    }
 	}
     }
@@ -526,6 +740,9 @@ BlockContext *TypedBlock::evaluate(CodeFunction *func, StackSize size)
     return context;
 }
 
+/*
+ * create a typed block
+ */
 Block *TypedBlock::create(Code *first, Code *last, CodeSize size)
 {
     return new TypedBlock(first, last, size);

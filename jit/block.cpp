@@ -1,6 +1,7 @@
 # include <stdlib.h>
 # include <stdint.h>
 # include <new>
+# include <string.h>
 extern "C" {
 # include "lpc_ext.h"
 }
@@ -15,6 +16,7 @@ Block::Block(Code *first, Code *last, CodeSize size) :
     first(first), last(last), size(size)
 {
     from = to = NULL;
+    fromVisit = NULL;
     nFrom = nTo = 0;
 }
 
@@ -33,6 +35,7 @@ Block::~Block()
     }
 
     delete[] from;
+    delete[] fromVisit;
     delete[] to;
 }
 
@@ -571,12 +574,22 @@ void Block::pass4()
 	    b = f->to[i];
 	    if (b->from == NULL) {
 		b->from = new Block*[b->nFrom];
+		b->fromVisit = new bool[b->nFrom];
+		memset(b->fromVisit, '\0', b->nFrom);
 		b->nFrom = 0;
 		b->toVisit(&list);
 	    }
 	    b->from[b->nFrom++] = f;
 	}
     }
+}
+
+void Block::setContext(class BlockContext *context, Block *b)
+{
+}
+
+void Block::evaluate(class BlockContext *context, Block **list)
+{
 }
 
 class BlockContext *Block::evaluate(CodeFunction *func, StackSize size)

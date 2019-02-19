@@ -9,6 +9,8 @@ public:
 
     CodeSize fragment();
     void clear();
+    virtual void setContext(class BlockContext *context, Block *b);
+    virtual void evaluate(class BlockContext *context, Block **list);
     virtual class BlockContext *evaluate(CodeFunction *func, StackSize size);
     virtual void emit(BlockContext *context);
 
@@ -21,6 +23,7 @@ public:
     Code *first, *last;			/* first and last code in block */
     Block *next;			/* next block */
     Block **from;			/* entrance blocks */
+    bool *fromVisit;			/* entrance flags */
     Block **to;				/* following blocks */
     CodeSize nFrom;			/* # entrance blocks */
     CodeSize nTo;			/* # following blocks */
