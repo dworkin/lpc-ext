@@ -57,3 +57,47 @@
 
 # define VERSION_VM_MAJOR		2
 # define VERSION_VM_MINOR		1
+
+# define FETCH1U(pc)	(*(pc)++)
+# define FETCH1S(pc)	((int8_t) *(pc)++)
+# define GET2(pc)	(((uint16_t) (pc)[-2] << 8) + (pc)[-1])
+# define FETCH2U(pc)	((pc) += 2, GET2(pc))
+# define FETCH2S(pc)	((pc) += 2, ((int16_t) (int8_t) (pc)[-2] << 8) + \
+				    (pc)[-1])
+# define GET3(pc)	(((uint32_t) (pc)[-3] << 16) + GET2(pc))
+# define FETCH3U(pc)	((pc) += 3, GET3(pc))
+# define FETCH3S(pc)	((pc) += 3, ((int32_t) (int8_t) (pc)[-3] << 16) + \
+				    GET2(pc))
+# define GET4(pc)	(((uint32_t) (pc)[-4] << 24) + GET3(pc))
+# define FETCH4U(pc)	((pc) += 4, GET4(pc))
+# define FETCH4S(pc)	((pc) += 4, ((int32_t) (int8_t) (pc)[-4] << 24) + \
+				    GET3(pc))
+# define GET5(pc)	(((uint64_t) (pc)[-5] << 32) + GET4(pc))
+# define FETCH5U(pc)	((pc) += 5, GET5(pc))
+# define FETCH5S(pc)	((pc) += 5, ((int64_t) (int8_t) (pc)[-5] << 32) + \
+				    GET4(pc))
+# define GET6(pc)	(((uint64_t) (pc)[-6] << 40) + GET5(pc))
+# define FETCH6U(pc)	((pc) += 6,GET6(pc))
+# define FETCH6S(pc)	((pc) += 6, ((int64_t) (int8_t) (pc)[-6] << 40) + \
+				    GET5(pc))
+# define GET7(pc)	(((uint64_t) (pc)[-7] << 48) + GET6(pc))
+# define FETCH7U(pc)	((pc) += 7, GET7(pc))
+# define FETCH7S(pc)	((pc) += 7, ((int64_t) (int8_t) (pc)[-7] << 48) + \
+				    GET6(pc))
+# define GET8(pc)	(((uint64_t) (pc)[-8] << 56) + GET7(pc))
+# define FETCH8U(pc)	((pc) += 8, GET8(pc))
+# define FETCH8S(pc)	((pc) += 8, (int64_t) GET8(pc))
+
+# define PROTO_CLASS(p)	((p)[0])
+# define PROTO_NARGS(p)	((p)[1])
+# define PROTO_VARGS(p)	((p)[2])
+# define PROTO_FTYPE(p)	((p)[5])
+
+# define KF_CKRANGEFT	51
+# define KF_CKRANGEF	52
+# define KF_CKRANGET	53
+# define KF_SUM		89
+# define KF_BUILTINS	128
+
+# define SUM_SIMPLE	-2
+# define SUM_AGGREGATE	-6

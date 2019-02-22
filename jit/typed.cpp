@@ -6,6 +6,7 @@ extern "C" {
 # include "lpc_ext.h"
 }
 # include "data.h"
+# include "instruction.h"
 # include "code.h"
 # include "stack.h"
 # include "block.h"
@@ -188,14 +189,10 @@ TypeVal BlockContext::indexed()
     return stack->get(stack->pop(sp));
 }
 
-# define KF_SUM		89
-# define SUM_SIMPLE	-2
-# define SUM_AGGREGATE	-6
-
 /*
  * handle a kfun call and return the resulting type
  */
-Type BlockContext::kfun(LPCKFunc *kf)
+Type BlockContext::kfun(LPCKFunCall *kf)
 {
     int nargs, i;
     Type type, summand;

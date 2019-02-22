@@ -22,7 +22,7 @@ public:
     size_t intSize;		/* integer size */
     size_t inhSize;		/* inherit size */
     Kfun *kfuns;		/* kfun prototypes */
-    LPCKfun nkfun;		/* # kfuns */
+    LPCKFun nkfun;		/* # kfuns */
 };
 
 class CodeObject {
@@ -32,7 +32,7 @@ public:
     virtual ~CodeObject();
 
     Type varType(LPCGlobal *var);
-    Type funcType(LPCDFunc *func);
+    Type funcType(LPCDFunCall *func);
 
     CodeContext *context;	/* context */
     LPCInherit nInherits;	/* # inherits */
@@ -176,9 +176,9 @@ public:
 	CaseInt *caseInt;		/* int case labels */
 	CaseRange *caseRange;		/* range case labels */
 	CaseString *caseString;		/* string case labels */
-	LPCKFunc kfun;			/* kernel function call */
-	LPCDFunc dfun;			/* direct function call */
-	LPCVFunc fun;			/* virtual function call */
+	LPCKFunCall kfun;		/* kernel function call */
+	LPCDFunCall dfun;		/* direct function call */
+	LPCVFunCall fun;		/* virtual function call */
     };
 
 private:

@@ -26,7 +26,7 @@ public:
     void spread() {
 	spreadArgs = true;
     }
-    Type kfun(LPCKFunc *kf);
+    Type kfun(LPCKFunCall *kf);
     void args(int nargs);
     StackSize merge(StackSize codeSp);
     bool changed();

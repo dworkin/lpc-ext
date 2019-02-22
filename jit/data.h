@@ -1,56 +1,55 @@
 # define LPC_TYPE_CLASS		7
-# define LPC_TYPE_LVALUE	10
 # define LPC_TYPE_MASK		0x0f
 # define LPC_TYPE_REF(t)	((t) >> 4)
 
 typedef int64_t LPCInt;
 
-typedef struct {
+struct LPCFloat {
     uint32_t high;		/* 1 sign, 15 exponent, ... */
     uint64_t low;		/* ... 80 mantissa */
-} LPCFloat;
+};
 
 typedef uint16_t LPCInherit;
 
-typedef struct {
+struct LPCStringConst {
     LPCInherit inherit;		/* program */
     uint16_t index;		/* index in string constant table */
-} LPCStringConst;
+};
 
 typedef uint8_t Type;
 
-typedef struct {
+struct LPCType {
     Type type;			/* compile-time type */
     LPCInherit inherit;		/* optional class string program */
     uint16_t index;		/* optional class string index */
-} LPCType;
+};
 
 typedef uint8_t LPCParam;
 typedef uint8_t LPCLocal;
 
-typedef struct {
+struct LPCGlobal {
     LPCInherit inherit;		/* program */
     uint8_t index;		/* index in variable table */
     Type type;			/* type of variable */
-} LPCGlobal;
+};
 
-typedef uint16_t LPCKfun;
+typedef uint16_t LPCKFun;
 
-typedef struct {
-    LPCKfun func;		/* index in kfun table */
+struct LPCKFunCall {
+    LPCKFun func;		/* index in kfun table */
     LPCParam nargs;		/* # arguments */
     LPCParam lval;		/* # non-lvalue parameters or 0 */
     Type type;			/* return type */
-} LPCKFunc;
+};
 
-typedef struct {
+struct LPCDFunCall {
     LPCInherit inherit;		/* program */
     uint8_t func;		/* index in function table */
     LPCParam nargs;		/* # arguments */
     Type type;			/* return type */
-} LPCDFunc;
+};
 
-typedef struct {
+struct LPCVFunCall {
     uint16_t call;		/* index in call table */
     LPCParam nargs;		/* # arguments */
-} LPCVFunc;
+};
