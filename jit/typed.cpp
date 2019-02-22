@@ -91,32 +91,43 @@ Type BlockContext::mergeType(Type type1, Type type2)
 void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
 			    StackSize mergeSp, Block *b)
 {
+    StackSize sp;
+
     memcpy(params, mergeParams, nParams);
     memcpy(origParams, mergeParams, nParams);
     memcpy(locals, mergeLocals, nLocals);
     memcpy(origLocals, mergeLocals, nLocals);
-    sp = mergeSp;
 
-    if (b->sp != STACK_INVALID) {
-	StackSize blockSp;
+    if (b->sp == STACK_INVALID) {
+	/*
+	 * copy stack from mergeSp
+	 */
+	b->sp = STACK_EMPTY;
+	for (sp = mergeSp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
+	    b->sp = stack->push(b->sp, TypeVal(LPC_TYPE_VOID, 0));
+	}
+	for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
+	    stack->set(sp, stack->get(mergeSp));
+	    mergeSp = stack->pop(mergeSp);
+	}
 
+	merging = false;
+    } else {
 	/*
 	 * merge stacks before evaluating block
 	 */
-	sp = blockSp = b->from[0]->sp;
-	while (blockSp != mergeSp) {
-	    TypeVal val = stack->get(blockSp);
+	for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
+	    TypeVal val = stack->get(sp);
 	    val.type = mergeType(val.type, stack->get(mergeSp).type);
-	    stack->set(blockSp, val);
+	    stack->set(sp, val);
 
-	    blockSp = stack->pop(blockSp);
 	    mergeSp = stack->pop(mergeSp);
 	}
 
 	merging = true;
-    } else {
-	merging = false;
     }
+
+    this->sp = b->sp;
 }
 
 /*
@@ -634,6 +645,7 @@ TypedBlock::TypedBlock(Code *first, Code *last, CodeSize size) :
 {
     params = NULL;
     locals = NULL;
+    endSp = STACK_INVALID;
 }
 
 TypedBlock::~TypedBlock()
@@ -647,7 +659,7 @@ TypedBlock::~TypedBlock()
  */
 void TypedBlock::setContext(BlockContext *context, Block *b)
 {
-    context->prologue(params, locals, sp, b);
+    context->prologue(params, locals, endSp, b);
 }
 
 /*
@@ -659,6 +671,8 @@ void TypedBlock::evaluate(BlockContext *context, Block **list)
     CodeSize i, j;
     Block *b;
 
+    context->sp = sp;
+
     for (code = first; ; code = code->next) {
 	code->evaluate(context);
 	if (code == last) {
@@ -666,12 +680,12 @@ void TypedBlock::evaluate(BlockContext *context, Block **list)
 	}
     }
 
-    if (sp == STACK_INVALID || context->changed()) {
+    if (endSp == STACK_INVALID || context->changed()) {
 	/*
 	 * save state
 	 */
-	if (sp == STACK_INVALID) {
-	    sp = context->sp;
+	if (endSp == STACK_INVALID) {
+	    endSp = context->sp;
 	    if (context->nParams != 0) {
 		params = new Type[context->nParams];
 	    }
@@ -712,7 +726,8 @@ BlockContext *TypedBlock::evaluate(CodeFunction *func, StackSize size)
 
     context = new BlockContext(func, size);
     startVisits(&list);
-    for (b = this; b != NULL; b = b->next) {
+    sp = STACK_EMPTY;
+    for (b = next; b != NULL; b = b->next) {
 	b->sp = STACK_INVALID;
     }
 

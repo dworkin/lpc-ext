@@ -84,4 +84,5 @@ public:
 private:
     Type *params;		/* parameter types at end of block */
     Type *locals;		/* local variable types at end of block */
+    StackSize endSp;		/* final stack pointer */
 };
