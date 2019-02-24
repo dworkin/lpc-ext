@@ -50,10 +50,10 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
 	origLocals = locals = NULL;
     }
 
-    stack = new Stack<TypeVal>(size);
+    stack = new Stack<TVC>(size);
     altSp = sp = STACK_EMPTY;
     storeCount = 0;
-    storePop = false;
+    storeCode = NULL;
     spreadArgs = false;
     merging = false;
 }
@@ -104,7 +104,7 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
 	 */
 	b->sp = STACK_EMPTY;
 	for (sp = mergeSp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
-	    b->sp = stack->push(b->sp, TypeVal(LPC_TYPE_VOID, 0));
+	    b->sp = stack->push(b->sp, TVC(LPC_TYPE_VOID, 0));
 	}
 	for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
 	    stack->set(sp, stack->get(mergeSp));
@@ -117,7 +117,7 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
 	 * merge stacks before evaluating block
 	 */
 	for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
-	    TypeVal val = stack->get(sp);
+	    TVC val = stack->get(sp);
 	    val.type = mergeType(val.type, stack->get(mergeSp).type);
 	    stack->set(sp, val);
 
@@ -133,7 +133,7 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
 /*
  * push type on stack
  */
-void BlockContext::push(TypeVal val)
+void BlockContext::push(TVC val)
 {
     if (merging) {
 	altStack[altSp++] = val;
@@ -145,7 +145,7 @@ void BlockContext::push(TypeVal val)
 /*
  * return top of stack
  */
-TypeVal BlockContext::top()
+TVC BlockContext::top()
 {
     if (altSp != STACK_EMPTY) {
 	return altStack[altSp - 1];
@@ -157,7 +157,7 @@ TypeVal BlockContext::top()
 /*
  * pop type from stack
  */
-TypeVal BlockContext::pop()
+TVC BlockContext::pop(Code *code)
 {
     if (altSp != STACK_EMPTY) {
 	return altStack[--altSp];
@@ -165,7 +165,9 @@ TypeVal BlockContext::pop()
 	fatal("pop empty stack");
     }
 
-    TypeVal val = stack->get(sp);
+    TVC val = stack->get(sp);
+    val.code = code;
+    stack->set(sp, val);
     sp = stack->pop(sp);
     return val;
 }
@@ -173,12 +175,12 @@ TypeVal BlockContext::pop()
 /*
  * prepare for N stores
  */
-void BlockContext::stores(int count, bool pop)
+void BlockContext::stores(int count, Code *popCode)
 {
     storeCount = count;
-    storePop = pop;
-    if (count == 0 && pop) {
-	this->pop();
+    storeCode = popCode;
+    if (count == 0 && popCode != NULL) {
+	this->pop(popCode);
     }
 }
 
@@ -187,15 +189,15 @@ void BlockContext::stores(int count, bool pop)
  */
 void BlockContext::storeN()
 {
-    if (--storeCount == 0 && storePop) {
-	pop();
+    if (--storeCount == 0 && storeCode != NULL) {
+	pop(storeCode);
     }
 }
 
 /*
  * return indexed type on the stack, skipping index
  */
-TypeVal BlockContext::indexed()
+TVC BlockContext::indexed()
 {
     return stack->get(stack->pop(sp));
 }
@@ -203,7 +205,7 @@ TypeVal BlockContext::indexed()
 /*
  * handle a kfun call and return the resulting type
  */
-Type BlockContext::kfun(LPCKFunCall *kf)
+Type BlockContext::kfun(LPCKFunCall *kf, Code *code)
 {
     int nargs, i;
     Type type, summand;
@@ -217,26 +219,26 @@ Type BlockContext::kfun(LPCKFunCall *kf)
 	 */
 	type = LPC_TYPE_VOID;
 	while (nargs != 0) {
-	    val = pop().val;
+	    val = pop(code).val;
 	    if (val < 0) {
 		if (val <= SUM_AGGREGATE) {
 		    /* aggregate */
 		    for (i = SUM_AGGREGATE - val; i != 0; --i) {
-			pop();
+			pop(code);
 		    }
 		    summand = LPC_TYPE_ARRAY;
 		} else if (val == SUM_SIMPLE) {
 		    /* simple argument */
-		    summand = pop().type;
+		    summand = pop(code).type;
 		} else {
 		    /* allocate array */
-		    pop();
+		    pop(code);
 		    summand = LPC_TYPE_ARRAY;
 		}
 	    } else {
 		/* subrange */
-		pop();
-		summand = pop().type;
+		pop(code);
+		summand = pop(code).type;
 	    }
 
 	    if (type == LPC_TYPE_VOID) {
@@ -258,7 +260,7 @@ Type BlockContext::kfun(LPCKFunCall *kf)
 	if (kf->lval != 0) {
 	    /* pop non-lval arguments */
 	    for (nargs = kf->lval; nargs != 0; --nargs) {
-		pop();
+		pop(code);
 	    }
 	    push(LPC_TYPE_ARRAY);
 	} else {
@@ -266,7 +268,7 @@ Type BlockContext::kfun(LPCKFunCall *kf)
 		--nargs;
 	    }
 	    while (nargs != 0) {
-		pop();
+		pop(code);
 		--nargs;
 	    }
 	}
@@ -281,13 +283,13 @@ Type BlockContext::kfun(LPCKFunCall *kf)
 /*
  * pop function arguments
  */
-void BlockContext::args(int nargs)
+void BlockContext::args(int nargs, Code *code)
 {
     if (spreadArgs) {
 	--nargs;
     }
     while (nargs != 0) {
-	pop();
+	pop(code);
 	--nargs;
     }
     spreadArgs = false;
@@ -302,7 +304,7 @@ StackSize BlockContext::merge(StackSize codeSp)
 	sp = codeSp;
 
 	while (altSp != STACK_EMPTY) {
-	    TypeVal val = stack->get(codeSp);
+	    TVC val = stack->get(codeSp);
 	    val.type = mergeType(val.type, altStack[altSp - 1].type);
 	    stack->set(codeSp, val);
 
@@ -372,7 +374,7 @@ Type TypedCode::simplifiedType(Type type)
  */
 void TypedCode::evaluate(BlockContext *context)
 {
-    TypeVal val;
+    TVC val;
     CodeSize i;
 
     switch (instruction) {
@@ -402,8 +404,8 @@ void TypedCode::evaluate(BlockContext *context)
 
     case INDEX:
 	val = context->indexed();
-	context->pop();
-	context->pop();
+	context->pop(this);
+	context->pop(this);
 	context->push((val.type == LPC_TYPE_STRING) ?
 		       LPC_TYPE_INT : LPC_TYPE_MIXED);
 	break;
@@ -416,31 +418,31 @@ void TypedCode::evaluate(BlockContext *context)
     case SPREAD:
     case SPREAD_STORES:
 	/* assume array of size 0 spread */
-	context->pop();
+	context->pop(this);
 	context->spread();
 	break;
 
     case AGGREGATE:
 	for (i = size; i != 0; --i) {
-	    context->pop();
+	    context->pop(this);
 	}
 	context->push(LPC_TYPE_ARRAY);
 	break;
 
     case MAP_AGGREGATE:
 	for (i = size; i != 0; --i) {
-	    context->pop();
+	    context->pop(this);
 	}
 	context->push(LPC_TYPE_MAPPING);
 	break;
 
     case CAST:
-	context->pop();
+	context->pop(this);
 	context->push(simplifiedType(type.type));
 	break;
 
     case INSTANCEOF:
-	context->pop();
+	context->pop(this);
 	context->push(LPC_TYPE_INT);
 	break;
 
@@ -452,7 +454,7 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case CHECK_RANGE_TO:
-	val = context->pop();
+	val = context->pop(this);
 	context->push(LPC_TYPE_INT);
 	context->push(val);
 	break;
@@ -469,46 +471,46 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case STORE_INDEX:
-	val = context->pop();
-	context->pop();
-	context->pop();
+	val = context->pop(this);
+	context->pop(this);
+	context->pop(this);
 	context->push(val);
 	break;
 
     case STORE_PARAM_INDEX:
-	val = context->pop();
-	context->pop();
-	context->params[param] = context->pop().type;
+	val = context->pop(this);
+	context->pop(this);
+	context->params[param] = context->pop(this).type;
 	context->push(val);
 	break;
 
     case STORE_LOCAL_INDEX:
-	val = context->pop();
-	context->pop();
-	context->locals[local] = context->pop().type;
+	val = context->pop(this);
+	context->pop(this);
+	context->locals[local] = context->pop(this).type;
 	context->push(val);
 	break;
 
     case STORE_GLOBAL_INDEX:
-	val = context->pop();
-	context->pop();
-	context->pop();
+	val = context->pop(this);
+	context->pop(this);
+	context->pop(this);
 	context->push(val);
 	break;
 
     case STORE_INDEX_INDEX:
-	val = context->pop();
-	context->pop();
-	context->pop();
-	context->pop();
-	context->pop();
+	val = context->pop(this);
+	context->pop(this);
+	context->pop(this);
+	context->pop(this);
+	context->pop(this);
 	context->push(val);
 	break;
 
     case STORES:
-	context->pop();
+	context->pop(this);
 	sp = context->merge(sp);
-	context->stores(size, pop);
+	context->stores(size, (pop) ? this : NULL);
 	return;
 
     case SPREADX:
@@ -538,38 +540,38 @@ void TypedCode::evaluate(BlockContext *context)
 	return;
 
     case STOREX_INDEX:
-	context->pop();
-	context->pop();
+	context->pop(this);
+	context->pop(this);
 	sp = context->merge(sp);
 	context->storeN();
 	return;
 
     case STOREX_PARAM_INDEX:
-	context->pop();
-	context->params[param] = context->pop().type;
+	context->pop(this);
+	context->params[param] = context->pop(this).type;
 	sp = context->merge(sp);
 	context->storeN();
 	return;
 
     case STOREX_LOCAL_INDEX:
-	context->pop();
-	context->locals[local] = context->pop().type;
+	context->pop(this);
+	context->locals[local] = context->pop(this).type;
 	sp = context->merge(sp);
 	context->storeN();
 	return;
 
     case STOREX_GLOBAL_INDEX:
-	context->pop();
-	context->pop();
+	context->pop(this);
+	context->pop(this);
 	sp = context->merge(sp);
 	context->storeN();
 	return;
 
     case STOREX_INDEX_INDEX:
-	context->pop();
-	context->pop();
-	context->pop();
-	context->pop();
+	context->pop(this);
+	context->pop(this);
+	context->pop(this);
+	context->pop(this);
 	sp = context->merge(sp);
 	context->storeN();
 	return;
@@ -584,16 +586,16 @@ void TypedCode::evaluate(BlockContext *context)
 
     case KFUNC:
     case KFUNC_STORES:
-	context->push(simplifiedType(context->kfun(&kfun)));
+	context->push(simplifiedType(context->kfun(&kfun, this)));
 	break;
 
     case DFUNC:
-	context->args(dfun.nargs);
+	context->args(dfun.nargs, this);
 	context->push(simplifiedType(dfun.type));
 	break;
 
     case FUNC:
-	context->args(fun.nargs);
+	context->args(fun.nargs, this);
 	context->push(LPC_TYPE_MIXED);
 	break;
 
@@ -606,15 +608,15 @@ void TypedCode::evaluate(BlockContext *context)
 
     case RLIMITS:
     case RLIMITS_CHECK:
-	context->pop();
-	context->pop();
+	context->pop(this);
+	context->pop(this);
 	break;
 
     case END_RLIMITS:
 	break;
 
     case RETURN:
-	context->pop();
+	context->pop(this);
 	if (context->sp != STACK_EMPTY) {
 	    fatal("stack not empty");
 	}
@@ -627,7 +629,7 @@ void TypedCode::evaluate(BlockContext *context)
     sp = context->merge(sp);
 
     if (pop) {
-	context->pop();
+	context->pop(NULL);
     }
 }
 

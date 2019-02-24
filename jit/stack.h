@@ -16,7 +16,7 @@ public:
 	delete[] elements;
     }
 
-    StackSize push(StackSize pointer, T item) {
+    StackSize push(StackSize pointer, const T &item) {
 	elements[++nElems].item = item;
 	elements[nElems].next = pointer;
 	return nElems;
@@ -26,11 +26,11 @@ public:
 	return elements[pointer].next;
     }
 
-    void set(StackSize pointer, T item) {
+    void set(StackSize pointer, const T &item) {
 	elements[pointer].item = item;
     }
 
-    T get(StackSize pointer) {
+    T &get(StackSize pointer) {
 	return elements[pointer].item;
     }
 

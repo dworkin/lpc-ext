@@ -1,10 +1,11 @@
-class TypeVal {
+class TVC {
 public:
-    TypeVal() { }
-    TypeVal(Type type, LPCInt val) : type(type), val(val) { }
+    TVC() { }
+    TVC(Type type, LPCInt val) : type(type), val(val), code(NULL) { }
 
     Type type;		/* type */
     LPCInt val;		/* value, only relevant for integer on the stack */
+    Code *code;		/* instruction that consumes this TVC */
 };
 
 class BlockContext {
@@ -14,20 +15,20 @@ public:
 
     void prologue(Type *mergeParams, Type *mergeLocals, StackSize mergeSp,
 		  Block *b);
-    void push(TypeVal val);
+    void push(TVC val);
     void push(Type type, LPCInt val = 0) {
-	push(TypeVal(type, val));
+	push(TVC(type, val));
     }
-    TypeVal pop();
-    TypeVal top();
-    TypeVal indexed();
-    void stores(int count, bool pop);
+    TVC pop(Code *code);
+    TVC top();
+    TVC indexed();
+    void stores(int count, Code *popCode);
     void storeN();
     void spread() {
 	spreadArgs = true;
     }
-    Type kfun(LPCKFunCall *kf);
-    void args(int nargs);
+    Type kfun(LPCKFunCall *kf, Code *code);
+    void args(int nargs, Code *code);
     StackSize merge(StackSize codeSp);
     bool changed();
     StackSize depth(StackSize stackPointer);
@@ -45,11 +46,11 @@ private:
 
     Type *origParams;		/* original parameter types */
     Type *origLocals;		/* original local variable types */
-    Stack<TypeVal> *stack;	/* type stack */
-    TypeVal altStack[3];	/* alternative stack */
+    Stack<TVC> *stack;		/* type/val/code stack */
+    TVC altStack[3];		/* alternative stack */
     StackSize altSp;		/* alternative stack pointer */
     int storeCount;		/* number of STOREX instructions left */
-    bool storePop;		/* pop at end of STORES? */
+    Code *storeCode;		/* pop at end of STORES? */
     bool spreadArgs;		/* SPREAD before call? */
     bool merging;		/* merging stack values? */
 };
