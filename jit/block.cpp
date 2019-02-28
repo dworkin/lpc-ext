@@ -18,6 +18,7 @@ Block::Block(Code *first, Code *last, CodeSize size) :
     from = to = NULL;
     fromVisit = NULL;
     nFrom = nTo = 0;
+    level = 0;
 }
 
 Block::~Block()
@@ -415,10 +416,12 @@ Block *Block::nextVisit(Block **list)
 /*
  * prepare to visit, but only once
  */
-void Block::toVisitOnce(Block **list, StackSize stackPointer)
+void Block::toVisitOnce(Block **list, StackSize stackPointer,
+			StackSize catchLevel)
 {
     if (sp == STACK_INVALID) {
 	sp = stackPointer;
+	level = catchLevel;
 	toVisit(list);
     }
 }
@@ -432,6 +435,7 @@ Block *Block::pass2(Block *tree, CodeSize size)
     Block *b, *list;
     Code *code;
     CodeSize stackPointer, i;
+    StackSize catchLevel;
 
     /*
      * determine the catch/rlimits context at the start and end of each block
@@ -443,6 +447,7 @@ Block *Block::pass2(Block *tree, CodeSize size)
     }
     for (b = this; b != NULL; b = b->nextVisit(&list)) {
 	stackPointer = b->sp;
+	catchLevel = b->level;
 
 	/*
 	 * go through the code and make adjustments as needed
@@ -451,6 +456,7 @@ Block *Block::pass2(Block *tree, CodeSize size)
 	    switch (code->instruction) {
 	    case Code::CATCH:
 		stackPointer = context.push(stackPointer, Block::CATCH);
+		catchLevel++;
 		break;
 
 	    case Code::RLIMITS:
@@ -462,6 +468,7 @@ Block *Block::pass2(Block *tree, CodeSize size)
 		if (stackPointer != STACK_EMPTY) {
 		    if (context.get(stackPointer) == Block::CATCH) {
 			code->instruction = Code::END_CATCH;
+			--catchLevel;
 		    } else {
 			code->instruction = Code::END_RLIMITS;
 		    }
@@ -487,16 +494,17 @@ Block *Block::pass2(Block *tree, CodeSize size)
 		 * special case for CATCH: the context will be gone after an
 		 * exception occurs
 		 */
-		b->to[0]->toVisitOnce(&list, stackPointer);
-		b->to[1]->toVisitOnce(&list, context.pop(stackPointer));
+		b->to[0]->toVisitOnce(&list, stackPointer, catchLevel);
+		b->to[1]->toVisitOnce(&list, context.pop(stackPointer),
+				      catchLevel - 1);
 	    } else {
 		for (i = 0; i < b->nTo; i++) {
-		    b->to[i]->toVisitOnce(&list, stackPointer);
+		    b->to[i]->toVisitOnce(&list, stackPointer, catchLevel);
 		}
 	    }
 	} else if (b->next != NULL && code->instruction != Code::RETURN) {
 	    /* add the next block to the list */
-	    b->next->toVisitOnce(&list, stackPointer);
+	    b->next->toVisitOnce(&list, stackPointer, catchLevel);
 	} else if (stackPointer != STACK_EMPTY) {
 	    /* function ended within a catch/rlimits context */
 	    fatal("catch/rlimits return mismatch");

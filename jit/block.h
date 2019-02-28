@@ -29,6 +29,7 @@ public:
     CodeSize nTo;			/* # following blocks */
     CodeSize size;			/* size of block */
     StackSize sp;			/* stack pointer */
+    StackSize level;			/* catch level */
 
 private:
     enum Context {
@@ -38,7 +39,8 @@ private:
 
     Block *find(CodeSize addr);
     Block *split(CodeSize addr);
-    void toVisitOnce(Block **list, StackSize stackPointer);
+    void toVisitOnce(Block **list, StackSize stackPointer,
+		     StackSize catchLevel);
     Block *pass1();
     Block *pass2(Block *tree, StackSize size);
     void pass3(Block *b);

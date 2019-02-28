@@ -439,6 +439,9 @@ void DisBlock::emit(BlockContext *context)
 	    }
 	    fprintf(stderr, "]");
 	}
+	if (b->level != 0) {
+	    fprintf(stderr, " <%d>", b->level);
+	}
 	fprintf(stderr, "\n");
 	for (code = b->first; ; code = code->next) {
 	    line = code->emit(line);
