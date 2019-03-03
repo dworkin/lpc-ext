@@ -429,7 +429,7 @@ void Block::toVisitOnce(Block **list, StackSize stackPointer,
 /*
  * transform RETURN into END_CATCH or END_RLIMITS, as required
  */
-Block *Block::pass2(Block *tree, CodeSize size)
+Block *Block::pass2(Block *tree, StackSize size)
 {
     Stack<Context> context(size);	/* too large but we need some limit */
     Block *b, *list;

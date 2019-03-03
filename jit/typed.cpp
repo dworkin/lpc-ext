@@ -50,7 +50,7 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
 	origLocals = locals = NULL;
     }
 
-    stack = new Stack<TVC>(size);
+    stack = new Stack<TVC>((size * 3) / 2);
     altSp = sp = STACK_EMPTY;
     storeCount = 0;
     storeCode = NULL;

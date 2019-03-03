@@ -1,4 +1,4 @@
-typedef uint16_t StackSize;
+typedef uint32_t StackSize;
 
 enum StackPointer {
     STACK_EMPTY = 0,
