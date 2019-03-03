@@ -107,7 +107,11 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
 	    b->sp = stack->push(b->sp, TVC(LPC_TYPE_VOID, 0));
 	}
 	for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
-	    stack->set(sp, stack->get(mergeSp));
+	    TVC val = stack->get(mergeSp);
+	    val.merge = sp;
+	    stack->set(mergeSp, val);
+	    val.merge = STACK_EMPTY;
+	    stack->set(sp, val);
 	    mergeSp = stack->pop(mergeSp);
 	}
 
@@ -117,8 +121,12 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
 	 * merge stacks before evaluating block
 	 */
 	for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
-	    TVC val = stack->get(sp);
-	    val.type = mergeType(val.type, stack->get(mergeSp).type);
+	    TVC val = stack->get(mergeSp);
+	    Type type = val.type;
+	    val.merge = sp;
+	    stack->set(mergeSp, val);
+	    val = stack->get(sp);
+	    val.type = mergeType(val.type, type);
 	    stack->set(sp, val);
 
 	    mergeSp = stack->pop(mergeSp);
@@ -327,6 +335,22 @@ bool BlockContext::changed()
 }
 
 /*
+ * find the Code that consumes a type/value
+ */
+Code *BlockContext::consumer(StackSize stackPointer)
+{
+    while (stackPointer != STACK_EMPTY) {
+	TVC val = stack->get(stackPointer);
+	if (val.code != NULL) {
+	    return val.code;
+	}
+	stackPointer = val.merge;
+    }
+
+    return NULL;
+}
+
+/*
  * calculate stack depth
  */
 StackSize BlockContext::depth(StackSize stackPointer)
@@ -460,14 +484,19 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case STORE_PARAM:
-	context->params[param] = context->top().type;
+	val = context->pop(this);
+	context->params[param] = val.type;
+	context->push(val);
 	break;
 
     case STORE_LOCAL:
-	context->locals[local] = context->top().type;
+	val = context->pop(this);
+	context->locals[local] = val.type;
+	context->push(val);
 	break;
 
     case STORE_GLOBAL:
+	context->push(context->pop(this));
 	break;
 
     case STORE_INDEX:
@@ -577,12 +606,16 @@ void TypedCode::evaluate(BlockContext *context)
 	return;
 
     case JUMP:
+	break;
+
     case JUMP_ZERO:
     case JUMP_NONZERO:
     case SWITCH_INT:
     case SWITCH_RANGE:
     case SWITCH_STRING:
-	break;
+	sp = context->merge(sp);
+	context->pop(this);
+	return;
 
     case KFUNC:
     case KFUNC_STORES:

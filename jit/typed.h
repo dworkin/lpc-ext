@@ -1,11 +1,13 @@
 class TVC {
 public:
     TVC() { }
-    TVC(Type type, LPCInt val) : type(type), val(val), code(NULL) { }
+    TVC(Type type, LPCInt val) :
+	type(type), val(val), code(NULL), merge(STACK_EMPTY) { }
 
     Type type;		/* type */
     LPCInt val;		/* value, only relevant for integer on the stack */
     Code *code;		/* instruction that consumes this TVC */
+    StackSize merge;	/* merge reference */
 };
 
 class BlockContext {
@@ -31,6 +33,7 @@ public:
     void args(int nargs, Code *code);
     StackSize merge(StackSize codeSp);
     bool changed();
+    Code *consumer(StackSize stackPointer);
     StackSize depth(StackSize stackPointer);
     Type topType(StackSize stackPointer);
 

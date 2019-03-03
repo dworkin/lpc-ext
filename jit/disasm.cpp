@@ -420,7 +420,7 @@ void DisBlock::emit(BlockContext *context)
 {
     CodeLine line;
     Block *b;
-    Code *code;
+    Code *code, *consumer;
     CodeSize i, sp;
 
     line = 0;
@@ -457,6 +457,15 @@ void DisBlock::emit(BlockContext *context)
 		fprintf(stderr, "; %d ", i);
 		if (i != 0) {
 		    dis_type(context->topType(sp));
+		    consumer = context->consumer(sp);
+		    if (consumer != NULL) {
+			if (consumer->instruction == Code::KFUNC ||
+			    consumer->instruction == Code::KFUNC_STORES) {
+			    fprintf(stderr, " KFUN %d", consumer->kfun.func);
+			} else {
+			    fprintf(stderr, " %d", consumer->instruction);
+			}
+		    }
 		}
 		fprintf(stderr, "\n");
 	    }
