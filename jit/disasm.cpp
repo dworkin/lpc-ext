@@ -139,14 +139,14 @@ static void dis_casttype(LPCType *type)
 /*
  * emit instruction disassembly
  */
-CodeLine DisCode::emit(CodeLine line)
+void DisCode::emit(BlockContext *context)
 {
     int i;
 
     fprintf(stderr, " %04x", addr);
-    if (this->line != line) {
-	fprintf(stderr, "%5d", this->line);
-	line = this->line;
+    if (line != context->line) {
+	fprintf(stderr, "%5d", line);
+	context->line = line;
     } else {
 	fprintf(stderr, "     ");
     }
@@ -396,8 +396,6 @@ CodeLine DisCode::emit(CodeLine line)
     default:
 	fatal("unknown instruction %d", instruction);
     }
-
-    return line;
 }
 
 
@@ -444,7 +442,7 @@ void DisBlock::emit(BlockContext *context)
 	}
 	fprintf(stderr, "\n");
 	for (code = b->first; ; code = code->next) {
-	    line = code->emit(line);
+	    code->emit(context);
 	    switch (code->instruction) {
 	    case Code::SWITCH_INT:
 	    case Code::SWITCH_RANGE:

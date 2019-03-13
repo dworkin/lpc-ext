@@ -50,6 +50,7 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
 	origLocals = locals = NULL;
     }
 
+    line = 0;
     stack = new Stack<TVC>((size * 3) / 2);
     altSp = sp = STACK_EMPTY;
     storeCount = 0;

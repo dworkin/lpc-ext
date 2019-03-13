@@ -43,6 +43,7 @@ public:
     LPCLocal nLocals;		/* # local variables */
     StackSize sp;		/* stack pointer */
     Type castType;		/* CASTX argument */
+    CodeLine line;		/* current line */
 
 private:
     static Type mergeType(Type type1, Type type2);

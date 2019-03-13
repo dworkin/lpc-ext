@@ -932,9 +932,8 @@ void Code::evaluate(class BlockContext *context)
 {
 }
 
-CodeLine Code::emit(CodeLine line)
+void Code::emit(class BlockContext *context)
 {
-    return line;
 }
 
 /*

@@ -3,7 +3,7 @@ public:
     DisCode(CodeFunction *function);
     virtual ~DisCode();
 
-    virtual CodeLine emit(CodeLine line);
+    virtual void emit(BlockContext *context);
 
     static Code *create(CodeFunction *function);
 };

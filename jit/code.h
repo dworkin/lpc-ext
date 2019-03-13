@@ -97,7 +97,7 @@ public:
     virtual ~Code();
 
     virtual void evaluate(class BlockContext *context);
-    virtual CodeLine emit(CodeLine line);
+    virtual void emit(class BlockContext *context);
 
     static Code *create(CodeFunction *function);
     static Code *produce(CodeFunction *function);

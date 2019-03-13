@@ -222,8 +222,7 @@ Block *Block::function(CodeFunction *function)
     }
 
     return (first != NULL) ?
-	    Block::produce(first, last, function->getPC(&addr) - program) :
-	    NULL;
+	    produce(first, last, function->getPC(&addr) - program) : NULL;
 }
 
 /*
