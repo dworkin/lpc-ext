@@ -33,9 +33,9 @@ public:
     void args(int nargs, Code *code);
     StackSize merge(StackSize codeSp);
     bool changed();
+    TVC get(StackSize stackPointer);
     Code *consumer(StackSize stackPointer);
     StackSize depth(StackSize stackPointer);
-    Type topType(StackSize stackPointer);
 
     Type *params;		/* function parameter types */
     Type *locals;		/* function local variable types */

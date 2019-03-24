@@ -158,7 +158,7 @@ void DisCode::emit(BlockContext *context)
 
     switch (instruction) {
     case INT:
-	fprintf(stderr, "INT %lld\t\t\t\t", num);
+	fprintf(stderr, "INT %lld\t\t\t\t", (long long) num);
 	break;
 
     case FLOAT:
@@ -324,8 +324,8 @@ void DisCode::emit(BlockContext *context)
     case SWITCH_INT:
 	fprintf(stderr, "SWITCH_INT %04x\n", caseInt->addr);
 	for (i = 1; i < size; i++) {
-	    fprintf(stderr, "              case %lld: %04x\n", caseInt[i].num,
-		    caseInt[i].addr);
+	    fprintf(stderr, "              case %lld: %04x\n",
+		    (long long) caseInt[i].num, caseInt[i].addr);
 	}
 	break;
 
@@ -333,7 +333,8 @@ void DisCode::emit(BlockContext *context)
 	fprintf(stderr, "SWITCH_RANGE %04x\n", caseRange->addr);
 	for (i = 1; i < size; i++) {
 	    fprintf(stderr, "              case %lld..%lld: %04x\n",
-		    caseRange[i].from, caseRange[i].to, caseRange[i].addr);
+		    (long long) caseRange[i].from, (long long) caseRange[i].to,
+		    caseRange[i].addr);
 	}
 	break;
 
@@ -454,7 +455,7 @@ void DisBlock::emit(BlockContext *context)
 		i = context->depth(sp);
 		fprintf(stderr, "; %d ", i);
 		if (i != 0) {
-		    dis_type(context->topType(sp));
+		    dis_type(context->get(sp).type);
 		    consumer = context->consumer(sp);
 		    if (consumer != NULL) {
 			if (consumer->instruction == Code::KFUNC ||

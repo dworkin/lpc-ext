@@ -100,24 +100,28 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
     memcpy(origLocals, mergeLocals, nLocals);
 
     if (b->sp == STACK_INVALID) {
-	/*
-	 * copy stack from mergeSp
-	 */
-	b->sp = STACK_EMPTY;
-	for (sp = mergeSp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
-	    b->sp = stack->push(b->sp, TVC(LPC_TYPE_VOID, 0));
-	}
-	for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
-	    TVC val = stack->get(mergeSp);
-	    val.merge = sp;
-	    stack->set(mergeSp, val);
-	    val.merge = STACK_EMPTY;
-	    stack->set(sp, val);
-	    mergeSp = stack->pop(mergeSp);
+	if (b->nFrom > 1) {
+	    /*
+	     * copy stack from mergeSp
+	     */
+	    b->sp = STACK_EMPTY;
+	    for (sp = mergeSp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
+		b->sp = stack->push(b->sp, TVC(LPC_TYPE_VOID, 0));
+	    }
+	    for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
+		TVC val = stack->get(mergeSp);
+		val.merge = sp;
+		stack->set(mergeSp, val);
+		val.merge = STACK_EMPTY;
+		stack->set(sp, val);
+		mergeSp = stack->pop(mergeSp);
+	    }
+	} else {
+	    b->sp = mergeSp;
 	}
 
 	merging = false;
-    } else {
+    } else if (b->nFrom > 1) {
 	/*
 	 * merge stacks before evaluating block
 	 */
@@ -336,6 +340,14 @@ bool BlockContext::changed()
 }
 
 /*
+ * retrieve a TVC
+ */
+TVC BlockContext::get(StackSize stackPointer)
+{
+    return stack->get(stackPointer);
+}
+
+/*
  * find the Code that consumes a type/value
  */
 Code *BlockContext::consumer(StackSize stackPointer)
@@ -365,14 +377,6 @@ StackSize BlockContext::depth(StackSize stackPointer)
     }
 
     return depth;
-}
-
-/*
- * return the top type of a particular stack pointer
- */
-Type BlockContext::topType(StackSize stackPointer)
-{
-    return stack->get(stackPointer).type;
 }
 
 
@@ -501,26 +505,8 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case STORE_INDEX:
-	val = context->pop(this);
-	context->pop(this);
-	context->pop(this);
-	context->push(val);
-	break;
-
     case STORE_PARAM_INDEX:
-	val = context->pop(this);
-	context->pop(this);
-	context->params[param] = context->pop(this).type;
-	context->push(val);
-	break;
-
     case STORE_LOCAL_INDEX:
-	val = context->pop(this);
-	context->pop(this);
-	context->locals[local] = context->pop(this).type;
-	context->push(val);
-	break;
-
     case STORE_GLOBAL_INDEX:
 	val = context->pop(this);
 	context->pop(this);
@@ -570,26 +556,8 @@ void TypedCode::evaluate(BlockContext *context)
 	return;
 
     case STOREX_INDEX:
-	context->pop(this);
-	context->pop(this);
-	sp = context->merge(sp);
-	context->storeN();
-	return;
-
     case STOREX_PARAM_INDEX:
-	context->pop(this);
-	context->params[param] = context->pop(this).type;
-	sp = context->merge(sp);
-	context->storeN();
-	return;
-
     case STOREX_LOCAL_INDEX:
-	context->pop(this);
-	context->locals[local] = context->pop(this).type;
-	sp = context->merge(sp);
-	context->storeN();
-	return;
-
     case STOREX_GLOBAL_INDEX:
 	context->pop(this);
 	context->pop(this);
