@@ -32,13 +32,15 @@ public:
     Type kfun(LPCKFunCall *kf, Code *code);
     void args(int nargs, Code *code);
     StackSize merge(StackSize codeSp);
-    bool changed();
+    bool changed(int *outParams, int *outLocals);
     TVC get(StackSize stackPointer);
     Code *consumer(StackSize stackPointer);
     StackSize depth(StackSize stackPointer);
 
     Type *params;		/* function parameter types */
     Type *locals;		/* function local variable types */
+    int *paramRefs;		/* parameter references */
+    int *localRefs;		/* local references */
     LPCParam nParams;		/* # parameters */
     LPCLocal nLocals;		/* # local variables */
     StackSize sp;		/* stack pointer */
@@ -66,6 +68,7 @@ public:
 
     virtual void evaluate(BlockContext *context);
     StackSize stackPointer() { return sp; }
+    int reference() { return ref; }
 
     static Code *create(CodeFunction *function);
 
@@ -73,6 +76,7 @@ private:
     static Type simplifiedType(Type type);
 
     StackSize sp;		/* stack pointer */
+    int ref;			/* variable reference */
 };
 
 class TypedBlock : public Block {
@@ -81,13 +85,20 @@ public:
     virtual ~TypedBlock();
 
     virtual void setContext(BlockContext *context, Block *b);
+    virtual int param(int n);
+    virtual int local(int n);
     virtual void evaluate(BlockContext *context, Block **list);
     virtual BlockContext *evaluate(CodeFunction *func, StackSize size);
 
     static Block *create(Code *first, Code *last, CodeSize size);
 
+    int *inParams;		/* parameter input references */
+    int *inLocals;		/* local input references */
+
 private:
     Type *params;		/* parameter types at end of block */
     Type *locals;		/* local variable types at end of block */
+    int *outParams;		/* parameter output references */
+    int *outLocals;		/* local output references */
     StackSize endSp;		/* final stack pointer */
 };

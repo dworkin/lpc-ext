@@ -10,6 +10,8 @@ public:
     CodeSize fragment();
     void clear();
     virtual void setContext(class BlockContext *context, Block *b);
+    virtual int param(int n);
+    virtual int local(int n);
     virtual void evaluate(class BlockContext *context, Block **list);
     virtual class BlockContext *evaluate(CodeFunction *func, StackSize size);
     virtual void emit(BlockContext *context);

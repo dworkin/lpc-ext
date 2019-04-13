@@ -604,6 +604,16 @@ class BlockContext *Block::evaluate(CodeFunction *func, StackSize size)
     return NULL;
 }
 
+int Block::param(int n)
+{
+    return 0;
+}
+
+int Block::local(int n)
+{
+    return 0;
+}
+
 void Block::emit(class BlockContext *context)
 {
 }
