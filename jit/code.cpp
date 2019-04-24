@@ -806,7 +806,7 @@ Code::Code(CodeFunction *function)
 	    kfun.type = kf->proto[0].type;
 	    if (kf->lval) {
 		kfun.lval = kf->nargs;
-		instruction = KFUNC_STORES;
+		instruction = KFUNC_LVAL;
 	    } else {
 		kfun.lval = 0;
 		instruction = KFUNC;
@@ -827,7 +827,13 @@ Code::Code(CodeFunction *function)
 	    kfun.nargs = kf->nargs;
 	}
 	kfun.type = kf->proto[0].type;
-	instruction = (kf->lval) ? KFUNC_STORES : KFUNC;
+	if (kf->lval) {
+	    kfun.lval = kf->nargs;
+	    instruction = KFUNC_LVAL;
+	} else {
+	    kfun.lval = 0;
+	    instruction = KFUNC;
+	}
 	break;
 
     case I_CALL_CKFUNC | I_POP_BIT:
@@ -838,7 +844,7 @@ Code::Code(CodeFunction *function)
 	kfun.nargs = FETCH1U(pc);
 	kf = &context->kfuns[kfun.func];
 	kfun.type = kf->proto[0].type;
-	instruction = (kf->lval) ? KFUNC_STORES : KFUNC;
+	instruction = KFUNC;
 	break;
 
     case I_CALL_CEFUNC | I_POP_BIT:
@@ -849,7 +855,7 @@ Code::Code(CodeFunction *function)
 	kfun.nargs = FETCH1U(pc);
 	kf = &context->kfuns[kfun.func];
 	kfun.type = kf->proto[0].type;
-	instruction = (kf->lval) ? KFUNC_STORES : KFUNC;
+	instruction = KFUNC;
 	break;
 
     case I_CALL_AFUNC | I_POP_BIT:

@@ -197,10 +197,10 @@ void DisCode::emit(BlockContext *context)
 	fprintf(stderr, "SPREAD_STORES %d\t\t\t", spread);
 	break;
 
-    case SPREADX:
-	fprintf(stderr, "SPREADX %d ", spread);
+    case STOREX_SPREAD:
+	fprintf(stderr, "STOREX_SPREAD %d ", spread);
 	dis_casttype(&type);
-	fprintf(stderr, "\t\t\t");
+	fprintf(stderr, "\t\t");
 	break;
 
     case AGGREGATE:
@@ -217,10 +217,10 @@ void DisCode::emit(BlockContext *context)
 	fprintf(stderr, "\t\t\t");
 	break;
 
-    case CASTX:
-	fprintf(stderr, "CASTX ");
+    case STOREX_CAST:
+	fprintf(stderr, "STOREX_CAST ");
 	dis_casttype(&type);
-	fprintf(stderr, "\t\t\t");
+	fprintf(stderr, "\t\t");
 	break;
 
     case INSTANCEOF:
@@ -241,6 +241,10 @@ void DisCode::emit(BlockContext *context)
 
     case STORES:
 	fprintf(stderr, "STORES %d\t\t\t\t", size);
+	break;
+
+    case STORES_LVAL:
+	fprintf(stderr, "STORES_LVAL %d\t\t\t", size);
 	break;
 
     case STORE_PARAM:
@@ -357,8 +361,8 @@ void DisCode::emit(BlockContext *context)
 	fprintf(stderr, "KFUNC %d (%d)\t\t\t", kfun.func, kfun.nargs);
 	break;
 
-    case KFUNC_STORES:
-	fprintf(stderr, "KFUNC_STORES %d (%d)\t\t", kfun.func, kfun.nargs);
+    case KFUNC_LVAL:
+	fprintf(stderr, "KFUNC_LVAL %d (%d)\t\t\t", kfun.func, kfun.nargs);
 	break;
 
     case DFUNC:
@@ -459,7 +463,7 @@ void DisBlock::emit(BlockContext *context)
 		    consumer = context->consumer(sp);
 		    if (consumer != NULL) {
 			if (consumer->instruction == Code::KFUNC ||
-			    consumer->instruction == Code::KFUNC_STORES) {
+			    consumer->instruction == Code::KFUNC_LVAL) {
 			    fprintf(stderr, " KFUN %d", consumer->kfun.func);
 			} else {
 			    fprintf(stderr, " %d", consumer->instruction);

@@ -555,17 +555,18 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case STORES:
+    case STORES_LVAL:
 	context->pop(this);
 	sp = context->merge(sp);
 	context->stores(size, (pop) ? this : NULL);
 	return;
 
-    case SPREADX:
+    case STOREX_SPREAD:
 	sp = context->merge(sp);
 	context->storeN();
 	return;
 
-    case CASTX:
+    case STOREX_CAST:
 	context->castType = simplifiedType(type.type);
 	break;
 
@@ -629,7 +630,7 @@ void TypedCode::evaluate(BlockContext *context)
 	return;
 
     case KFUNC:
-    case KFUNC_STORES:
+    case KFUNC_LVAL:
 	context->push(simplifiedType(context->kfun(&kfun, this)));
 	break;
 

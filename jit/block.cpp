@@ -155,10 +155,12 @@ Block *Block::function(CodeFunction *function)
     Code *code, *first, *last;
     CodeByte *program;
     CodeSize addr, stores;
+    bool lval;
 
     first = NULL;
     program = function->getPC(&addr);
     stores = 0;
+    lval = false;
     while (function->endProg() == NULL) {
 	/* add new code */
 	code = Code::produce(function);
@@ -169,16 +171,22 @@ Block *Block::function(CodeFunction *function)
 	    last->next = code;
 	    last = code;
 	}
-	if (code->instruction == Code::STORES) {
+	if (code->instruction == Code::KFUNC_LVAL) {
+	    lval = true;
+	} else if (code->instruction == Code::STORES) {
+	    if (lval) {
+		code->instruction = Code::STORES_LVAL;
+		lval = false;
+	    }
 	    stores = code->size;
 	} else if (stores != 0) {
 	    switch (code->instruction) {
 	    case Code::SPREAD:
-		code->instruction = Code::SPREADX;
+		code->instruction = Code::STOREX_SPREAD;
 		break;
 
 	    case Code::CAST:
-		code->instruction = Code::CASTX;
+		code->instruction = Code::STOREX_CAST;
 		continue;
 
 	    case Code::STORE_PARAM:
