@@ -62,6 +62,7 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
     altSp = sp = STACK_EMPTY;
     storeCount = 0;
     storeCode = NULL;
+    castType = LPC_TYPE_MIXED;
     spreadArgs = false;
     merging = false;
 }
@@ -165,18 +166,6 @@ void BlockContext::push(TVC val)
 }
 
 /*
- * return top of stack
- */
-TVC BlockContext::top()
-{
-    if (altSp != STACK_EMPTY) {
-	return altStack[altSp - 1];
-    } else {
-	return stack->get(sp);
-    }
-}
-
-/*
  * pop type from stack
  */
 TVC BlockContext::pop(Code *code)
@@ -197,23 +186,20 @@ TVC BlockContext::pop(Code *code)
 /*
  * prepare for N stores
  */
-void BlockContext::stores(int count, Code *popCode)
+bool BlockContext::stores(int count, Code *popCode)
 {
     storeCount = count;
     storeCode = popCode;
-    if (count == 0 && popCode != NULL) {
-	this->pop(popCode);
-    }
+    return (count != 0);
 }
 
 /*
  * handle store N
  */
-void BlockContext::storeN()
+bool BlockContext::storeN()
 {
-    if (--storeCount == 0 && storeCode != NULL) {
-	pop(storeCode);
-    }
+    castType = LPC_TYPE_MIXED;
+    return (--storeCount != 0);
 }
 
 /*
@@ -375,19 +361,11 @@ Code *BlockContext::consumer(StackSize stackPointer)
 }
 
 /*
- * calculate stack depth
+ * find the next item on the stack
  */
-StackSize BlockContext::depth(StackSize stackPointer)
+StackSize BlockContext::nextSp()
 {
-    StackSize depth;
-
-    depth = 0;
-    while (stackPointer != STACK_EMPTY) {
-	depth++;
-	stackPointer = stack->pop(stackPointer);
-    }
-
-    return depth;
+    return stack->pop(sp);
 }
 
 
@@ -465,7 +443,7 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case SPREAD:
-    case SPREAD_STORES:
+    case SPREAD_LVAL:
 	/* assume array of size 0 spread */
 	context->pop(this);
 	context->spread();
@@ -558,63 +536,79 @@ void TypedCode::evaluate(BlockContext *context)
     case STORES_LVAL:
 	context->pop(this);
 	sp = context->merge(sp);
-	context->stores(size, (pop) ? this : NULL);
+	if (!context->stores(size, (pop) ? this : NULL) && pop) {
+	    context->pop(this);
+	}
 	return;
 
-    case STOREX_SPREAD:
+    case STORES_SPREAD:
 	sp = context->merge(sp);
-	context->storeN();
+	if (!context->storeN() && context->storePop() != NULL) {
+	    context->pop(context->storePop());
+	}
 	return;
 
-    case STOREX_CAST:
+    case STORES_CAST:
 	context->castType = simplifiedType(type.type);
 	break;
 
-    case STOREX_PARAM:
+    case STORES_PARAM:
 	context->paramRefs[param] = ref = addr + 1;
 	context->params[param] = context->castType;
 	sp = context->merge(sp);
-	context->storeN();
+	if (!context->storeN() && context->storePop() != NULL) {
+	    context->pop(context->storePop());
+	}
 	return;
 
-    case STOREX_LOCAL:
+    case STORES_LOCAL:
 	context->localRefs[local] = ref = addr + 1;
 	context->locals[local] = context->castType;
 	sp = context->merge(sp);
-	context->storeN();
+	if (!context->storeN() && context->storePop() != NULL) {
+	    context->pop(context->storePop());
+	}
 	return;
 
-    case STOREX_GLOBAL:
+    case STORES_GLOBAL:
 	sp = context->merge(sp);
-	context->storeN();
+	if (!context->storeN() && context->storePop() != NULL) {
+	    context->pop(context->storePop());
+	}
 	return;
 
-    case STOREX_PARAM_INDEX:
+    case STORES_PARAM_INDEX:
 	context->paramRefs[param] = ref = addr + 1;
 	context->pop(this);
 	context->pop(this);
 	sp = context->merge(sp);
-	context->storeN();
+	if (!context->storeN() && context->storePop() != NULL) {
+	    context->pop(context->storePop());
+	}
 	return;
 
-    case STOREX_LOCAL_INDEX:
+    case STORES_LOCAL_INDEX:
 	context->localRefs[local] = ref = addr + 1;
 	/* fall through */
-    case STOREX_INDEX:
-    case STOREX_GLOBAL_INDEX:
+    case STORES_INDEX:
+    case STORES_GLOBAL_INDEX:
 	context->pop(this);
 	context->pop(this);
 	sp = context->merge(sp);
-	context->storeN();
+	if (!context->storeN() && context->storePop() != NULL) {
+	    context->pop(context->storePop());
+	}
 	return;
 
-    case STOREX_INDEX_INDEX:
+    case STORES_INDEX_INDEX:
 	context->pop(this);
 	context->pop(this);
 	context->pop(this);
 	context->pop(this);
 	sp = context->merge(sp);
-	context->storeN();
+	if (!context->storeN() && context->storePop() != NULL) {
+	    context->pop(context->storePop());
+	}
 	return;
 
     case JUMP:
@@ -631,15 +625,19 @@ void TypedCode::evaluate(BlockContext *context)
 
     case KFUNC:
     case KFUNC_LVAL:
+    case KFUNC_SPREAD:
+    case KFUNC_SPREAD_LVAL:
 	context->push(simplifiedType(context->kfun(&kfun, this)));
 	break;
 
     case DFUNC:
+    case DFUNC_SPREAD:
 	context->args(dfun.nargs, this);
 	context->push(simplifiedType(dfun.type));
 	break;
 
     case FUNC:
+    case FUNC_SPREAD:
 	context->args(fun.nargs, this);
 	context->push(LPC_TYPE_MIXED);
 	break;

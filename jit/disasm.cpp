@@ -158,171 +158,171 @@ void DisCode::emit(BlockContext *context)
 
     switch (instruction) {
     case INT:
-	fprintf(stderr, "INT %lld\t\t\t\t", (long long) num);
+	fprintf(stderr, "INT %lld\n", (long long) num);
 	break;
 
     case FLOAT:
-	fprintf(stderr, "FLOAT <%08X, %016llX>\t", flt.high, flt.low);
+	fprintf(stderr, "FLOAT <%08X, %016llX>\n", flt.high, flt.low);
 	break;
 
     case STRING:
-	fprintf(stderr, "STRING <%d, %d>\t\t\t", str.inherit, str.index);
+	fprintf(stderr, "STRING <%d, %d>\n", str.inherit, str.index);
 	break;
 
     case PARAM:
-	fprintf(stderr, "PARAM %d\t\t\t\t", param);
+	fprintf(stderr, "PARAM %d\n", param);
 	break;
 
     case LOCAL:
-	fprintf(stderr, "LOCAL %d\t\t\t\t", local);
+	fprintf(stderr, "LOCAL %d\n", local);
 	break;
 
     case GLOBAL:
-	fprintf(stderr, "GLOBAL <%d, %d>\t\t\t", var.inherit, var.index);
+	fprintf(stderr, "GLOBAL <%d, %d>\n", var.inherit, var.index);
 	break;
 
     case INDEX:
-	fprintf(stderr, "INDEX\t\t\t\t");
+	fprintf(stderr, "INDEX\n");
 	break;
 
     case INDEX2:
-	fprintf(stderr, "INDEX2\t\t\t\t");
+	fprintf(stderr, "INDEX2\n");
 	break;
 
     case SPREAD:
-	fprintf(stderr, "SPREAD\t\t\t\t");
+	fprintf(stderr, "SPREAD\n");
 	break;
 
-    case SPREAD_STORES:
-	fprintf(stderr, "SPREAD_STORES %d\t\t\t", spread);
+    case SPREAD_LVAL:
+	fprintf(stderr, "SPREAD_LVAL %d\n", spread);
 	break;
 
-    case STOREX_SPREAD:
-	fprintf(stderr, "STOREX_SPREAD %d ", spread);
+    case STORES_SPREAD:
+	fprintf(stderr, "STORES_SPREAD %d ", spread);
 	dis_casttype(&type);
-	fprintf(stderr, "\t\t");
+	fprintf(stderr, "\n");
 	break;
 
     case AGGREGATE:
-	fprintf(stderr, "AGGREGATE %d\t\t\t", size);
+	fprintf(stderr, "AGGREGATE %d\n", size);
 	break;
 
     case MAP_AGGREGATE:
-	fprintf(stderr, "MAP_AGGREGATE %d\t\t\t", size);
+	fprintf(stderr, "MAP_AGGREGATE %d\n", size);
 	break;
 
     case CAST:
 	fprintf(stderr, "CAST ");
 	dis_casttype(&type);
-	fprintf(stderr, "\t\t\t");
+	fprintf(stderr, "\n");
 	break;
 
-    case STOREX_CAST:
-	fprintf(stderr, "STOREX_CAST ");
+    case STORES_CAST:
+	fprintf(stderr, "STORES_CAST ");
 	dis_casttype(&type);
-	fprintf(stderr, "\t\t");
+	fprintf(stderr, "\n");
 	break;
 
     case INSTANCEOF:
-	fprintf(stderr, "INSTANCEOF <%d, %d>\t\t\t", str.inherit, str.index);
+	fprintf(stderr, "INSTANCEOF <%d, %d>\n", str.inherit, str.index);
 	break;
 
     case CHECK_RANGE:
-	fprintf(stderr, "CHECK_RANGE\t\t\t");
+	fprintf(stderr, "CHECK_RANGE\n");
 	break;
 
     case CHECK_RANGE_FROM:
-	fprintf(stderr, "CHECK_RANGE_FROM\t\t\t");
+	fprintf(stderr, "CHECK_RANGE_FROM\n");
 	break;
 
     case CHECK_RANGE_TO:
-	fprintf(stderr, "CHECK_RANGE_TO\t\t\t");
+	fprintf(stderr, "CHECK_RANGE_TO\n");
 	break;
 
     case STORES:
-	fprintf(stderr, "STORES %d\t\t\t\t", size);
+	fprintf(stderr, "STORES %d\n", size);
 	break;
 
     case STORES_LVAL:
-	fprintf(stderr, "STORES_LVAL %d\t\t\t", size);
+	fprintf(stderr, "STORES_LVAL %d\n", size);
 	break;
 
     case STORE_PARAM:
-	fprintf(stderr, "STORE_PARAM %d\t\t\t", param);
+	fprintf(stderr, "STORE_PARAM %d\n", param);
 	break;
 
     case STORE_LOCAL:
-	fprintf(stderr, "STORE_LOCAL %d\t\t\t", local);
+	fprintf(stderr, "STORE_LOCAL %d\n", local);
 	break;
 
     case STORE_GLOBAL:
-	fprintf(stderr, "STORE_GLOBAL <%d, %d>\t\t", var.inherit, var.index);
+	fprintf(stderr, "STORE_GLOBAL <%d, %d>\n", var.inherit, var.index);
 	break;
 
     case STORE_INDEX:
-	fprintf(stderr, "STORE_INDEX\t\t\t");
+	fprintf(stderr, "STORE_INDEX\n");
 	break;
 
     case STORE_PARAM_INDEX:
-	fprintf(stderr, "STORE_PARAM_INDEX %d\t\t", param);
+	fprintf(stderr, "STORE_PARAM_INDEX %d\n", param);
 	break;
 
     case STORE_LOCAL_INDEX:
-	fprintf(stderr, "STORE_LOCAL_INDEX %d\t\t", local);
+	fprintf(stderr, "STORE_LOCAL_INDEX %d\n", local);
 	break;
 
     case STORE_GLOBAL_INDEX:
-	fprintf(stderr, "STORE_GLOBAL_INDEX <%d, %d>\t\t", var.inherit,
+	fprintf(stderr, "STORE_GLOBAL_INDEX <%d, %d>\n", var.inherit,
 		var.index);
 	break;
 
     case STORE_INDEX_INDEX:
-	fprintf(stderr, "STORE_INDEX_INDEX\t\t\t");
+	fprintf(stderr, "STORE_INDEX_INDEX\n");
 	break;
 
-    case STOREX_PARAM:
-	fprintf(stderr, "STOREX_PARAM %d\t\t\t", param);
+    case STORES_PARAM:
+	fprintf(stderr, "STORES_PARAM %d\n", param);
 	break;
 
-    case STOREX_LOCAL:
-	fprintf(stderr, "STOREX_LOCAL %d\t\t\t", local);
+    case STORES_LOCAL:
+	fprintf(stderr, "STORES_LOCAL %d\n", local);
 	break;
 
-    case STOREX_GLOBAL:
-	fprintf(stderr, "STOREX_GLOBAL <%d, %d>\t\t", var.inherit, var.index);
+    case STORES_GLOBAL:
+	fprintf(stderr, "STORES_GLOBAL <%d, %d>\n", var.inherit, var.index);
 	break;
 
-    case STOREX_INDEX:
-	fprintf(stderr, "STOREX_INDEX\t\t\t");
+    case STORES_INDEX:
+	fprintf(stderr, "STORES_INDEX\n");
 	break;
 
-    case STOREX_PARAM_INDEX:
-	fprintf(stderr, "STOREX_PARAM_INDEX %d\t\t", param);
+    case STORES_PARAM_INDEX:
+	fprintf(stderr, "STORES_PARAM_INDEX %d\n", param);
 	break;
 
-    case STOREX_LOCAL_INDEX:
-	fprintf(stderr, "STOREX_LOCAL_INDEX %d\t\t", local);
+    case STORES_LOCAL_INDEX:
+	fprintf(stderr, "STORES_LOCAL_INDEX %d\n", local);
 	break;
 
-    case STOREX_GLOBAL_INDEX:
-	fprintf(stderr, "STOREX_GLOBAL_INDEX <%d, %d>\t\t", var.inherit,
+    case STORES_GLOBAL_INDEX:
+	fprintf(stderr, "STORES_GLOBAL_INDEX <%d, %d>\n", var.inherit,
 		var.index);
 	break;
 
-    case STOREX_INDEX_INDEX:
-	fprintf(stderr, "STOREX_INDEX_INDEX\t\t\t");
+    case STORES_INDEX_INDEX:
+	fprintf(stderr, "STORES_INDEX_INDEX\n");
 	break;
 
     case JUMP:
-	fprintf(stderr, "JUMP %04x\t\t\t\t", target);
+	fprintf(stderr, "JUMP %04x\n", target);
 	break;
 
     case JUMP_ZERO:
-	fprintf(stderr, "JUMP_ZERO %04x\t\t\t", target);
+	fprintf(stderr, "JUMP_ZERO %04x\n", target);
 	break;
 
     case JUMP_NONZERO:
-	fprintf(stderr, "JUMP_NONZERO %04x\t\t\t", target);
+	fprintf(stderr, "JUMP_NONZERO %04x\n", target);
 	break;
 
     case SWITCH_INT:
@@ -358,44 +358,48 @@ void DisCode::emit(BlockContext *context)
 	break;
 
     case KFUNC:
-	fprintf(stderr, "KFUNC %d (%d)\t\t\t", kfun.func, kfun.nargs);
+    case KFUNC_SPREAD:
+	fprintf(stderr, "KFUNC %d (%d)\n", kfun.func, kfun.nargs);
 	break;
 
     case KFUNC_LVAL:
-	fprintf(stderr, "KFUNC_LVAL %d (%d)\t\t\t", kfun.func, kfun.nargs);
+    case KFUNC_SPREAD_LVAL:
+	fprintf(stderr, "KFUNC_LVAL %d (%d)\n", kfun.func, kfun.nargs);
 	break;
 
     case DFUNC:
-	fprintf(stderr, "DFUNC <%d, %d> (%d)\t\t\t", dfun.inherit, dfun.func,
+    case DFUNC_SPREAD:
+	fprintf(stderr, "DFUNC <%d, %d> (%d)\n", dfun.inherit, dfun.func,
 		dfun.nargs);
 	break;
 
     case FUNC:
-	fprintf(stderr, "FUNC %d (%d)\t\t\t\t", fun.call, fun.nargs);
+    case FUNC_SPREAD:
+	fprintf(stderr, "FUNC %d (%d)\n", fun.call, fun.nargs);
 	break;
 
     case CATCH:
-	fprintf(stderr, "CATCH %04x\t\t\t\t", target);
+	fprintf(stderr, "CATCH %04x\n", target);
 	break;
 
     case END_CATCH:
-	fprintf(stderr, "END_CATCH\t\t\t\t");
+	fprintf(stderr, "END_CATCH\n");
 	break;
 
     case RLIMITS:
-	fprintf(stderr, "RLIMITS\t\t\t\t");
+	fprintf(stderr, "RLIMITS\n");
 	break;
 
     case RLIMITS_CHECK:
-	fprintf(stderr, "RLIMITS_CHECK\t\t\t");
+	fprintf(stderr, "RLIMITS_CHECK\n");
 	break;
 
     case END_RLIMITS:
-	fprintf(stderr, "END_RLIMITS\t\t\t");
+	fprintf(stderr, "END_RLIMITS\n");
 	break;
 
     case RETURN:
-	fprintf(stderr, "RETURN\t\t\t\t");
+	fprintf(stderr, "RETURN\n");
 	break;
 
     default:
@@ -423,7 +427,7 @@ void DisBlock::emit(BlockContext *context)
 {
     CodeLine line;
     Block *b;
-    Code *code, *consumer;
+    Code *code;
     CodeSize i, sp;
 
     line = 0;
@@ -448,30 +452,6 @@ void DisBlock::emit(BlockContext *context)
 	fprintf(stderr, "\n");
 	for (code = b->first; ; code = code->next) {
 	    code->emit(context);
-	    switch (code->instruction) {
-	    case Code::SWITCH_INT:
-	    case Code::SWITCH_RANGE:
-	    case Code::SWITCH_STRING:
-		break;
-
-	    default:
-		sp = ((TypedCode *) code)->stackPointer();
-		i = context->depth(sp);
-		fprintf(stderr, "; %d ", i);
-		if (i != 0) {
-		    dis_type(context->get(sp).type);
-		    consumer = context->consumer(sp);
-		    if (consumer != NULL) {
-			if (consumer->instruction == Code::KFUNC ||
-			    consumer->instruction == Code::KFUNC_LVAL) {
-			    fprintf(stderr, " KFUN %d", consumer->kfun.func);
-			} else {
-			    fprintf(stderr, " %d", consumer->instruction);
-			}
-		    }
-		}
-		fprintf(stderr, "\n");
-	    }
 	    if (code == b->last) {
 		break;
 	    }

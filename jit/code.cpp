@@ -633,7 +633,7 @@ Code::Code(CodeFunction *function)
 	} else {
 	    spread = -(spread + 2);
 	    if (spread >= 0) {
-		instruction = SPREAD_STORES;
+		instruction = SPREAD_LVAL;
 	    }
 	}
 	break;

@@ -154,13 +154,14 @@ Block *Block::function(CodeFunction *function)
 {
     Code *code, *first, *last;
     CodeByte *program;
-    CodeSize addr, stores;
-    bool lval;
+    CodeSize addr, stores, lvspread;
+    bool lval, spread;
 
     first = NULL;
     program = function->getPC(&addr);
     stores = 0;
-    lval = false;
+    lval = spread = false;
+    lvspread = 0;
     while (function->endProg() == NULL) {
 	/* add new code */
 	code = Code::produce(function);
@@ -171,54 +172,46 @@ Block *Block::function(CodeFunction *function)
 	    last->next = code;
 	    last = code;
 	}
-	if (code->instruction == Code::KFUNC_LVAL) {
-	    lval = true;
-	} else if (code->instruction == Code::STORES) {
-	    if (lval) {
-		code->instruction = Code::STORES_LVAL;
-		lval = false;
-	    }
-	    stores = code->size;
-	} else if (stores != 0) {
+	if (stores != 0) {
 	    switch (code->instruction) {
 	    case Code::SPREAD:
-		code->instruction = Code::STOREX_SPREAD;
+		code->instruction = Code::STORES_SPREAD;
 		break;
 
 	    case Code::CAST:
-		code->instruction = Code::STOREX_CAST;
+		code->instruction = Code::STORES_CAST;
 		continue;
 
 	    case Code::STORE_PARAM:
-		code->instruction = Code::STOREX_PARAM;
+		code->instruction = Code::STORES_PARAM;
 		break;
 
 	    case Code::STORE_LOCAL:
-		code->instruction = Code::STOREX_LOCAL;
+		code->instruction = Code::STORES_LOCAL;
 		break;
 
 	    case Code::STORE_GLOBAL:
-		code->instruction = Code::STOREX_GLOBAL;
+		code->instruction = Code::STORES_GLOBAL;
 		break;
 
 	    case Code::STORE_INDEX:
-		code->instruction = Code::STOREX_INDEX;
+		code->instruction = Code::STORES_INDEX;
 		break;
 
 	    case Code::STORE_PARAM_INDEX:
-		code->instruction = Code::STOREX_PARAM_INDEX;
+		code->instruction = Code::STORES_PARAM_INDEX;
 		break;
 
 	    case Code::STORE_LOCAL_INDEX:
-		code->instruction = Code::STOREX_LOCAL_INDEX;
+		code->instruction = Code::STORES_LOCAL_INDEX;
 		break;
 
 	    case Code::STORE_GLOBAL_INDEX:
-		code->instruction = Code::STOREX_GLOBAL_INDEX;
+		code->instruction = Code::STORES_GLOBAL_INDEX;
 		break;
 
 	    case Code::STORE_INDEX_INDEX:
-		code->instruction = Code::STOREX_INDEX_INDEX;
+		code->instruction = Code::STORES_INDEX_INDEX;
 		break;
 
 	    default:
@@ -226,6 +219,55 @@ Block *Block::function(CodeFunction *function)
 		break;
 	    }
 	    --stores;
+	} else {
+	    switch (code->instruction) {
+	    case Code::SPREAD:
+	    case Code::SPREAD_LVAL:
+		spread = true;
+		lvspread = code->spread;
+		break;
+
+	    case Code::KFUNC:
+		if (spread) {
+		    code->instruction = Code::KFUNC_SPREAD;
+		    spread = false;
+		}
+		break;
+
+	    case Code::KFUNC_LVAL:
+		if (spread) {
+		    code->instruction = Code::KFUNC_SPREAD_LVAL;
+		    code->kfun.spread = lvspread;
+		    spread = false;
+		}
+		lval = true;
+		break;
+
+	    case Code::DFUNC:
+		if (spread) {
+		    code->instruction = Code::DFUNC_SPREAD;
+		    spread = false;
+		}
+		break;
+
+	    case Code::FUNC:
+		if (spread) {
+		    code->instruction = Code::FUNC_SPREAD;
+		    spread = false;
+		}
+		break;
+
+	    case Code::STORES:
+		if (lval) {
+		    code->instruction = Code::STORES_LVAL;
+		    lval = false;
+		}
+		stores = code->size;
+		break;
+
+	    default:
+		break;
+	    }
 	}
     }
 

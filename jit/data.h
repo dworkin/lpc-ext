@@ -39,6 +39,7 @@ struct LPCKFunCall {
     LPCKFun func;		/* index in kfun table */
     LPCParam nargs;		/* # arguments */
     LPCParam lval;		/* # non-lvalue parameters or 0 */
+    LPCParam spread;		/* spread */
     Type type;			/* return type */
 };
 

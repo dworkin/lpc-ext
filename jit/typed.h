@@ -22,10 +22,12 @@ public:
 	push(TVC(type, val));
     }
     TVC pop(Code *code);
-    TVC top();
     TVC indexed();
-    void stores(int count, Code *popCode);
-    void storeN();
+    bool stores(int count, Code *popCode);
+    bool storeN();
+    Code *storePop() {
+	return storeCode;
+    }
     void spread() {
 	spreadArgs = true;
     }
@@ -35,7 +37,7 @@ public:
     bool changed(int *outParams, int *outLocals);
     TVC get(StackSize stackPointer);
     Code *consumer(StackSize stackPointer);
-    StackSize depth(StackSize stackPointer);
+    StackSize nextSp();
 
     Type *params;		/* function parameter types */
     Type *locals;		/* function local variable types */
@@ -72,9 +74,10 @@ public:
 
     static Code *create(CodeFunction *function);
 
-private:
+protected:
     static Type simplifiedType(Type type);
 
+private:
     StackSize sp;		/* stack pointer */
     int ref;			/* variable reference */
 };
