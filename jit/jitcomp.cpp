@@ -17,7 +17,7 @@ extern "C" {
 # include "block.h"
 # include "typed.h"
 # include "flow.h"
-# include "disasm.h"
+# include "genclang.h"
 # include "jitcomp.h"
 
 /*
@@ -43,8 +43,8 @@ static void jit_compile(int nInherits, uint8_t *prog, int nFunctions,
 			uint8_t *funcTypes, uint8_t *varTypes)
 {
     if (nFunctions != 0) {
-	Code::producer(&DisCode::create);
-	Block::producer(&DisBlock::create);
+	Code::producer(&ClangCode::create);
+	Block::producer(&ClangBlock::create);
 	CodeObject object(cc, nInherits, funcTypes, varTypes);
 
 	do {

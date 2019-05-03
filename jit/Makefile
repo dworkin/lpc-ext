@@ -3,7 +3,7 @@ DEBUG=
 CXX=c++
 CXXFLAGS=$(DEFINES) $(DEBUG) -I../src
 
-OBJ=	code.o block.o typed.o flow.o disasm.o jitcomp.o
+OBJ=	code.o block.o typed.o flow.o disasm.o genclang.o jitcomp.o
 
 all:	jitcomp
 
@@ -19,4 +19,5 @@ block.o:	code.h stack.h block.h
 typed.o:	instruction.h code.h stack.h block.h typed.h
 flow.o:		code.h stack.h block.h typed.h flow.h
 disasm.o:	code.h stack.h block.h typed.h flow.h disasm.h
-jitcomp.o:	code.h stack.h block.h typed.h flow.h disasm.h jit.h
+genclang.o:	instruction.h code.h stack.h block.h typed.h flow.h genclang.h
+jitcomp.o:	code.h stack.h block.h typed.h flow.h genclang.h jit.h
