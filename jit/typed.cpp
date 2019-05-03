@@ -2,7 +2,6 @@
 # include <stdint.h>
 # include <new>
 # include <string.h>
-# include <limits.h>
 extern "C" {
 # include "lpc_ext.h"
 }
@@ -34,11 +33,8 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
 	    params[0] = LPC_TYPE_ARRAY;
 	}
 	memcpy(origParams, params, nParams);
-
-	paramRefs = new int[nParams];
     } else {
 	origParams = params = NULL;
-	paramRefs = NULL;
     }
 
     nLocals = func->locals;
@@ -50,11 +46,8 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
 	    locals[i] = LPC_TYPE_NIL;
 	}
 	memcpy(origLocals, locals, nLocals);
-
-	localRefs = new int[nLocals];
     } else {
 	origLocals = locals = NULL;
-	localRefs = NULL;
     }
 
     line = 0;
@@ -71,10 +64,8 @@ BlockContext::~BlockContext()
 {
     delete[] params;
     delete[] origParams;
-    delete[] paramRefs;
     delete[] locals;
     delete[] origLocals;
-    delete[] localRefs;
     delete stack;
 }
 
@@ -327,13 +318,11 @@ StackSize BlockContext::merge(StackSize codeSp)
 /*
  * propagate changes to following blocks?
  */
-bool BlockContext::changed(int *outParams, int *outLocals)
+bool BlockContext::changed()
 {
     return (sp != STACK_EMPTY ||
 	    memcmp(origParams, params, nParams) != 0 ||
-	    memcmp(origLocals, locals, nLocals) != 0 ||
-	    memcmp(outParams, paramRefs, nParams * sizeof(int)) != 0 ||
-	    memcmp(outLocals, localRefs, nLocals * sizeof(int)) != 0);
+	    memcmp(origLocals, locals, nLocals) != 0);
 }
 
 /*
@@ -347,10 +336,13 @@ TVC BlockContext::get(StackSize stackPointer)
 /*
  * find the Code that consumes a type/value
  */
-Code *BlockContext::consumer(StackSize stackPointer)
+Code *BlockContext::consumer(StackSize stackPointer, Type type)
 {
     while (stackPointer != STACK_EMPTY) {
 	TVC val = stack->get(stackPointer);
+	if (val.type != type) {
+	    return NULL;
+	}
 	if (val.code != NULL) {
 	    return val.code;
 	}
@@ -373,7 +365,6 @@ TypedCode::TypedCode(CodeFunction *function) :
     Code(function)
 {
     sp = STACK_INVALID;
-    ref = 0;
 }
 
 TypedCode::~TypedCode()
@@ -391,7 +382,7 @@ Type TypedCode::simplifiedType(Type type)
 /*
  * evaluate type changes
  */
-void TypedCode::evaluate(BlockContext *context)
+void TypedCode::evaluateTypes(BlockContext *context)
 {
     TVC val;
     CodeSize i;
@@ -410,18 +401,10 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case PARAM:
-	if (context->paramRefs[param] == 0) {
-	    context->paramRefs[param] = addr + 1;
-	}
-	ref = context->paramRefs[param];
 	context->push(simplifiedType(context->params[param]));
 	break;
 
     case LOCAL:
-	if (context->localRefs[local] == 0) {
-	    context->localRefs[local] = addr + 1;
-	}
-	ref = context->localRefs[local];
 	context->push(context->locals[local]);
 	break;
 
@@ -487,14 +470,12 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case STORE_PARAM:
-	context->paramRefs[param] = ref = addr + 1;
 	val = context->pop(this);
 	context->params[param] = val.type;
 	context->push(val);
 	break;
 
     case STORE_LOCAL:
-	context->localRefs[local] = ref = addr + 1;
 	val = context->pop(this);
 	context->locals[local] = val.type;
 	context->push(val);
@@ -505,16 +486,7 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case STORE_PARAM_INDEX:
-	context->paramRefs[param] = ref = addr + 1;
-	val = context->pop(this);
-	context->pop(this);
-	context->pop(this);
-	context->push(val);
-	break;
-
     case STORE_LOCAL_INDEX:
-	context->localRefs[local] = ref = addr + 1;
-	/* fall through */
     case STORE_INDEX:
     case STORE_GLOBAL_INDEX:
 	val = context->pop(this);
@@ -553,7 +525,6 @@ void TypedCode::evaluate(BlockContext *context)
 	break;
 
     case STORES_PARAM:
-	context->paramRefs[param] = ref = addr + 1;
 	context->params[param] = context->castType;
 	sp = context->merge(sp);
 	if (!context->storeN() && context->storePop() != NULL) {
@@ -562,7 +533,6 @@ void TypedCode::evaluate(BlockContext *context)
 	return;
 
     case STORES_LOCAL:
-	context->localRefs[local] = ref = addr + 1;
 	context->locals[local] = context->castType;
 	sp = context->merge(sp);
 	if (!context->storeN() && context->storePop() != NULL) {
@@ -578,18 +548,7 @@ void TypedCode::evaluate(BlockContext *context)
 	return;
 
     case STORES_PARAM_INDEX:
-	context->paramRefs[param] = ref = addr + 1;
-	context->pop(this);
-	context->pop(this);
-	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL) {
-	    context->pop(context->storePop());
-	}
-	return;
-
     case STORES_LOCAL_INDEX:
-	context->localRefs[local] = ref = addr + 1;
-	/* fall through */
     case STORES_INDEX:
     case STORES_GLOBAL_INDEX:
 	context->pop(this);
@@ -688,19 +647,30 @@ Code *TypedCode::create(CodeFunction *function)
 TypedBlock::TypedBlock(Code *first, Code *last, CodeSize size) :
     Block(first, last, size)
 {
-    inParams = inLocals = outParams = outLocals = NULL;
     params = locals = NULL;
     endSp = STACK_INVALID;
 }
 
 TypedBlock::~TypedBlock()
 {
-    delete[] inParams;
-    delete[] inLocals;
-    delete[] outParams;
-    delete[] outLocals;
     delete[] params;
     delete[] locals;
+}
+
+/*
+ * type of a parameter at the end of the block
+ */
+Type TypedBlock::paramType(LPCParam param)
+{
+    return params[param];
+}
+
+/*
+ * type of a local var at the end of the block
+ */
+Type TypedBlock::localType(LPCLocal local)
+{
+    return locals[local];
 }
 
 /*
@@ -712,27 +682,9 @@ void TypedBlock::setContext(BlockContext *context, Block *b)
 }
 
 /*
- * return given output parameter
- */
-int TypedBlock::param(int n)
-{
-    return (outParams != NULL) ? outParams[n] : 0;
-}
-
-/*
- * return given local var
- */
-int TypedBlock::local(int n)
-{
-    return (outLocals != NULL) ? outLocals[n] : 0;
-}
-
-# define COLLISION	INT_MIN
-
-/*
  * evaluate code in a block
  */
-void TypedBlock::evaluate(BlockContext *context, Block **list)
+void TypedBlock::evaluateTypes(BlockContext *context, Block **list)
 {
     Code *code;
     LPCParam n;
@@ -746,78 +698,28 @@ void TypedBlock::evaluate(BlockContext *context, Block **list)
 	 */
 	if (context->nParams != 0) {
 	    params = new Type[context->nParams];
-	    memset(inParams = new int[context->nParams], '\0',
-		   context->nParams * sizeof(int));
-	    memset(outParams = new int[context->nParams], '\0',
-		   context->nParams * sizeof(int));
 	}
 	if (context->nLocals != 0) {
 	    locals = new Type[context->nLocals];
-	    memset(inLocals = new int[context->nLocals], '\0',
-		   context->nLocals * sizeof(int));
-	    memset(outLocals = new int[context->nLocals], '\0',
-		   context->nLocals * sizeof(int));
-	}
-    }
-
-    /* determine param references */
-    for (n = 0; n < context->nParams; n++) {
-	ref = 0;
-	for (i = 0; i < nFrom; i++) {
-	    fromRef = from[i]->param(n);
-	    if (fromRef != 0 && fromRef != -(first->addr + 1)) {
-		if (ref != 0 && fromRef != ref) {
-		    ref = COLLISION;
-		    break;
-		}
-		ref = fromRef;
-	    }
-	}
-
-	if (ref != inParams[n] && inParams[n] != -(first->addr + 1)) {
-	    inParams[n] = (ref == COLLISION) ? -(first->addr + 1) : ref;
-	}
-    }
-
-    /* determine local references */
-    for (n = 0; n < context->nLocals; n++) {
-	ref = 0;
-	for (i = 0; i < nFrom; i++) {
-	    fromRef = from[i]->local(n);
-	    if (fromRef != 0 && fromRef != -(first->addr + 1)) {
-		if (ref != 0 && fromRef != ref) {
-		    ref = COLLISION;
-		    break;
-		}
-		ref = fromRef;
-	    }
-	}
-
-	if (ref != inLocals[n] && inLocals[n] != -(first->addr + 1)) {
-	    inLocals[n] = (ref == COLLISION) ? -(first->addr + 1) : ref;
 	}
     }
 
     context->sp = sp;
-    memcpy(context->paramRefs, inParams, context->nParams * sizeof(int));
-    memcpy(context->localRefs, inLocals, context->nLocals * sizeof(int));
 
     for (code = first; ; code = code->next) {
-	code->evaluate(context);
+	code->evaluateTypes(context);
 	if (code == last) {
 	    break;
 	}
     }
 
-    if (endSp == STACK_INVALID || context->changed(outParams, outLocals)) {
+    if (endSp == STACK_INVALID || context->changed()) {
 	/*
 	 * save state
 	 */
 	endSp = context->sp;
 	memcpy(params, context->params, context->nParams);
 	memcpy(locals, context->locals, context->nLocals);
-	memcpy(outParams, context->paramRefs, context->nParams * sizeof(int));
-	memcpy(outLocals, context->localRefs, context->nLocals * sizeof(int));
 
 	/* followups */
 	for (i = 0; i < nTo; i++) {
@@ -839,15 +741,16 @@ void TypedBlock::evaluate(BlockContext *context, Block **list)
 /*
  * evaluate all blocks
  */
-BlockContext *TypedBlock::evaluate(CodeFunction *func, StackSize size)
+void TypedBlock::evaluate(BlockContext *context)
 {
-    Block *list, *b, *to;
+    Block *list, *b;
     StackSize sp;
-    BlockContext *context;
     Code *code;
     CodeSize i;
 
-    context = new BlockContext(func, size);
+    /*
+     * evaluate types
+     */
     startVisits(&list);
     sp = STACK_EMPTY;
     for (b = next; b != NULL; b = b->next) {
@@ -855,24 +758,22 @@ BlockContext *TypedBlock::evaluate(CodeFunction *func, StackSize size)
     }
 
     /* eval this block */
-    evaluate(context, &list);
+    evaluateTypes(context, &list);
 
     for (b = this; b != NULL; ) {
 	for (i = 0; ; i++) {
 	    if (i == b->nFrom) {
-		b = b->nextVisit(&list);
+		b = nextVisit(&list);
 		break;
 	    }
 	    if (b->fromVisit[i]) {
 		b->fromVisit[i] = false;
 		b->from[i]->setContext(context, b);
-		b->evaluate(context, &list);
+		b->evaluateTypes(context, &list);
 		break;
 	    }
 	}
     }
-
-    return context;
 }
 
 /*

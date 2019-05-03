@@ -5,18 +5,23 @@ public:
 
     void startVisits(Block **list);
     void toVisit(Block **list);
-    Block *nextVisit(Block **List);
 
     CodeSize fragment();
     void clear();
     virtual void setContext(class BlockContext *context, Block *b);
-    virtual int param(int n);
-    virtual int local(int n);
-    virtual void evaluate(class BlockContext *context, Block **list);
-    virtual class BlockContext *evaluate(CodeFunction *func, StackSize size);
-    virtual void emit(BlockContext *context);
+    virtual Type paramType(LPCParam param);
+    virtual Type localType(LPCLocal local);
+    virtual int paramRef(LPCParam param);
+    virtual int localRef(LPCLocal local);
+    virtual void prepareFlow(class FlowContext *context);
+    virtual void evaluateTypes(class BlockContext *context, Block **list);
+    virtual void evaluateFlow(class FlowContext *context, Block **list);
+    virtual void evaluateInputs(class FlowContext *context, Block **list);
+    virtual void evaluateOutputs(class FlowContext *context, Block **list);
+    virtual void emit(CodeFunction *function, CodeSize size);
 
     static Block *function(CodeFunction *function);
+    static Block *nextVisit(Block **List);
 
     static Block *create(Code *first, Code *last, CodeSize size);
     static Block *produce(Code *first, Code *last, CodeSize size);

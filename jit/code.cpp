@@ -934,11 +934,15 @@ Code::~Code()
     }
 }
 
-void Code::evaluate(class BlockContext *context)
+void Code::evaluateTypes(class BlockContext *context)
 {
 }
 
-void Code::emit(class BlockContext *context)
+void Code::evaluateFlow(class FlowContext *context)
+{
+}
+
+void Code::emit(class FlowContext *context)
 {
 }
 

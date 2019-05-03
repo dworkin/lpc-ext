@@ -494,7 +494,7 @@ Block *Block::pass2(Block *tree, StackSize size)
     for (b = next; b != NULL; b = b->next) {
 	b->sp = STACK_INVALID;
     }
-    for (b = this; b != NULL; b = b->nextVisit(&list)) {
+    for (b = this; b != NULL; b = nextVisit(&list)) {
 	stackPointer = b->sp;
 	catchLevel = b->level;
 
@@ -574,7 +574,7 @@ void Block::pass3(Block *b)
 
     nFrom++;
     startVisits(&list);
-    for (f = this; f != NULL; f = f->nextVisit(&list)) {
+    for (f = this; f != NULL; f = nextVisit(&list)) {
 	code = f->last;
 	switch (code->instruction) {
 	case Code::JUMP_ZERO:
@@ -626,7 +626,7 @@ void Block::pass4()
     CodeSize i;
 
     startVisits(&list);
-    for (f = this; f != NULL; f = f->nextVisit(&list)) {
+    for (f = this; f != NULL; f = nextVisit(&list)) {
 	for (i = 0; i < f->nTo; i++) {
 	    b = f->to[i];
 	    if (b->from == NULL) {
@@ -645,26 +645,47 @@ void Block::setContext(class BlockContext *context, Block *b)
 {
 }
 
-void Block::evaluate(class BlockContext *context, Block **list)
+void Block::prepareFlow(class FlowContext *context)
 {
 }
 
-class BlockContext *Block::evaluate(CodeFunction *func, StackSize size)
+void Block::evaluateTypes(class BlockContext *context, Block **list)
 {
-    return NULL;
 }
 
-int Block::param(int n)
+void Block::evaluateFlow(class FlowContext *context, Block **list)
+{
+}
+
+void Block::evaluateInputs(class FlowContext *context, Block **list)
+{
+}
+
+void Block::evaluateOutputs(class FlowContext *context, Block **list)
+{
+}
+
+Type Block::paramType(LPCParam param)
+{
+    return LPC_TYPE_VOID;
+}
+
+Type Block::localType(LPCLocal local)
+{
+    return LPC_TYPE_VOID;
+}
+
+int Block::paramRef(LPCParam param)
 {
     return 0;
 }
 
-int Block::local(int n)
+int Block::localRef(LPCLocal local)
 {
     return 0;
 }
 
-void Block::emit(class BlockContext *context)
+void Block::emit(CodeFunction *function, CodeSize size)
 {
 }
 

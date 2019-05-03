@@ -34,15 +34,13 @@ public:
     Type kfun(LPCKFunCall *kf, Code *code);
     void args(int nargs, Code *code);
     StackSize merge(StackSize codeSp);
-    bool changed(int *outParams, int *outLocals);
+    bool changed();
     TVC get(StackSize stackPointer);
-    Code *consumer(StackSize stackPointer);
+    Code *consumer(StackSize stackPointer, Type type);
     StackSize nextSp();
 
     Type *params;		/* function parameter types */
     Type *locals;		/* function local variable types */
-    int *paramRefs;		/* parameter references */
-    int *localRefs;		/* local references */
     LPCParam nParams;		/* # parameters */
     LPCLocal nLocals;		/* # local variables */
     StackSize sp;		/* stack pointer */
@@ -68,9 +66,8 @@ public:
     TypedCode(CodeFunction *function);
     virtual ~TypedCode();
 
-    virtual void evaluate(BlockContext *context);
+    virtual void evaluateTypes(BlockContext *context);
     StackSize stackPointer() { return sp; }
-    int reference() { return ref; }
 
     static Code *create(CodeFunction *function);
 
@@ -79,7 +76,6 @@ protected:
 
 private:
     StackSize sp;		/* stack pointer */
-    int ref;			/* variable reference */
 };
 
 class TypedBlock : public Block {
@@ -87,21 +83,16 @@ public:
     TypedBlock(Code *first, Code *last, CodeSize size);
     virtual ~TypedBlock();
 
+    virtual Type paramType(LPCParam param);
+    virtual Type localType(LPCLocal local);
     virtual void setContext(BlockContext *context, Block *b);
-    virtual int param(int n);
-    virtual int local(int n);
-    virtual void evaluate(BlockContext *context, Block **list);
-    virtual BlockContext *evaluate(CodeFunction *func, StackSize size);
+    virtual void evaluateTypes(BlockContext *context, Block **list);
+    void evaluate(BlockContext *context);
 
     static Block *create(Code *first, Code *last, CodeSize size);
-
-    int *inParams;		/* parameter input references */
-    int *inLocals;		/* local input references */
 
 private:
     Type *params;		/* parameter types at end of block */
     Type *locals;		/* local variable types at end of block */
-    int *outParams;		/* parameter output references */
-    int *outLocals;		/* local output references */
     StackSize endSp;		/* final stack pointer */
 };

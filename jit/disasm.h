@@ -1,19 +1,19 @@
-class DisCode : public TypedCode {
+class DisCode : public FlowCode {
 public:
     DisCode(CodeFunction *function);
     virtual ~DisCode();
 
-    virtual void emit(BlockContext *context);
+    virtual void emit(FlowContext *context);
 
     static Code *create(CodeFunction *function);
 };
 
-class DisBlock : public TypedBlock {
+class DisBlock : public FlowBlock {
 public:
-    DisBlock(Code *fist, Code *last, CodeSize size);
+    DisBlock(Code *first, Code *last, CodeSize size);
     virtual ~DisBlock();
 
-    virtual void emit(BlockContext *context);
+    virtual void emit(CodeFunction *function, CodeSize size);
 
     static Block *create(Code *first, Code *last, CodeSize size);
 };

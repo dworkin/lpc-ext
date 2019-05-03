@@ -16,6 +16,7 @@ extern "C" {
 # include "stack.h"
 # include "block.h"
 # include "typed.h"
+# include "flow.h"
 # include "disasm.h"
 # include "jitcomp.h"
 
@@ -54,9 +55,7 @@ static void jit_compile(int nInherits, uint8_t *prog, int nFunctions,
 	    if (b != NULL) {
 		size = b->fragment();
 		if (size != 0) {
-		    BlockContext *context = b->evaluate(&func, size);
-		    b->emit(context);
-		    delete context;
+		    b->emit(&func, size);
 		}
 		b->clear();
 	    }

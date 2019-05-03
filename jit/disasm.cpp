@@ -10,11 +10,12 @@ extern "C" {
 # include "stack.h"
 # include "block.h"
 # include "typed.h"
+# include "flow.h"
 # include "disasm.h"
 # include "jitcomp.h"
 
 
-DisCode::DisCode(CodeFunction *function) : TypedCode(function) { }
+DisCode::DisCode(CodeFunction *function) : FlowCode(function) { }
 
 DisCode::~DisCode() { }
 
@@ -139,7 +140,7 @@ static void dis_casttype(LPCType *type)
 /*
  * emit instruction disassembly
  */
-void DisCode::emit(BlockContext *context)
+void DisCode::emit(FlowContext *context)
 {
     int i;
 
@@ -409,7 +410,7 @@ void DisCode::emit(BlockContext *context)
 
 
 DisBlock::DisBlock(Code *first, Code *last, CodeSize size) :
-    TypedBlock(first, last, size)
+    FlowBlock(first, last, size)
 {
 }
 
@@ -423,12 +424,15 @@ Block *DisBlock::create(Code *first, Code *last, CodeSize size)
 /*
  * emit program disassembly
  */
-void DisBlock::emit(BlockContext *context)
+void DisBlock::emit(CodeFunction *function, CodeSize size)
 {
+    FlowContext context(function, size);
     CodeLine line;
     Block *b;
     Code *code;
     CodeSize i, sp;
+
+    FlowBlock::evaluate(&context);
 
     line = 0;
     for (b = this; b != NULL; b = b->next) {
@@ -451,7 +455,7 @@ void DisBlock::emit(BlockContext *context)
 	}
 	fprintf(stderr, "\n");
 	for (code = b->first; ; code = code->next) {
-	    code->emit(context);
+	    code->emit(&context);
 	    if (code == b->last) {
 		break;
 	    }
