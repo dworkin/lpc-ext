@@ -409,9 +409,10 @@ void ClangCode::emit(FlowContext *context)
 	case LPC_TYPE_INT:
 	    fprintf(stderr, "\t%s <int> = %s\n", localRef(context, local),
 		    tmpRef(context->sp));
-	    /* XXX only within catch */
-	    fprintf(stderr, "\tlpc_vm_store_local_int(f, %d, %s)\n", local,
-		    tmpRef(context->sp));
+	    if (context->level > 0) {
+		fprintf(stderr, "\tlpc_vm_store_local_int(f, %d, %s)\n", local,
+			tmpRef(context->sp));
+	    }
 	    if (!pop) {
 		fprintf(stderr, "\t%s <int> = %s\n", tmpRef(sp),
 			tmpRef(context->sp));
@@ -422,9 +423,10 @@ void ClangCode::emit(FlowContext *context)
 	case LPC_TYPE_FLOAT:
 	    fprintf(stderr, "\t%s <float> = %s\n", localRef(context, local),
 		    tmpRef(context->sp));
-	    /* XXX only within catch */
-	    fprintf(stderr, "\tlpc_vm_store_local_float(f, %d, %s)\n", local,
-		    tmpRef(context->sp));
+	    if (context->level > 0) {
+		fprintf(stderr, "\tlpc_vm_store_local_float(f, %d, %s)\n", local,
+			tmpRef(context->sp));
+	    }
 	    if (!pop) {
 		fprintf(stderr, "\t%s <float> = %s\n", tmpRef(sp),
 			tmpRef(context->sp));
@@ -1420,6 +1422,8 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 	     * XXX stack
 	     */
 	}
+
+	context.level = level;
 	for (code = b->first; ; code = code->next) {
 	    code->emit(&context);
 	    if (code == b->last) {
@@ -1435,6 +1439,10 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 		case Code::SWITCH_STRING:
 		case Code::CATCH:
 		case Code::RETURN:
+		    break;
+
+		case Code::END_CATCH:
+		    context.level--;
 		    break;
 
 		default:

@@ -46,6 +46,7 @@ public:
     StackSize sp;		/* stack pointer */
     Type castType;		/* CASTX argument */
     CodeLine line;		/* current line */
+    StackSize level;		/* catch level */
 
 private:
     static Type mergeType(Type type1, Type type2);
