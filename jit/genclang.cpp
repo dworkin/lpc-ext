@@ -1291,13 +1291,37 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 {
     FlowContext context(function, size);
     ClangBlock *b;
-    LPCParam n;
+    LPCParam nParams, n;
+    bool initParam;
     CodeSize i;
     Type type;
     int ref;
     Code *code;
 
     FlowBlock::evaluate(&context);
+
+    initParam = false;
+    nParams = function->nargs + function->vargs;
+    for (n = 1; n <= nParams; n++) {
+	switch (function->proto[n].type) {
+	case LPC_TYPE_INT:
+	    fprintf(stderr, "\t%s <int> = lpc_vm_param_int(f, %d)\n",
+		    ClangCode::paramRef(nParams - n, 0), nParams - n);
+	    break;
+
+	case LPC_TYPE_FLOAT:
+	    fprintf(stderr, "\t%s <float> = lpc_vm_param_float(f, %d)\n",
+		    ClangCode::paramRef(nParams - n, 0), nParams - n);
+	    break;
+
+	default:
+	    continue;
+	}
+	initParam = true;
+    }
+    if (initParam) {
+	fprintf(stderr, "\tbranch %%L0000\n");
+    }
 
     for (b = this; b != NULL; b = (ClangBlock *) b->next) {
 	if (b->nFrom == 0 && b != this) {
@@ -1307,7 +1331,6 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 	/*
 	 * XXX special treatment for block 0:
 	 * nFrom + 1, paramTypes from function spec
-	 * for all int/float params, assign to %pNr0
 	 */
 	if (b->nFrom > 1) {
 	    b->prepareFlow(&context);
