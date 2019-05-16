@@ -1307,11 +1307,17 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
     for (n = 1; n <= nParams; n++) {
 	switch (function->proto[n].type) {
 	case LPC_TYPE_INT:
+	    if (!initParam) {
+		fprintf(stderr, "%%Lparam:\n");
+	    }
 	    fprintf(stderr, "\t%s <int> = lpc_vm_param_int(f, %d)\n",
 		    ClangCode::paramRef(nParams - n, 0), nParams - n);
 	    break;
 
 	case LPC_TYPE_FLOAT:
+	    if (!initParam) {
+		fprintf(stderr, "%%Lparam:\n");
+	    }
 	    fprintf(stderr, "\t%s <float> = lpc_vm_param_float(f, %d)\n",
 		    ClangCode::paramRef(nParams - n, 0), nParams - n);
 	    break;
@@ -1331,21 +1337,23 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 	}
 	fprintf(stderr, "%%L%04x:\n", b->first->addr);
 	b->prepareFlow(&context);
-	/*
-	 * XXX special treatment for block 0:
-	 * nFrom + 1, paramTypes from function spec
-	 */
-	if (b->nFrom > 1) {
+
+	if (b->nFrom > (b != this)) {
 	    /*
 	     * parameters
 	     */
 	    for (n = 0; n < context.nParams; n++) {
 		if (context.inParams[n] == -(b->first->addr + 1)) {
-		    type = LPC_TYPE_VOID;
-		    for (i = 0; i < b->nFrom; i++) {
-			if (b->from[i]->paramRef(n) != 0) {
-			    type = b->from[i]->paramType(n);
-			    break;
+		    i = 0;
+		    if (b == this) {
+			type = function->proto[nParams - n].type;
+		    } else {
+			type = LPC_TYPE_VOID;
+			for (; i < b->nFrom; i++) {
+			    if (b->from[i]->paramRef(n) != 0) {
+				type = b->from[i]->paramType(n);
+				break;
+			    }
 			}
 		    }
 		    for (; i < b->nFrom; i++) {
@@ -1365,6 +1373,10 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 		    } else {
 			continue;
 		    }
+		    if (b == this) {
+			fprintf(stderr, ", [ %s, %%Lparam ]",
+				ClangCode::paramRef(n, 0));
+		    }
 		    for (i = 0; i < b->nFrom; i++) {
 			ref = b->from[i]->paramRef(n);
 			if (ref != context.inParams[n]) {
@@ -1376,7 +1388,9 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 		    fprintf(stderr, "\n");
 		}
 	    }
+	}
 
+	if (b->nFrom > 1) {
 	    /*
 	     * locals
 	     */
