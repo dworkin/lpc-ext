@@ -733,11 +733,11 @@ void ClangCode::emit(FlowContext *context)
 	// XXX account ticks for backward jump
 	if (context->get(context->sp).type == LPC_TYPE_INT) {
 	    fprintf(stderr, "\tbranch %s, %%L%04x, %%L%04x\n",
-		    tmpRef(context->sp), next->addr, target);
+		    tmpRef(context->sp), context->next, target);
 	} else {
 	    fprintf(stderr, "\t%s <int> = lpc_vm_pop_bool(f)\n", tmpRef(sp));
 	    fprintf(stderr, "\tbranch %s, %%L%04x, %%L%04x\n",
-		    tmpRef(context->sp), next->addr, target);
+		    tmpRef(context->sp), context->next, target);
 	}
 	context->sp = sp;
 	return;
@@ -746,11 +746,11 @@ void ClangCode::emit(FlowContext *context)
 	// XXX account ticks for backward jump
 	if (context->get(context->sp).type == LPC_TYPE_INT) {
 	    fprintf(stderr, "\tbranch %s, %%L%04x, %%L%04x\n",
-		    tmpRef(context->sp), target, next->addr);
+		    tmpRef(context->sp), target, context->next);
 	} else {
 	    fprintf(stderr, "\t%s <int> = lpc_vm_pop_bool(f)\n", tmpRef(sp));
 	    fprintf(stderr, "\tbranch %s, %%L%04x, %%L%04x\n",
-		    tmpRef(context->sp), target, next->addr);
+		    tmpRef(context->sp), target, context->next);
 	}
 	context->sp = sp;
 	return;
@@ -1227,11 +1227,11 @@ void ClangCode::emit(FlowContext *context)
 
     case CATCH:
 	if (pop) {
-	    fprintf(stderr, "\tcatch_pop(f) %%L%04x, %%L%04x\n",
-		    next->addr, target);
+	    fprintf(stderr, "\tcatch_pop(f) %%L%04x, %%L%04x\n", context->next,
+		    target);
 	} else {
-	    fprintf(stderr, "\tcatch(f) %%L%04x, %%L%04x\n",
-		    next->addr, target);
+	    fprintf(stderr, "\tcatch(f) %%L%04x, %%L%04x\n", context->next,
+		    target);
 	}
 	context->sp = sp;
 	return;
@@ -1330,12 +1330,12 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 	    continue;
 	}
 	fprintf(stderr, "%%L%04x:\n", b->first->addr);
+	b->prepareFlow(&context);
 	/*
 	 * XXX special treatment for block 0:
 	 * nFrom + 1, paramTypes from function spec
 	 */
 	if (b->nFrom > 1) {
-	    b->prepareFlow(&context);
 	    /*
 	     * parameters
 	     */
@@ -1446,7 +1446,7 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 		    break;
 
 		default:
-		    fprintf(stderr, "\tbranch %%L%04x\n", code->next->addr);
+		    fprintf(stderr, "\tbranch %%L%04x\n", context.next);
 		    break;
 		}
 		break;

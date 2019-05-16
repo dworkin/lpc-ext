@@ -8,6 +8,7 @@ public:
 
     int *inParams, *outParams;	/* parameter references */
     int *inLocals, *outLocals;	/* local references */
+    CodeSize next;		/* address of next block */
 };
 
 class FlowCode : public TypedCode {

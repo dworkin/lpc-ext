@@ -18,6 +18,7 @@ FlowContext::FlowContext(CodeFunction *func, StackSize size) :
     BlockContext(func, size)
 {
     inParams = outParams = inLocals = outLocals = NULL;
+    next = 0;
 }
 
 FlowContext::~FlowContext()
@@ -126,6 +127,9 @@ void FlowBlock::prepareFlow(FlowContext *context)
     context->inLocals = inLocals;
     context->outParams = outParams;
     context->outLocals = outLocals;
+    if (nTo != 0) {
+	context->next = to[0]->first->addr;
+    }
 }
 
 /*
