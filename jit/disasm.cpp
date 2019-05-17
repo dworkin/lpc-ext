@@ -163,7 +163,8 @@ void DisCode::emit(FlowContext *context)
 	break;
 
     case FLOAT:
-	fprintf(stderr, "FLOAT <%08X, %016llX>\n", flt.high, flt.low);
+	fprintf(stderr, "FLOAT <%08X, %016llX>\n", flt.high,
+		(unsigned long long) flt.low);
 	break;
 
     case STRING:
