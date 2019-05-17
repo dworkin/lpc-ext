@@ -775,7 +775,7 @@ void ClangCode::emit(FlowContext *context)
 	switch (kfun.func) {
 	case KF_ADD_INT:
 	    fprintf(stderr, "\t%s <int> = add_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
@@ -788,77 +788,77 @@ void ClangCode::emit(FlowContext *context)
 
 	case KF_AND_INT:
 	    fprintf(stderr, "\t%s <int> = and_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_DIV_INT:
 	    fprintf(stderr, "\t%s <int> = lpc_vm_div_int(f, %s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_EQ_INT:
 	    fprintf(stderr, "\t%s <int> = eq_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_GE_INT:
 	    fprintf(stderr, "\t%s <int> = ge_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_GT_INT:
 	    fprintf(stderr, "\t%s <int> = gt_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_LE_INT:
 	    fprintf(stderr, "\t%s <int> = le_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_LSHIFT_INT:
 	    fprintf(stderr, "\t%s <int> = lpc_vm_lshift_int(f, %s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_LT_INT:
 	    fprintf(stderr, "\t%s <int> = lt_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_MOD_INT:
 	    fprintf(stderr, "\t%s <int> = lpc_vm_mod_int(f, %s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_MULT_INT:
 	    fprintf(stderr, "\t%s <int> = mult_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_NE_INT:
 	    fprintf(stderr, "\t%s <int> = ne_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
@@ -877,21 +877,21 @@ void ClangCode::emit(FlowContext *context)
 
 	case KF_OR_INT:
 	    fprintf(stderr, "\t%s <int> = or_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_RSHIFT_INT:
 	    fprintf(stderr, "\t%s <int> = lpc_vm_rshift_int(f, %s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_SUB_INT:
 	    fprintf(stderr, "\t%s <int> = sub_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
@@ -960,7 +960,7 @@ void ClangCode::emit(FlowContext *context)
 
 	case KF_XOR_INT:
 	    fprintf(stderr, "\t%s <int> = xor_int(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
@@ -971,7 +971,7 @@ void ClangCode::emit(FlowContext *context)
 
 	case KF_ADD_FLT:
 	    fprintf(stderr, "\t%s <float> = lpc_vm_add_float(f, %s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
@@ -984,56 +984,56 @@ void ClangCode::emit(FlowContext *context)
 
 	case KF_DIV_FLT:
 	    fprintf(stderr, "\t%s <float> = div_float(f, %s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_EQ_FLT:
 	    fprintf(stderr, "\t%s <float> = eq_float(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_GE_FLT:
 	    fprintf(stderr, "\t%s <float> = ge_float(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_GT_FLT:
 	    fprintf(stderr, "\t%s <float> = gt_float(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_LE_FLT:
 	    fprintf(stderr, "\t%s <float> = le_float(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_LT_FLT:
 	    fprintf(stderr, "\t%s <float> = lt_float(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_MULT_FLT:
 	    fprintf(stderr, "\t%s <float> = lpc_vm_mult_float(f, %s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
 
 	case KF_NE_FLT:
 	    fprintf(stderr, "\t%s <float> = ne_float(%s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
@@ -1046,7 +1046,7 @@ void ClangCode::emit(FlowContext *context)
 
 	case KF_SUB_FLT:
 	    fprintf(stderr, "\t%s <float> = lpc_vm_sub_float(f, %s, %s)\n",
-		    tmpRef(sp), tmpRef(context->nextSp()),
+		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
 	    return;
@@ -1242,12 +1242,12 @@ void ClangCode::emit(FlowContext *context)
 
     case RLIMITS:
 	fprintf(stderr, "\trlimits(f, %s, %s)\n",
-		tmpRef(context->nextSp()), tmpRef(context->sp));
+		tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
 	break;
 
     case RLIMITS_CHECK:
 	fprintf(stderr, "\trlimits_check(f, %s, %s)\n",
-		tmpRef(context->nextSp()), tmpRef(context->sp));
+		tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
 	break;
 
     case END_RLIMITS:
@@ -1298,6 +1298,7 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
     CodeSize i;
     Type type;
     int ref;
+    StackSize sp;
     Code *code;
 
     FlowBlock::evaluate(&context);
@@ -1433,10 +1434,37 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 	    }
 
 	    /*
-	     * XXX stack
+	     * stack
 	     */
+	    for (n = 0, sp = b->sp; sp != STACK_EMPTY;
+		 n++, sp = context.nextSp(sp)) {
+		if (ClangCode::onStack(&context, sp)) {
+		    continue;
+		}
+		switch (context.get(sp).type) {
+		case LPC_TYPE_INT:
+		    fprintf(stderr, "\t%s <int> = phi", ClangCode::tmpRef(sp));
+		    break;
+
+		case LPC_TYPE_FLOAT:
+		    fprintf(stderr, "\t%s <float> = phi", ClangCode::tmpRef(sp));
+		    break;
+
+		default:
+		    continue;
+		}
+
+		for (i = 0; i < b->nFrom; i++) {
+		    fprintf(stderr, ", [ %s, %%L%04x ]",
+			    ClangCode::tmpRef(context.nextSp(b->from[i]->endSp,
+							     n)),
+			    b->from[i]->first->addr);
+		}
+		fprintf(stderr, "\n");
+	    }
 	}
 
+	context.sp = b->sp;
 	context.level = level;
 	for (code = b->first; ; code = code->next) {
 	    code->emit(&context);

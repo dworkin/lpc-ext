@@ -355,9 +355,14 @@ Code *BlockContext::consumer(StackSize stackPointer, Type type)
 /*
  * find the next item on the stack
  */
-StackSize BlockContext::nextSp()
+StackSize BlockContext::nextSp(StackSize stackPointer, int depth)
 {
-    return stack->pop(sp);
+    while (depth != 0) {
+	stackPointer = stack->pop(stackPointer);
+	--depth;
+    }
+
+    return stackPointer;
 }
 
 
@@ -648,7 +653,6 @@ TypedBlock::TypedBlock(Code *first, Code *last, CodeSize size) :
     Block(first, last, size)
 {
     params = locals = NULL;
-    endSp = STACK_INVALID;
 }
 
 TypedBlock::~TypedBlock()

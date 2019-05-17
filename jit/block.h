@@ -36,6 +36,7 @@ public:
     CodeSize nTo;			/* # following blocks */
     CodeSize size;			/* size of block */
     StackSize sp;			/* stack pointer */
+    StackSize endSp;			/* final stack pointer */
     StackSize level;			/* catch level */
 
 private:

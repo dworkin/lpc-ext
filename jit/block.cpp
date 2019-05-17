@@ -18,6 +18,7 @@ Block::Block(Code *first, Code *last, CodeSize size) :
     from = to = NULL;
     fromVisit = NULL;
     nFrom = nTo = 0;
+    endSp = STACK_INVALID;
     level = 0;
 }
 

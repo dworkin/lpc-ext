@@ -5,6 +5,7 @@ public:
 
     virtual void emit(FlowContext *context);
 
+    static bool onStack(FlowContext *context, StackSize sp);
     static char *tmpRef(StackSize sp);
     static char *paramRef(LPCParam param, int ref);
     static char *localRef(LPCLocal local, int ref);
@@ -14,8 +15,6 @@ private:
     char *paramRef(FlowContext *context, LPCParam param);
     char *localRef(FlowContext *context, LPCLocal local);
     void result(FlowContext *context);
-
-    static bool onStack(FlowContext *context, StackSize sp);
 };
 
 class ClangBlock : public FlowBlock {
