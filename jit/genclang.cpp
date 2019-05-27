@@ -13,6 +13,7 @@ extern "C" {
 # include "block.h"
 # include "typed.h"
 # include "flow.h"
+# include "gentt.h"
 # include "genclang.h"
 # include "jitcomp.h"
 
