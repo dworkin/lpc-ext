@@ -98,7 +98,7 @@ public:
 
     virtual void evaluateTypes(class BlockContext *context);
     virtual void evaluateFlow(class FlowContext *context);
-    virtual void emit(class FlowContext *context);
+    virtual void emit(class GenContext *context);
 
     static Code *create(CodeFunction *function);
     static Code *produce(CodeFunction *function);

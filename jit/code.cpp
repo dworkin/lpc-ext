@@ -942,7 +942,7 @@ void Code::evaluateFlow(class FlowContext *context)
 {
 }
 
-void Code::emit(class FlowContext *context)
+void Code::emit(class GenContext *context)
 {
 }
 

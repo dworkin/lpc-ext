@@ -17,12 +17,16 @@ extern "C" {
 # include "block.h"
 # include "typed.h"
 # include "flow.h"
+# ifdef DISASM
+# include "disasm.h"
+# endif
+# ifdef GENCLANG
 # include "genclang.h"
+# endif
 # include "jitcomp.h"
 
 /*
- * NAME:	fatal()
- * DESCRIPTION:	fatal error
+ * fatal error
  */
 void fatal(const char *format, ...)
 {
@@ -37,34 +41,44 @@ void fatal(const char *format, ...)
     abort();
 }
 
-static CodeContext *cc;
-
-static void jit_compile(int nInherits, uint8_t *prog, int nFunctions,
-			uint8_t *funcTypes, uint8_t *varTypes)
+/*
+ * JIT compile a single object using a particular code generator
+ */
+static void jitComp(CodeObject *object, uint8_t *prog, int nFunctions,
+		    char *base)
 {
-    if (nFunctions != 0) {
-	Code::producer(&ClangCode::create);
-	Block::producer(&ClangBlock::create);
-	CodeObject object(cc, nInherits, funcTypes, varTypes);
+# ifdef DISASM
+    Code::producer(&DisCode::create);
+    Block::producer(&DisBlock::create);
 
-	do {
-	    CodeFunction func(&object, prog);
-	    CodeSize size;
-	    Block *b = Block::function(&func);
+    for (int i = 0; i < nFunctions; i++) {
+	CodeFunction func(object, prog);
+	CodeSize size;
+	Block *b = Block::function(&func);
 
-	    if (b != NULL) {
-		size = b->fragment();
-		if (size != 0) {
-		    b->emit(&func, size);
-		}
-		b->clear();
+	if (b != NULL) {
+	    size = b->fragment();
+	    if (size != 0) {
+		b->emit(&func, size);
 	    }
-	    prog = func.endProg();
-	    fprintf(stderr, "\n");
-	} while (--nFunctions != 0);
+	    b->clear();
+	}
+	prog = func.endProg();
+	fprintf(stderr, "\n");
     }
+# endif
+# ifdef GENCLANG
+    Code::producer(&ClangCode::create);
+    Block::producer(&ClangBlock::create);
+
+    ClangObject clang(object, prog, nFunctions);
+    clang.emit(base);
+# endif
 }
 
+/*
+ * hash to filename
+ */
 static void filename(char *buffer, uint8_t *hash)
 {
     static const char hex[] = "0123456789abcdef";
@@ -79,11 +93,15 @@ static void filename(char *buffer, uint8_t *hash)
     *buffer = '\0';
 }
 
+/*
+ * main function
+ */
 int main(int argc, char *argv[])
 {
     JitInfo info;
     uint8_t hash[16];
     char reply;
+    CodeContext *cc;
 
     if (argc != 2 || chdir(argv[1]) < 0) {
 	return 1;
@@ -125,7 +143,8 @@ int main(int argc, char *argv[])
 	read(fd, vtypes, comp.vTypeSize);
 	close(fd);
 
-	jit_compile(comp.nInherits, prog, comp.nFunctions, ftypes, vtypes);
+	CodeObject object(cc, comp.nInherits, ftypes, vtypes);
+	jitComp(&object, prog, comp.nFunctions, path);
     }
 
     return 0;

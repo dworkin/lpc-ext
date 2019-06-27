@@ -3,7 +3,7 @@ public:
     DisCode(CodeFunction *function);
     virtual ~DisCode();
 
-    virtual void emit(FlowContext *context);
+    virtual void emit(class GenContext *context);
 
     static Code *create(CodeFunction *function);
 };

@@ -1,9 +1,24 @@
+#DISASM=1
+GENCLANG=1
+
 DEFINES=
 DEBUG=
+ifdef DISASM
+  CODEGEN=-DDISASM
+endif
+ifdef GENCLANG
+  CODEGEN=-DGENCLANG
+endif
 CXX=c++
-CXXFLAGS=$(DEFINES) $(DEBUG) -I../src
+CXXFLAGS=$(DEFINES) $(DEBUG) $(CODEGEN) -I../src
 
-OBJ=	code.o block.o typed.o flow.o disasm.o genclang.o jitcomp.o
+OBJ=	code.o block.o typed.o flow.o jitcomp.o
+ifdef DISASM
+  OBJ+=disasm.o
+endif
+ifdef GENCLANG
+  OBJ+=genclang.o
+endif
 
 all:	jitcomp
 
@@ -25,4 +40,10 @@ flow.o:		code.h stack.h block.h typed.h flow.h
 disasm.o:	code.h stack.h block.h typed.h flow.h disasm.h
 genclang.o:	instruction.h code.h stack.h block.h typed.h flow.h gentt.h \
 		genclang.h
-jitcomp.o:	code.h stack.h block.h typed.h flow.h genclang.h jit.h
+jitcomp.o:	code.h stack.h block.h typed.h flow.h jit.h
+ifdef DISASM
+jitcomp.o:	disasm.h
+endif
+ifdef GENCLANG
+jitcomp.o:	genclang.h
+endif

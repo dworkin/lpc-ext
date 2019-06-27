@@ -15,6 +15,13 @@ extern "C" {
 # include "jitcomp.h"
 
 
+class GenContext : public FlowContext {
+public:
+    GenContext(CodeFunction *func, StackSize size) : FlowContext(func, size) { }
+    virtual ~GenContext() { }
+};
+
+
 DisCode::DisCode(CodeFunction *function) : FlowCode(function) { }
 
 DisCode::~DisCode() { }
@@ -140,7 +147,7 @@ static void dis_casttype(LPCType *type)
 /*
  * emit instruction disassembly
  */
-void DisCode::emit(FlowContext *context)
+void DisCode::emit(GenContext *context)
 {
     int i;
 
@@ -427,7 +434,7 @@ Block *DisBlock::create(Code *first, Code *last, CodeSize size)
  */
 void DisBlock::emit(CodeFunction *function, CodeSize size)
 {
-    FlowContext context(function, size);
+    GenContext context(function, size);
     CodeLine line;
     Block *b;
     Code *code;
