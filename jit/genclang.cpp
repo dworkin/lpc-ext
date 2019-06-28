@@ -30,41 +30,41 @@ static const struct {
 # define VM_FLOAT			1
     { "vm_float", "void", "(i8*, " Double ")" },
 # define VM_STRING			2
-    { "vm_string", "void", "(i8*, i32, i32)" },
+    { "vm_string", "void", "(i8*, i16, i16)" },
 # define VM_PARAM			3
-    { "vm_param", "void", "(i8*, i32)" },
+    { "vm_param", "void", "(i8*, i8)" },
 # define VM_PARAM_INT			4
-    { "vm_param_int", Int, "(i8*, i32)" },
+    { "vm_param_int", Int, "(i8*, i8)" },
 # define VM_PARAM_FLOAT			5
-    { "vm_param_float", Double, "(i8*, i32)" },
+    { "vm_param_float", Double, "(i8*, i8)" },
 # define VM_LOCAL			6
     { "vm_local", "void", "(i8*, i32)" },
 # define VM_GLOBAL			7
-    { "vm_global", "void", "(i8*, i32, i32)" },
+    { "vm_global", "void", "(i8*, i16, i8)" },
 # define VM_GLOBAL_INT			8
-    { "vm_global_int", Int, "(i8*, i32, i32)" },
+    { "vm_global_int", Int, "(i8*, i16, i8)" },
 # define VM_GLOBAL_FLOAT		9
-    { "vm_global_float", Double, "(i8*, i32, i32)" },
+    { "vm_global_float", Double, "(i8*, i16, i8)" },
 # define VM_INDEX			10
-    { "vm_index", "void", "(i8*, i1)" },
+    { "vm_index", "void", "(i8*)" },
 # define VM_INDEX_INT			11
-    { "vm_index_int", Int, "(i8*, i1)" },
+    { "vm_index_int", Int, "(i8*)" },
 # define VM_INDEX2			12
-    { "vm_index2", "void", "(i8*, i1)" },
+    { "vm_index2", "void", "(i8*)" },
 # define VM_INDEX2_INT			13
-    { "vm_index2_int", Int, "(i8*, i1)" },
+    { "vm_index2_int", Int, "(i8*)" },
 # define VM_AGGREGATE			14
-    { "vm_aggregate", "void", "(i8*, i32)" },
+    { "vm_aggregate", "void", "(i8*, i16)" },
 # define VM_MAP_AGGREGATE		15
-    { "vm_map_aggregate", "void", "(i8*, i32)" },
+    { "vm_map_aggregate", "void", "(i8*, i16)" },
 # define VM_CAST			16
-    { "vm_cast", "void", "(i8*, i32, i32, i32)" },
+    { "vm_cast", "void", "(i8*, i8, i16, i16)" },
 # define VM_CAST_INT			17
     { "vm_cast_int", Int, "(i8*)" },
 # define VM_CAST_FLOAT			18
     { "vm_cast_float", Double, "(i8*)" },
 # define VM_INSTANCEOF			19
-    { "vm_instanceof", Int, "(i8*, i32, i32)" },
+    { "vm_instanceof", Int, "(i8*, i16, i16)" },
 # define VM_RANGE			20
     { "vm_range", "void", "(i8*)" },
 # define VM_RANGE_FROM			21
@@ -72,63 +72,63 @@ static const struct {
 # define VM_RANGE_TO			22
     { "vm_range_to", "void", "(i8*)" },
 # define VM_STORE_PARAM			23
-    { "vm_store_param", "void", "(i8*, i32)" },
+    { "vm_store_param", "void", "(i8*, i8)" },
 # define VM_STORE_PARAM_INT		24
-    { "vm_store_param_int", "void", "(i8*, i32, " Int ")" },
+    { "vm_store_param_int", "void", "(i8*, i8, " Int ")" },
 # define VM_STORE_PARAM_FLOAT		25
-    { "vm_store_param_float", "void", "(i8*, i32, " Double ")" },
+    { "vm_store_param_float", "void", "(i8*, i8, " Double ")" },
 # define VM_STORE_LOCAL			26
-    { "vm_store_local", "void", "(i8*, i32)" },
+    { "vm_store_local", "void", "(i8*, i8)" },
 # define VM_STORE_LOCAL_INT		27
-    { "vm_store_local_int", "void", "(i8*, i32, " Int ")" },
+    { "vm_store_local_int", "void", "(i8*, i8, " Int ")" },
 # define VM_STORE_LOCAL_FLOAT		28
-    { "vm_store_local_float", "void", "(i8*, i32, " Double ")" },
+    { "vm_store_local_float", "void", "(i8*, i8, " Double ")" },
 # define VM_STORE_GLOBAL		29
-    { "vm_store_global", "void", "(i8*, i32, i32)" },
+    { "vm_store_global", "void", "(i8*, i16, i16)" },
 # define VM_STORE_GLOBAL_INT		30
-    { "vm_store_global_int", "void", "(i8*, i32, i32, " Int ")" },
+    { "vm_store_global_int", "void", "(i8*, i16, i16, " Int ")" },
 # define VM_STORE_GLOBAL_FLOAT		31
-    { "vm_store_global_float", "void", "(i8*, i32, i32, " Double ")" },
+    { "vm_store_global_float", "void", "(i8*, i16, i16, " Double ")" },
 # define VM_STORE_INDEX			32
     { "vm_store_index", "void", "(i8*)" },
 # define VM_STORE_PARAM_INDEX		33
-    { "vm_store_param_index", "void", "(i8*, i32)" },
+    { "vm_store_param_index", "void", "(i8*, i8)" },
 # define VM_STORE_LOCAL_INDEX		34
-    { "vm_store_local_index", "void", "(i8*, i32)" },
+    { "vm_store_local_index", "void", "(i8*, i8)" },
 # define VM_STORE_GLOBAL_INDEX		35
-    { "vm_store_global_index", "void", "(i8*, i32, i32)" },
+    { "vm_store_global_index", "void", "(i8*, i16, i16)" },
 # define VM_STORE_INDEX_INDEX		36
     { "vm_store_index_index", "void", "(i8*)" },
 # define VM_STORES			37
-    { "vm_stores", "void", "(i8*, i32)" },
+    { "vm_stores", "void", "(i8*, i8)" },
 # define VM_STORES_LVAL			38
-    { "vm_stores_lval", "void", "(i8*, i32)" },
+    { "vm_stores_lval", "void", "(i8*, i8)" },
 # define VM_STORES_SPREAD		39
-    { "vm_stores_spread", "void", "(i8*, i32, i32, i32, i32)" },
+    { "vm_stores_spread", "void", "(i8*, i8, i8, i16, i16)" },
 # define VM_STORES_CAST			40
-    { "vm_stores_cast", "void", "(i8*, i32, i32, i32)" },
+    { "vm_stores_cast", "void", "(i8*, i8, i16, i16)" },
 # define VM_STORES_PARAM		41
-    { "vm_stores_param", "void", "(i8*, i32)" },
+    { "vm_stores_param", "void", "(i8*, i8)" },
 # define VM_STORES_PARAM_INT		42
-    { "vm_stores_param_int", Int, "(i8*, i32)" },
+    { "vm_stores_param_int", Int, "(i8*, i8)" },
 # define VM_STORES_PARAM_FLOAT		43
-    { "vm_stores_param_float", Double, "(i8*, i32)" },
+    { "vm_stores_param_float", Double, "(i8*, i8)" },
 # define VM_STORES_LOCAL		44
-    { "vm_stores_local", "void", "(i8*, i32)" },
+    { "vm_stores_local", "void", "(i8*, i8)" },
 # define VM_STORES_LOCAL_INT		45
-    { "vm_stores_local_int", Int, "(i8*, i32)" },
+    { "vm_stores_local_int", Int, "(i8*, i8)" },
 # define VM_STORES_LOCAL_FLOAT		46
-    { "vm_stores_local_float", Double, "(i8*, i32)" },
+    { "vm_stores_local_float", Double, "(i8*, i8)" },
 # define VM_STORES_GLOBAL		47
-    { "vm_stores_global", "void", "(i8*, i32, i32)" },
+    { "vm_stores_global", "void", "(i8*, i16, i16)" },
 # define VM_STORES_INDEX		48
     { "vm_stores_index", "void", "(i8*)" },
 # define VM_STORES_PARAM_INDEX		49
-    { "vm_stores_param_index", "void", "(i8*, i32)" },
+    { "vm_stores_param_index", "void", "(i8*, i8)" },
 # define VM_STORES_LOCAL_INDEX		50
-    { "vm_stores_local_index", "void", "(i8*, i32)" },
+    { "vm_stores_local_index", "void", "(i8*, i8)" },
 # define VM_STORES_GLOBAL_INDEX		51
-    { "vm_stores_global_index", "void", "(i8*, i32, i32)" },
+    { "vm_stores_global_index", "void", "(i8*, i16, i16)" },
 # define VM_STORES_INDEX_INDEX		52
     { "vm_stores_index_index", "void", "(i8*)" },
 # define VM_DIV_INT			53
@@ -156,47 +156,47 @@ static const struct {
 # define VM_SUB_FLOAT			64
     { "vm_sub_float", Double, "(i8*, " Double ", " Double ")" },
 # define VM_KFUNC			65
-    { "vm_kfunc", "void", "(i8*, i32, i32)" },
+    { "vm_kfunc", "void", "(i8*, i16, i8)" },
 # define VM_KFUNC_INT			66
-    { "vm_kfunc_int", Int, "(i8*, i32, i32)" },
+    { "vm_kfunc_int", Int, "(i8*, i16, i8)" },
 # define VM_KFUNC_FLOAT			67
-    { "vm_kfunc_float", Double, "(i8*, i32, i32)" },
+    { "vm_kfunc_float", Double, "(i8*, i16, i8)" },
 # define VM_KFUNC_SPREAD		68
-    { "vm_kfunc_spread", "void", "(i8*, i32, i32)" },
+    { "vm_kfunc_spread", "void", "(i8*, i16, i8)" },
 # define VM_KFUNC_SPREAD_INT		69
-    { "vm_kfunc_spread_int", Int, "(i8*, i32, i32)" },
+    { "vm_kfunc_spread_int", Int, "(i8*, i16, i8)" },
 # define VM_KFUNC_SPREAD_FLOAT		70
-    { "vm_kfunc_spread_float", Double, "(i8*, i32, i32)" },
+    { "vm_kfunc_spread_float", Double, "(i8*, i16, i8)" },
 # define VM_KFUNC_SPREAD_LVAL		71
-    { "vm_kfunc_spread_lval", "void", "(i8*, i32, i32)" },
+    { "vm_kfunc_spread_lval", "void", "(i8*, i16, i8)" },
 # define VM_KFUNC_SPREAD_LVAL_INT	72
-    { "vm_kfunc_spread_lval_int", Int, "(i8*, i32, i32)" },
+    { "vm_kfunc_spread_lval_int", Int, "(i8*, i16, i8)" },
 # define VM_KFUNC_SPREAD_LVAL_FLOAT	73
-    { "vm_kfunc_spread_lval_float", Double, "(i8*, i32, i32)" },
+    { "vm_kfunc_spread_lval_float", Double, "(i8*, i16, i8)" },
 # define VM_DFUNC			74
-    { "vm_dfunc", "void", "(i8*, i32, i32)" },
+    { "vm_dfunc", "void", "(i8*, i16, i8, i8)" },
 # define VM_DFUNC_INT			75
-    { "vm_dfunc_int", Int, "(i8*, i32, i32)" },
+    { "vm_dfunc_int", Int, "(i8*, i16, i8, i8)" },
 # define VM_DFUNC_FLOAT			76
-    { "vm_dfunc_float", Double, "(i8*, i32, i32)" },
+    { "vm_dfunc_float", Double, "(i8*, i16, i8, i8)" },
 # define VM_DFUNC_SPREAD		77
-    { "vm_dfunc_spread", "void", "(i8*, i32, i32)" },
+    { "vm_dfunc_spread", "void", "(i8*, i16, i8, i8)" },
 # define VM_DFUNC_SPREAD_INT		78
-    { "vm_dfunc_spread_int", Int, "(i8*, i32, i32)" },
+    { "vm_dfunc_spread_int", Int, "(i8*, i16, i8, i8)" },
 # define VM_DFUNC_SPREAD_FLOAT		79
-    { "vm_dfunc_spread_float", Double, "(i8*, i32, i32)" },
+    { "vm_dfunc_spread_float", Double, "(i8*, i16, i8, i8)" },
 # define VM_FUNC			80
-    { "vm_func", "void", "(i8*, i32, i32)" },
+    { "vm_func", "void", "(i8*, i16, i8)" },
 # define VM_FUNC_INT			81
-    { "vm_func_int", Int, "(i8*, i32, i32)" },
+    { "vm_func_int", Int, "(i8*, i16, i8)" },
 # define VM_FUNC_FLOAT			82
-    { "vm_func_float", Double, "(i8*, i32, i32)" },
+    { "vm_func_float", Double, "(i8*, i16, i8)" },
 # define VM_FUNC_SPREAD			83
-    { "vm_func_spread", "void", "(i8*, i32, i32)" },
+    { "vm_func_spread", "void", "(i8*, i16, i8)" },
 # define VM_FUNC_SPREAD_INT		84
-    { "vm_func_spread_int", Int, "(i8*, i32, i32)" },
+    { "vm_func_spread_int", Int, "(i8*, i16, i8)" },
 # define VM_FUNC_SPREAD_FLOAT		85
-    { "vm_func_spread_float", Double, "(i8*, i32, i32)" },
+    { "vm_func_spread_float", Double, "(i8*, i16, i8)" },
 # define VM_POP				86
     { "vm_pop", "void", "(i8*)" },
 # define VM_POP_BOOL			87
@@ -415,12 +415,12 @@ char *ClangCode::paramRef(LPCParam param, int ref)
 
     if (ref < 0) {
 	/* merged */
-	sprintf(buf, "%%p%dm%d", param, -ref);
+	sprintf(buf, "%%p%um%d", param, -ref);
     } else {
 	if (ref == GenContext::INITIAL) {
 	    ref = 0;
 	}
-	sprintf(buf, "%%p%dr%d", param, ref);
+	sprintf(buf, "%%p%ur%d", param, ref);
     }
     return buf;
 }
@@ -434,12 +434,12 @@ char *ClangCode::localRef(LPCLocal local, int ref)
 
     if (ref < 0) {
 	/* merged */
-	sprintf(buf, "%%l%dm%d", local, -ref);
+	sprintf(buf, "%%l%um%d", local, -ref);
     } else {
 	if (ref == GenContext::INITIAL) {
 	    ref = 0;
 	}
-	sprintf(buf, "%%l%dr%d", local, ref);
+	sprintf(buf, "%%l%ur%d", local, ref);
     }
     return buf;
 }
@@ -531,7 +531,7 @@ void ClangCode::emit(GenContext *context)
 
     case STRING:
 	context->voidCallArgs(VM_STRING);
-	fprintf(context->stream, "i32 %u, i32 %u)\n", str.inherit, str.index);
+	fprintf(context->stream, "i16 %u, i16 %u)\n", str.inherit, str.index);
 	break;
 
     case PARAM:
@@ -548,7 +548,7 @@ void ClangCode::emit(GenContext *context)
 
 	default:
 	    context->voidCallArgs(VM_PARAM);
-	    fprintf(context->stream, "i32 %d)\n", param);
+	    fprintf(context->stream, "i8 %u)\n", param);
 	    break;
 	}
 	break;
@@ -567,7 +567,7 @@ void ClangCode::emit(GenContext *context)
 
 	default:
 	    context->voidCallArgs(VM_LOCAL);
-	    fprintf(context->stream, "i32 %d)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local);
 	    break;
 	}
 	break;
@@ -576,21 +576,21 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(sp).type) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_GLOBAL_INT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %u, i32 %u)\n", var.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit,
 		    var.index);
 	    result(context);
 	    return;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_GLOBAL_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %u, i32 %u)\n", var.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit,
 		    var.index);
 	    result(context);
 	    return;
 
 	default:
 	    context->voidCallArgs(VM_GLOBAL);
-	    fprintf(context->stream, "i32 %u, i32 %u)\n", var.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit,
 		    var.index);
 	    break;
 	}
@@ -616,12 +616,12 @@ void ClangCode::emit(GenContext *context)
 
     case AGGREGATE:
 	context->voidCallArgs(VM_AGGREGATE);
-	fprintf(context->stream, "i32 %d)\n", size);
+	fprintf(context->stream, "i16 %u)\n", size);
 	break;
 
     case MAP_AGGREGATE:
 	context->voidCallArgs(VM_MAP_AGGREGATE);
-	fprintf(context->stream, "i32 %d)\n", size);
+	fprintf(context->stream, "i16 %u)\n", size);
 	break;
 
     case CAST:
@@ -638,20 +638,20 @@ void ClangCode::emit(GenContext *context)
 
 	case LPC_TYPE_CLASS:
 	    context->voidCallArgs(VM_CAST);
-	    fprintf(context->stream, "i32 %d, i32 %u, i32 %u)\n", type.type,
+	    fprintf(context->stream, "i8 %u, i16 %u, i16 %u)\n", type.type,
 		    type.inherit, type.index);
 	    break;
 
 	default:
 	    context->voidCallArgs(VM_CAST);
-	    fprintf(context->stream, "i32 %d, i32 0, i32 0)\n", type.type);
+	    fprintf(context->stream, "i8 %u, i16 0, i16 0)\n", type.type);
 	    break;
 	}
 	break;
 
     case INSTANCEOF:
 	context->callArgs(VM_INSTANCEOF, tmpRef(sp));
-	fprintf(context->stream, "i32 %d, i32 %d)\n", str.inherit, str.index);
+	fprintf(context->stream, "i16 %u, i16 %u)\n", str.inherit, str.index);
 	result(context);
 	return;
 
@@ -672,7 +672,7 @@ void ClangCode::emit(GenContext *context)
 	case LPC_TYPE_INT:
 	    context->copyInt(paramRef(context, param), tmpRef(context->sp));
 	    context->voidCallArgs(VM_STORE_PARAM_INT);
-	    fprintf(context->stream, "i32 %d, " Int " %s)\n", param,
+	    fprintf(context->stream, "i8 %u, " Int " %s)\n", param,
 		    tmpRef(context->sp));
 	    if (!pop) {
 		context->copyInt(tmpRef(sp), tmpRef(context->sp));
@@ -683,7 +683,7 @@ void ClangCode::emit(GenContext *context)
 	case LPC_TYPE_FLOAT:
 	    context->copyFloat(paramRef(context, param), tmpRef(context->sp));
 	    context->voidCallArgs(VM_STORE_PARAM_FLOAT);
-	    fprintf(context->stream, "i32 %d, " Double " %s)\n", param,
+	    fprintf(context->stream, "i8 %u, " Double " %s)\n", param,
 		    tmpRef(context->sp));
 	    if (!pop) {
 		context->copyFloat(tmpRef(sp), tmpRef(context->sp));
@@ -693,7 +693,7 @@ void ClangCode::emit(GenContext *context)
 
 	default:
 	    context->voidCallArgs(VM_STORE_PARAM);
-	    fprintf(context->stream, "i32 %d)\n", param);
+	    fprintf(context->stream, "i8 %u)\n", param);
 	    break;
 	}
 	break;
@@ -704,7 +704,7 @@ void ClangCode::emit(GenContext *context)
 	    context->copyInt(localRef(context, local), tmpRef(context->sp));
 	    if (context->level > 0) {
 		context->voidCallArgs(VM_STORE_LOCAL_INT);
-		fprintf(context->stream, "i32 %d, " Int " %s)\n", local,
+		fprintf(context->stream, "i8 %u, " Int " %s)\n", local,
 			tmpRef(context->sp));
 	    }
 	    if (!pop) {
@@ -717,7 +717,7 @@ void ClangCode::emit(GenContext *context)
 	    context->copyFloat(localRef(context, local), tmpRef(context->sp));
 	    if (context->level > 0) {
 		context->voidCallArgs(VM_STORE_LOCAL_FLOAT);
-		fprintf(context->stream, "i32 %d, " Double " %s)\n", local,
+		fprintf(context->stream, "i8 %u, " Double " %s)\n", local,
 			tmpRef(context->sp));
 	    }
 	    if (!pop) {
@@ -728,7 +728,7 @@ void ClangCode::emit(GenContext *context)
 
 	default:
 	    context->voidCallArgs(VM_STORE_LOCAL);
-	    fprintf(context->stream, "i32 %d)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local);
 	    break;
 	}
 	break;
@@ -737,7 +737,7 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(context->sp).type) {
 	case LPC_TYPE_INT:
 	    context->voidCallArgs(VM_STORE_GLOBAL_INT);
-	    fprintf(context->stream, "i32 %u, i32 %u, " Int " %s)\n",
+	    fprintf(context->stream, "i16 %u, i16 %u, " Int " %s)\n",
 		    var.inherit, var.index, tmpRef(context->sp));
 	    if (!pop) {
 		context->copyInt(tmpRef(sp), tmpRef(context->sp));
@@ -747,7 +747,7 @@ void ClangCode::emit(GenContext *context)
 
 	case LPC_TYPE_FLOAT:
 	    context->voidCallArgs(VM_STORE_GLOBAL_FLOAT);
-	    fprintf(context->stream, "i32 %u, i32 %u, " Double " %s)\n",
+	    fprintf(context->stream, "i16 %u, i16 %u, " Double " %s)\n",
 		    var.inherit, var.index, tmpRef(context->sp));
 	    if (!pop) {
 		context->copyFloat(tmpRef(sp), tmpRef(context->sp));
@@ -757,7 +757,7 @@ void ClangCode::emit(GenContext *context)
 
 	default:
 	    context->voidCallArgs(VM_STORE_GLOBAL);
-	    fprintf(context->stream, "i32 %u, i32 %u)\n", var.inherit,
+	    fprintf(context->stream, "i16 %u, i16 %u)\n", var.inherit,
 		    var.index);
 	    break;
 	}
@@ -769,17 +769,17 @@ void ClangCode::emit(GenContext *context)
 
     case STORE_PARAM_INDEX:
 	context->voidCallArgs(VM_STORE_PARAM_INDEX);
-	fprintf(context->stream, "i32 %d)\n", param);
+	fprintf(context->stream, "i8 %u)\n", param);
 	break;
 
     case STORE_LOCAL_INDEX:
 	context->voidCallArgs(VM_STORE_LOCAL_INDEX);
-	fprintf(context->stream, "i32 %d)\n", local);
+	fprintf(context->stream, "i8 %u)\n", local);
 	break;
 
     case STORE_GLOBAL_INDEX:
 	context->voidCallArgs(VM_STORE_GLOBAL_INDEX);
-	fprintf(context->stream, "i32 %u, i32 %u)\n", var.inherit, var.index);
+	fprintf(context->stream, "i16 %u, i16 %u)\n", var.inherit, var.index);
 	break;
 
     case STORE_INDEX_INDEX:
@@ -788,7 +788,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES:
 	context->voidCallArgs(VM_STORES);
-	fprintf(context->stream, "i32 %d)\n", size);
+	fprintf(context->stream, "i8 %u)\n", size);
 	if (!context->stores(size, NULL)) {
 	    context->voidCall(VM_POP);
 	}
@@ -796,7 +796,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_LVAL:
 	context->voidCallArgs(VM_STORES_LVAL);
-	fprintf(context->stream, "i32 %d)\n", size);
+	fprintf(context->stream, "i16 %u)\n", size);
 	if (!context->stores(size, (pop) ? this : NULL)) {
 	    context->voidCall(VM_POP);
 	    if (pop) {
@@ -809,10 +809,10 @@ void ClangCode::emit(GenContext *context)
     case STORES_SPREAD:
 	context->voidCallArgs(VM_STORES_SPREAD);
 	if (type.type == LPC_TYPE_CLASS) {
-	    fprintf(context->stream, "i32 %d, i32 %d, i32 %u, i32 %u)\n",
+	    fprintf(context->stream, "i8 %u, i8 %u, i16 %u, i16 %u)\n",
 		    spread, type.type, type.inherit, type.index);
 	} else {
-	    fprintf(context->stream, "i32 %d, i32 %d, i32 0, i32 0)\n", spread,
+	    fprintf(context->stream, "i8 %u, i8 %u, i16 0, i16 0)\n", spread,
 		    type.type);
 	}
 	if (!context->storeN()) {
@@ -826,10 +826,10 @@ void ClangCode::emit(GenContext *context)
     case STORES_CAST:
 	context->voidCallArgs(VM_STORES_CAST);
 	if (type.type == LPC_TYPE_CLASS) {
-	    fprintf(context->stream, "i32 %d, i32 %u, i32 %u)\n", type.type,
+	    fprintf(context->stream, "i8 %u, i16 %u, i16 %u)\n", type.type,
 		    type.inherit, type.index);
 	} else {
-	    fprintf(context->stream, "i32 %d, i32 0, i32 0)\n", type.type);
+	    fprintf(context->stream, "i8 %u, i16 0, i16 0)\n", type.type);
 	}
 	context->castType = simplifiedType(type.type);
 	break;
@@ -838,17 +838,17 @@ void ClangCode::emit(GenContext *context)
 	switch (context->castType) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_STORES_PARAM_INT, paramRef(context, param));
-	    fprintf(context->stream, "i32 %d)\n", param);
+	    fprintf(context->stream, "i8 %u)\n", param);
 	    break;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_STORES_PARAM_FLOAT, paramRef(context, param));
-	    fprintf(context->stream, "i32 %d)\n", param);
+	    fprintf(context->stream, "i8 %u)\n", param);
 	    break;
 
 	default:
 	    context->voidCallArgs(VM_STORES_PARAM);
-	    fprintf(context->stream, "i32 %d)\n", param);
+	    fprintf(context->stream, "i8 %u)\n", param);
 	    break;
 	}
 	if (!context->storeN()) {
@@ -863,17 +863,17 @@ void ClangCode::emit(GenContext *context)
 	switch (context->castType) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_STORES_LOCAL_INT, localRef(context, local));
-	    fprintf(context->stream, "i32 %d)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local);
 	    break;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_STORES_LOCAL_FLOAT, localRef(context, local));
-	    fprintf(context->stream, "i32 %d)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local);
 	    break;
 
 	default:
 	    context->voidCallArgs(VM_STORES_LOCAL);
-	    fprintf(context->stream, "i32 %d)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local);
 	    break;
 	}
 	if (!context->storeN()) {
@@ -886,7 +886,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_GLOBAL:
 	context->voidCallArgs(VM_STORES_GLOBAL);
-	fprintf(context->stream, "i32 %u, i32 %u)\n", var.inherit, var.index);
+	fprintf(context->stream, "i16 %u, i16 %u)\n", var.inherit, var.index);
 	if (!context->storeN()) {
 	    context->voidCall(VM_POP);
 	    if (context->storePop() != NULL) {
@@ -907,7 +907,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_PARAM_INDEX:
 	context->voidCallArgs(VM_STORES_PARAM_INDEX);
-	fprintf(context->stream, "i32 %d)\n", param);
+	fprintf(context->stream, "i8 %u)\n", param);
 	if (!context->storeN()) {
 	    context->voidCall(VM_POP);
 	    if (context->storePop() != NULL) {
@@ -918,7 +918,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_LOCAL_INDEX:
 	context->voidCallArgs(VM_STORES_LOCAL_INDEX);
-	fprintf(context->stream, "i32 %d)\n", local);
+	fprintf(context->stream, "i8 %u)\n", local);
 	if (!context->storeN()) {
 	    context->voidCall(VM_POP);
 	    if (context->storePop() != NULL) {
@@ -929,7 +929,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_GLOBAL_INDEX:
 	context->voidCallArgs(VM_STORES_GLOBAL_INDEX);
-	fprintf(context->stream, "i32 %u, i32 %u)\n", var.inherit, var.index);
+	fprintf(context->stream, "i16 %u, i16 %u)\n", var.inherit, var.index);
 	if (!context->storeN()) {
 	    context->voidCall(VM_POP);
 	    if (context->storePop() != NULL) {
@@ -1335,21 +1335,21 @@ void ClangCode::emit(GenContext *context)
 	    switch (context->get(sp).type) {
 	    case LPC_TYPE_INT:
 		context->callArgs(VM_KFUNC_INT, tmpRef(sp));
-		fprintf(context->stream, "i32 %d, i32 %d)\n", kfun.func,
+		fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
 			kfun.nargs);
 		result(context);
 		return;
 
 	    case LPC_TYPE_FLOAT:
 		context->callArgs(VM_KFUNC_FLOAT, tmpRef(sp));
-		fprintf(context->stream, "i32 %d, i32 %d)\n", kfun.func,
+		fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
 			kfun.nargs);
 		result(context);
 		return;
 
 	    default:
 		context->voidCallArgs(VM_KFUNC);
-		fprintf(context->stream, "i32 %d, i32 %d)\n", kfun.func,
+		fprintf(context->stream, "i16 %u, i8 %d)\n", kfun.func,
 			kfun.nargs);
 		break;
 	    }
@@ -1360,21 +1360,21 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(sp).type) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_KFUNC_SPREAD_INT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", kfun.func,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
 		    kfun.nargs);
 	    result(context);
 	    return;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_KFUNC_SPREAD_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", kfun.func,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
 		    kfun.nargs);
 	    result(context);
 	    return;
 
 	default:
 	    context->voidCallArgs(VM_KFUNC_SPREAD);
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", kfun.func,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
 		    kfun.nargs);
 	    break;
 	}
@@ -1384,21 +1384,21 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(sp).type) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_KFUNC_SPREAD_LVAL_INT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", kfun.func,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
 		    kfun.nargs);
 	    result(context);
 	    return;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_KFUNC_SPREAD_LVAL_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", kfun.func,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
 		    kfun.nargs);
 	    result(context);
 	    return;
 
 	default:
 	    context->voidCallArgs(VM_KFUNC_SPREAD_LVAL);
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", kfun.func,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
 		    kfun.nargs);
 	    break;
 	}
@@ -1408,21 +1408,21 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(sp).type) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_DFUNC_INT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d, i32 %d)\n", dfun.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
 		    dfun.func, dfun.nargs);
 	    result(context);
 	    return;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_DFUNC_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d, i32 %d)\n", dfun.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
 		    dfun.func, dfun.nargs);
 	    result(context);
 	    return;
 
 	default:
 	    context->voidCallArgs(VM_DFUNC);
-	    fprintf(context->stream, "i32 %d, i32 %d, i32 %d)\n", dfun.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
 		    dfun.func, dfun.nargs);
 	    break;
 	}
@@ -1432,21 +1432,21 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(sp).type) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_DFUNC_SPREAD_INT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d, i32 %d)\n", dfun.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
 		    dfun.func, dfun.nargs);
 	    result(context);
 	    return;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_DFUNC_SPREAD_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d, i32 %d)\n", dfun.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
 		    dfun.func, dfun.nargs);
 	    result(context);
 	    return;
 
 	default:
 	    context->voidCallArgs(VM_DFUNC_SPREAD);
-	    fprintf(context->stream, "i32 %d, i32 %d, i32 %d)\n", dfun.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
 		    dfun.func, dfun.nargs);
 	    break;
 	}
@@ -1456,19 +1456,19 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(sp).type) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_FUNC_INT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", fun.call, fun.nargs);
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
 	    result(context);
 	    return;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_FUNC_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", fun.call, fun.nargs);
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
 	    result(context);
 	    return;
 
 	default:
 	    context->voidCallArgs(VM_FUNC);
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", fun.call, fun.nargs);
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
 	    break;
 	}
 	break;
@@ -1477,19 +1477,19 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(sp).type) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_FUNC_SPREAD_INT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", fun.call, fun.nargs);
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
 	    result(context);
 	    return;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_FUNC_SPREAD_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", fun.call, fun.nargs);
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
 	    result(context);
 	    return;
 
 	default:
 	    context->voidCallArgs(VM_FUNC_SPREAD);
-	    fprintf(context->stream, "i32 %d, i32 %d)\n", fun.call, fun.nargs);
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
 	    break;
 	}
 	break;
@@ -1582,7 +1582,7 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 		fprintf(context.stream, "%%Lparam:\n");
 	    }
 	    context.callArgs(VM_PARAM_INT, ClangCode::paramRef(nParams - n, 0));
-	    fprintf(context.stream, "int32 %d)\n", nParams - n);
+	    fprintf(context.stream, "i8 %d)\n", nParams - n);
 	    break;
 
 	case LPC_TYPE_FLOAT:
@@ -1591,7 +1591,7 @@ void ClangBlock::emit(CodeFunction *function, CodeSize size)
 	    }
 	    context.callArgs(VM_PARAM_FLOAT,
 			     ClangCode::paramRef(nParams - n, 0));
-	    fprintf(context.stream, "int32 %d)\n", nParams - n);
+	    fprintf(context.stream, "i8 %d)\n", nParams - n);
 	    break;
 
 	default:
