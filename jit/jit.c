@@ -154,8 +154,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
  * NAME:	JIT->execute()
  * DESCRIPTION:	attempt to execute a function
  */
-static int jit_execute(uint64_t index, uint64_t instance, int version, int func,
-		       LPC_value val)
+static int jit_execute(uint64_t index, uint64_t instance, int version, int func)
 {
     int retval;
 

@@ -155,14 +155,13 @@ Block *Block::function(CodeFunction *function)
 {
     Code *code, *first, *last;
     CodeByte *program;
-    CodeSize addr, stores, lvspread;
+    CodeSize addr, stores;
     bool lval, spread;
 
     first = NULL;
     program = function->getPC(&addr);
     stores = 0;
     lval = spread = false;
-    lvspread = 0;
     while (function->endProg() == NULL) {
 	/* add new code */
 	code = Code::produce(function);
@@ -225,7 +224,6 @@ Block *Block::function(CodeFunction *function)
 	    case Code::SPREAD:
 	    case Code::SPREAD_LVAL:
 		spread = true;
-		lvspread = code->spread;
 		break;
 
 	    case Code::KFUNC:
@@ -238,7 +236,6 @@ Block *Block::function(CodeFunction *function)
 	    case Code::KFUNC_LVAL:
 		if (spread) {
 		    code->instruction = Code::KFUNC_SPREAD_LVAL;
-		    code->kfun.spread = lvspread;
 		    spread = false;
 		}
 		lval = true;

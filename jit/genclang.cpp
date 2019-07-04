@@ -84,11 +84,11 @@ static const struct {
 # define VM_STORE_LOCAL_FLOAT		28
     { "vm_store_local_float", "void", "(i8*, i8, " Double ")" },
 # define VM_STORE_GLOBAL		29
-    { "vm_store_global", "void", "(i8*, i16, i16)" },
+    { "vm_store_global", "void", "(i8*, i16, i8)" },
 # define VM_STORE_GLOBAL_INT		30
-    { "vm_store_global_int", "void", "(i8*, i16, i16, " Int ")" },
+    { "vm_store_global_int", "void", "(i8*, i16, i8, " Int ")" },
 # define VM_STORE_GLOBAL_FLOAT		31
-    { "vm_store_global_float", "void", "(i8*, i16, i16, " Double ")" },
+    { "vm_store_global_float", "void", "(i8*, i16, i8, " Double ")" },
 # define VM_STORE_INDEX			32
     { "vm_store_index", "void", "(i8*)" },
 # define VM_STORE_PARAM_INDEX		33
@@ -96,7 +96,7 @@ static const struct {
 # define VM_STORE_LOCAL_INDEX		34
     { "vm_store_local_index", "void", "(i8*, i8)" },
 # define VM_STORE_GLOBAL_INDEX		35
-    { "vm_store_global_index", "void", "(i8*, i16, i16)" },
+    { "vm_store_global_index", "void", "(i8*, i16, i8)" },
 # define VM_STORE_INDEX_INDEX		36
     { "vm_store_index_index", "void", "(i8*)" },
 # define VM_STORES			37
@@ -104,7 +104,7 @@ static const struct {
 # define VM_STORES_LVAL			38
     { "vm_stores_lval", "void", "(i8*, i8)" },
 # define VM_STORES_SPREAD		39
-    { "vm_stores_spread", "void", "(i8*, i8, i8, i16, i16)" },
+    { "vm_stores_spread", "void", "(i8*, i8, i8, i8, i16, i16)" },
 # define VM_STORES_CAST			40
     { "vm_stores_cast", "void", "(i8*, i8, i16, i16)" },
 # define VM_STORES_PARAM		41
@@ -120,7 +120,7 @@ static const struct {
 # define VM_STORES_LOCAL_FLOAT		46
     { "vm_stores_local_float", Double, "(i8*, i8)" },
 # define VM_STORES_GLOBAL		47
-    { "vm_stores_global", "void", "(i8*, i16, i16)" },
+    { "vm_stores_global", "void", "(i8*, i16, i8)" },
 # define VM_STORES_INDEX		48
     { "vm_stores_index", "void", "(i8*)" },
 # define VM_STORES_PARAM_INDEX		49
@@ -128,7 +128,7 @@ static const struct {
 # define VM_STORES_LOCAL_INDEX		50
     { "vm_stores_local_index", "void", "(i8*, i8)" },
 # define VM_STORES_GLOBAL_INDEX		51
-    { "vm_stores_global_index", "void", "(i8*, i16, i16)" },
+    { "vm_stores_global_index", "void", "(i8*, i16, i8)" },
 # define VM_STORES_INDEX_INDEX		52
     { "vm_stores_index_index", "void", "(i8*)" },
 # define VM_DIV_INT			53
@@ -146,7 +146,7 @@ static const struct {
 # define VM_TOINT_FLOAT			59
     { "vm_toint_float", Int, "(i8*, " Double ")" },
 # define VM_NIL				60
-    { "vm_nil", Int, "(i8*)" },
+    { "vm_nil", "void", "(i8*)" },
 # define VM_ADD_FLOAT			61
     { "vm_add_float", Double, "(i8*, " Double ", " Double ")" },
 # define VM_DIV_FLOAT			62
@@ -156,47 +156,47 @@ static const struct {
 # define VM_SUB_FLOAT			64
     { "vm_sub_float", Double, "(i8*, " Double ", " Double ")" },
 # define VM_KFUNC			65
-    { "vm_kfunc", "void", "(i8*, i16, i8)" },
+    { "vm_kfunc", "void", "(i8*, i16, i32)" },
 # define VM_KFUNC_INT			66
-    { "vm_kfunc_int", Int, "(i8*, i16, i8)" },
+    { "vm_kfunc_int", Int, "(i8*, i16, i32)" },
 # define VM_KFUNC_FLOAT			67
-    { "vm_kfunc_float", Double, "(i8*, i16, i8)" },
+    { "vm_kfunc_float", Double, "(i8*, i16, i32)" },
 # define VM_KFUNC_SPREAD		68
-    { "vm_kfunc_spread", "void", "(i8*, i16, i8)" },
+    { "vm_kfunc_spread", "void", "(i8*, i16, i32)" },
 # define VM_KFUNC_SPREAD_INT		69
-    { "vm_kfunc_spread_int", Int, "(i8*, i16, i8)" },
+    { "vm_kfunc_spread_int", Int, "(i8*, i16, i32)" },
 # define VM_KFUNC_SPREAD_FLOAT		70
-    { "vm_kfunc_spread_float", Double, "(i8*, i16, i8)" },
+    { "vm_kfunc_spread_float", Double, "(i8*, i16, i32)" },
 # define VM_KFUNC_SPREAD_LVAL		71
-    { "vm_kfunc_spread_lval", "void", "(i8*, i16, i8)" },
+    { "vm_kfunc_spread_lval", "void", "(i8*, i16, i16, i32)" },
 # define VM_KFUNC_SPREAD_LVAL_INT	72
-    { "vm_kfunc_spread_lval_int", Int, "(i8*, i16, i8)" },
+    { "vm_kfunc_spread_lval_int", Int, "(i8*, i16, i16, i32)" },
 # define VM_KFUNC_SPREAD_LVAL_FLOAT	73
-    { "vm_kfunc_spread_lval_float", Double, "(i8*, i16, i8)" },
+    { "vm_kfunc_spread_lval_float", Double, "(i8*, i16, i16, i32)" },
 # define VM_DFUNC			74
-    { "vm_dfunc", "void", "(i8*, i16, i8, i8)" },
+    { "vm_dfunc", "void", "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_INT			75
-    { "vm_dfunc_int", Int, "(i8*, i16, i8, i8)" },
+    { "vm_dfunc_int", Int, "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_FLOAT			76
-    { "vm_dfunc_float", Double, "(i8*, i16, i8, i8)" },
+    { "vm_dfunc_float", Double, "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_SPREAD		77
-    { "vm_dfunc_spread", "void", "(i8*, i16, i8, i8)" },
+    { "vm_dfunc_spread", "void", "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_SPREAD_INT		78
-    { "vm_dfunc_spread_int", Int, "(i8*, i16, i8, i8)" },
+    { "vm_dfunc_spread_int", Int, "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_SPREAD_FLOAT		79
-    { "vm_dfunc_spread_float", Double, "(i8*, i16, i8, i8)" },
+    { "vm_dfunc_spread_float", Double, "(i8*, i16, i8, i32)" },
 # define VM_FUNC			80
-    { "vm_func", "void", "(i8*, i16, i8)" },
+    { "vm_func", "void", "(i8*, i16, i32)" },
 # define VM_FUNC_INT			81
-    { "vm_func_int", Int, "(i8*, i16, i8)" },
+    { "vm_func_int", Int, "(i8*, i16, i32)" },
 # define VM_FUNC_FLOAT			82
-    { "vm_func_float", Double, "(i8*, i16, i8)" },
+    { "vm_func_float", Double, "(i8*, i16, i32)" },
 # define VM_FUNC_SPREAD			83
-    { "vm_func_spread", "void", "(i8*, i16, i8)" },
+    { "vm_func_spread", "void", "(i8*, i16, i32)" },
 # define VM_FUNC_SPREAD_INT		84
-    { "vm_func_spread_int", Int, "(i8*, i16, i8)" },
+    { "vm_func_spread_int", Int, "(i8*, i16, i32)" },
 # define VM_FUNC_SPREAD_FLOAT		85
-    { "vm_func_spread_float", Double, "(i8*, i16, i8)" },
+    { "vm_func_spread_float", Double, "(i8*, i16, i32)" },
 # define VM_POP				86
     { "vm_pop", "void", "(i8*)" },
 # define VM_POP_BOOL			87
@@ -737,7 +737,7 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(context->sp).type) {
 	case LPC_TYPE_INT:
 	    context->voidCallArgs(VM_STORE_GLOBAL_INT);
-	    fprintf(context->stream, "i16 %u, i16 %u, " Int " %s)\n",
+	    fprintf(context->stream, "i16 %u, i8 %u, " Int " %s)\n",
 		    var.inherit, var.index, tmpRef(context->sp));
 	    if (!pop) {
 		context->copyInt(tmpRef(sp), tmpRef(context->sp));
@@ -747,7 +747,7 @@ void ClangCode::emit(GenContext *context)
 
 	case LPC_TYPE_FLOAT:
 	    context->voidCallArgs(VM_STORE_GLOBAL_FLOAT);
-	    fprintf(context->stream, "i16 %u, i16 %u, " Double " %s)\n",
+	    fprintf(context->stream, "i16 %u, i8 %u, " Double " %s)\n",
 		    var.inherit, var.index, tmpRef(context->sp));
 	    if (!pop) {
 		context->copyFloat(tmpRef(sp), tmpRef(context->sp));
@@ -757,7 +757,7 @@ void ClangCode::emit(GenContext *context)
 
 	default:
 	    context->voidCallArgs(VM_STORE_GLOBAL);
-	    fprintf(context->stream, "i16 %u, i16 %u)\n", var.inherit,
+	    fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit,
 		    var.index);
 	    break;
 	}
@@ -779,7 +779,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORE_GLOBAL_INDEX:
 	context->voidCallArgs(VM_STORE_GLOBAL_INDEX);
-	fprintf(context->stream, "i16 %u, i16 %u)\n", var.inherit, var.index);
+	fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit, var.index);
 	break;
 
     case STORE_INDEX_INDEX:
@@ -787,17 +787,24 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case STORES:
-	context->voidCallArgs(VM_STORES);
-	fprintf(context->stream, "i8 %u)\n", size);
-	if (!context->stores(size, NULL)) {
+	if (context->stores(size, NULL)) {
+	    context->voidCallArgs(VM_STORES);
+	    fprintf(context->stream, "i8 %u)\n", size);
+	} else {
 	    context->voidCall(VM_POP);
 	}
 	break;
 
     case STORES_LVAL:
-	context->voidCallArgs(VM_STORES_LVAL);
-	fprintf(context->stream, "i16 %u)\n", size);
-	if (!context->stores(size, (pop) ? this : NULL)) {
+	if (context->stores(size, (pop) ? this : NULL)) {
+	    if (next->instruction == STORES_SPREAD) {
+		context->voidCallArgs(VM_STORES_SPREAD);
+		fprintf(context->stream, "i8 %u, ", size);
+	    } else {
+		context->voidCallArgs(VM_STORES_LVAL);
+		fprintf(context->stream, "i8 %u)\n", size);
+	    }
+	} else {
 	    context->voidCall(VM_POP);
 	    if (pop) {
 		context->voidCall(VM_POP);
@@ -807,7 +814,6 @@ void ClangCode::emit(GenContext *context)
 	return;
 
     case STORES_SPREAD:
-	context->voidCallArgs(VM_STORES_SPREAD);
 	if (type.type == LPC_TYPE_CLASS) {
 	    fprintf(context->stream, "i8 %u, i8 %u, i16 %u, i16 %u)\n",
 		    spread, type.type, type.inherit, type.index);
@@ -886,7 +892,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_GLOBAL:
 	context->voidCallArgs(VM_STORES_GLOBAL);
-	fprintf(context->stream, "i16 %u, i16 %u)\n", var.inherit, var.index);
+	fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit, var.index);
 	if (!context->storeN()) {
 	    context->voidCall(VM_POP);
 	    if (context->storePop() != NULL) {
@@ -929,7 +935,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_GLOBAL_INDEX:
 	context->voidCallArgs(VM_STORES_GLOBAL_INDEX);
-	fprintf(context->stream, "i16 %u, i16 %u)\n", var.inherit, var.index);
+	fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit, var.index);
 	if (!context->storeN()) {
 	    context->voidCall(VM_POP);
 	    if (context->storePop() != NULL) {
@@ -1332,166 +1338,142 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	default:
-	    switch (context->get(sp).type) {
-	    case LPC_TYPE_INT:
-		context->callArgs(VM_KFUNC_INT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
-			kfun.nargs);
-		result(context);
+	    if (!onStack(context, sp)) {
+		if (context->get(sp).type == LPC_TYPE_INT) {
+		    context->callArgs(VM_KFUNC_INT, tmpRef(sp));
+		    fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
+			    kfun.nargs);
+		} else {
+		    context->callArgs(VM_KFUNC_FLOAT, tmpRef(sp));
+		    fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
+			    kfun.nargs);
+		}
+		context->sp = sp;
 		return;
-
-	    case LPC_TYPE_FLOAT:
-		context->callArgs(VM_KFUNC_FLOAT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
-			kfun.nargs);
-		result(context);
-		return;
-
-	    default:
-		context->voidCallArgs(VM_KFUNC);
-		fprintf(context->stream, "i16 %u, i8 %d)\n", kfun.func,
-			kfun.nargs);
-		break;
 	    }
+
+	    context->voidCallArgs(VM_KFUNC);
+	    fprintf(context->stream, "i16 %u, i32 %d)\n", kfun.func,
+		    kfun.nargs);
+	    break;
 	}
 	break;
 
     case KFUNC_SPREAD:
-	switch (context->get(sp).type) {
-	case LPC_TYPE_INT:
-	    context->callArgs(VM_KFUNC_SPREAD_INT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
-		    kfun.nargs);
-	    result(context);
+	if (!onStack(context, sp)) {
+	    if (context->get(sp).type == LPC_TYPE_INT) {
+		context->callArgs(VM_KFUNC_SPREAD_INT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
+			kfun.nargs);
+	    } else {
+		context->callArgs(VM_KFUNC_SPREAD_FLOAT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
+			kfun.nargs);
+	    }
+	    context->sp = sp;
 	    return;
-
-	case LPC_TYPE_FLOAT:
-	    context->callArgs(VM_KFUNC_SPREAD_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
-		    kfun.nargs);
-	    result(context);
-	    return;
-
-	default:
-	    context->voidCallArgs(VM_KFUNC_SPREAD);
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
-		    kfun.nargs);
-	    break;
 	}
+
+	context->voidCallArgs(VM_KFUNC_SPREAD);
+	fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func, kfun.nargs);
 	break;
 
     case KFUNC_SPREAD_LVAL:
-	switch (context->get(sp).type) {
-	case LPC_TYPE_INT:
-	    context->callArgs(VM_KFUNC_SPREAD_LVAL_INT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
-		    kfun.nargs);
-	    result(context);
+	if (!onStack(context, sp)) {
+	    if (context->get(sp).type == LPC_TYPE_INT) {
+		context->callArgs(VM_KFUNC_SPREAD_LVAL_INT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i16 %u, i32 %u)\n",
+			kfun.lval, kfun.func, kfun.nargs);
+	    } else {
+		context->callArgs(VM_KFUNC_SPREAD_LVAL_FLOAT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i16 %u, i32 %u)\n",
+			kfun.lval, kfun.func, kfun.nargs);
+	    }
+	    context->sp = sp;
 	    return;
-
-	case LPC_TYPE_FLOAT:
-	    context->callArgs(VM_KFUNC_SPREAD_LVAL_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
-		    kfun.nargs);
-	    result(context);
-	    return;
-
-	default:
-	    context->voidCallArgs(VM_KFUNC_SPREAD_LVAL);
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", kfun.func,
-		    kfun.nargs);
-	    break;
 	}
+
+	context->voidCallArgs(VM_KFUNC_SPREAD_LVAL);
+	fprintf(context->stream, "i16 %u, i16 %u, i32 %u)\n", kfun.lval,
+		kfun.func, kfun.nargs);
 	break;
 
     case DFUNC:
-	switch (context->get(sp).type) {
-	case LPC_TYPE_INT:
-	    context->callArgs(VM_DFUNC_INT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
-		    dfun.func, dfun.nargs);
-	    result(context);
+	if (!onStack(context, sp)) {
+	    if (context->get(sp).type == LPC_TYPE_INT) {
+		context->callArgs(VM_DFUNC_INT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n",
+			dfun.inherit, dfun.func, dfun.nargs);
+	    } else {
+		context->callArgs(VM_DFUNC_FLOAT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n",
+			dfun.inherit, dfun.func, dfun.nargs);
+	    }
+	    context->sp = sp;
 	    return;
-
-	case LPC_TYPE_FLOAT:
-	    context->callArgs(VM_DFUNC_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
-		    dfun.func, dfun.nargs);
-	    result(context);
-	    return;
-
-	default:
-	    context->voidCallArgs(VM_DFUNC);
-	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
-		    dfun.func, dfun.nargs);
-	    break;
 	}
+
+	context->voidCallArgs(VM_DFUNC);
+	fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n", dfun.inherit,
+		dfun.func, dfun.nargs);
 	break;
 
     case DFUNC_SPREAD:
-	switch (context->get(sp).type) {
-	case LPC_TYPE_INT:
-	    context->callArgs(VM_DFUNC_SPREAD_INT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
-		    dfun.func, dfun.nargs);
-	    result(context);
+	if (!onStack(context, sp)) {
+	    if (context->get(sp).type == LPC_TYPE_INT) {
+		context->callArgs(VM_DFUNC_SPREAD_INT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n",
+			dfun.inherit, dfun.func, dfun.nargs);
+	    } else {
+		context->callArgs(VM_DFUNC_SPREAD_FLOAT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n",
+			dfun.inherit, dfun.func, dfun.nargs);
+	    }
+	    context->sp = sp;
 	    return;
-
-	case LPC_TYPE_FLOAT:
-	    context->callArgs(VM_DFUNC_SPREAD_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
-		    dfun.func, dfun.nargs);
-	    result(context);
-	    return;
-
-	default:
-	    context->voidCallArgs(VM_DFUNC_SPREAD);
-	    fprintf(context->stream, "i16 %u, i8 %u, i8 %u)\n", dfun.inherit,
-		    dfun.func, dfun.nargs);
-	    break;
 	}
+
+	context->voidCallArgs(VM_DFUNC_SPREAD);
+	fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n", dfun.inherit,
+		dfun.func, dfun.nargs);
 	break;
 
     case FUNC:
-	switch (context->get(sp).type) {
-	case LPC_TYPE_INT:
-	    context->callArgs(VM_FUNC_INT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
-	    result(context);
+	if (!onStack(context, sp)) {
+	    if (context->get(sp).type == LPC_TYPE_INT) {
+		context->callArgs(VM_FUNC_INT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call,
+			fun.nargs);
+	    } else {
+		context->callArgs(VM_FUNC_FLOAT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call,
+			fun.nargs);
+	    }
+	    context->sp = sp;
 	    return;
-
-	case LPC_TYPE_FLOAT:
-	    context->callArgs(VM_FUNC_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
-	    result(context);
-	    return;
-
-	default:
-	    context->voidCallArgs(VM_FUNC);
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
-	    break;
 	}
+
+	context->voidCallArgs(VM_FUNC);
+	fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
 	break;
 
     case FUNC_SPREAD:
-	switch (context->get(sp).type) {
-	case LPC_TYPE_INT:
-	    context->callArgs(VM_FUNC_SPREAD_INT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
-	    result(context);
+	if (!onStack(context, sp)) {
+	    if (context->get(sp).type == LPC_TYPE_INT) {
+		context->callArgs(VM_FUNC_SPREAD_INT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call,
+			fun.nargs);
+	    } else {
+		context->callArgs(VM_FUNC_SPREAD_FLOAT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call,
+			fun.nargs);
+	    }
+	    context->sp = sp;
 	    return;
-
-	case LPC_TYPE_FLOAT:
-	    context->callArgs(VM_FUNC_SPREAD_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
-	    result(context);
-	    return;
-
-	default:
-	    context->voidCallArgs(VM_FUNC_SPREAD);
-	    fprintf(context->stream, "i16 %u, i8 %u)\n", fun.call, fun.nargs);
-	    break;
 	}
+
+	context->voidCallArgs(VM_FUNC_SPREAD);
+	fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
 	break;
 
     case CATCH:
@@ -1849,7 +1831,7 @@ void ClangObject::emit(char *base)
 	Block *b = Block::function(&func);
 
 	fprintf(stderr, "\ndefine internal void @func%d"
-			"(i8* %%f, i32 %%nargs, i8* %%value) #0 {\n",
+			"(i8* %%f, i32 %%nargs) #0 {\n",
 		i + 1);
 	if (b != NULL) {
 	    b->emit(&func, b->fragment());

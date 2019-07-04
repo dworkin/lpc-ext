@@ -256,16 +256,23 @@ Type BlockContext::kfun(LPCKFunCall *kf, Code *code)
 	    --nargs;
 	}
     } else {
+	if (spreadArgs) {
+	    --nargs;
+	}
 	if (kf->lval != 0) {
+	    /*
+	     * XXX right stack depth, wrong stack types
+	     */
 	    /* pop non-lval arguments */
-	    for (nargs = kf->lval; nargs != 0; --nargs) {
+	    if (nargs > kf->lval) {
+		nargs = kf->lval;
+	    }
+	    while (nargs != 0) {
 		pop(code);
+		--nargs;
 	    }
 	    push(LPC_TYPE_ARRAY);
 	} else {
-	    if (spreadArgs) {
-		--nargs;
-	    }
 	    while (nargs != 0) {
 		pop(code);
 		--nargs;

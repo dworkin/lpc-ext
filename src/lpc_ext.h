@@ -6,7 +6,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	12
+# define LPC_EXT_VERSION_MINOR	13
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -75,8 +75,7 @@ typedef void		      (*LPC_jit_compile)(uint64_t, uint64_t, int,
 						 uint8_t*, size_t, int,
 						 uint8_t*, size_t, uint8_t*,
 						 size_t);
-typedef int		      (*LPC_jit_execute)(uint64_t, uint64_t, int, int,
-						 LPC_value);
+typedef int		      (*LPC_jit_execute)(uint64_t, uint64_t, int, int);
 
 
 extern int			lpc_ext_init(int, int, const char*);
