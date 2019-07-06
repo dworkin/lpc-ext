@@ -2,6 +2,7 @@
 # include <stdint.h>
 # include <new>
 # include <string.h>
+# include <stdio.h>
 extern "C" {
 # include "lpc_ext.h"
 }
@@ -683,7 +684,7 @@ int Block::localRef(LPCLocal local)
     return 0;
 }
 
-void Block::emit(CodeFunction *function, CodeSize size)
+void Block::emit(FILE *stream, CodeFunction *function, CodeSize size)
 {
 }
 

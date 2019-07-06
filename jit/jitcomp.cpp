@@ -59,7 +59,7 @@ static void jitComp(CodeObject *object, uint8_t *prog, int nFunctions,
 	if (b != NULL) {
 	    size = b->fragment();
 	    if (size != 0) {
-		b->emit(&func, size);
+		b->emit(stderr, &func, size);
 	    }
 	    b->clear();
 	}

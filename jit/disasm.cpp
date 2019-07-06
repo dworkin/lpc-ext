@@ -17,8 +17,11 @@ extern "C" {
 
 class GenContext : public FlowContext {
 public:
-    GenContext(CodeFunction *func, StackSize size) : FlowContext(func, size) { }
+    GenContext(FILE *stream, CodeFunction *func, StackSize size) :
+	FlowContext(func, size), stream(stream) { }
     virtual ~GenContext() { }
+
+    FILE *stream;
 };
 
 
@@ -32,115 +35,60 @@ Code *DisCode::create(CodeFunction *function)
 }
 
 /*
- * disassemble LPC type
+ * emit type
  */
-static void dis_type(Type type)
-{
-    int i;
-
-    switch (type & LPC_TYPE_MASK) {
-    case LPC_TYPE_NIL:
-	fprintf(stderr, "nil");
-	break;
-
-    case LPC_TYPE_INT:
-	fprintf(stderr, "int");
-	break;
-
-    case LPC_TYPE_FLOAT:
-	fprintf(stderr, "float");
-	break;
-
-    case LPC_TYPE_STRING:
-	fprintf(stderr, "string");
-	break;
-
-    case LPC_TYPE_OBJECT:
-    case LPC_TYPE_CLASS:
-	fprintf(stderr, "object");
-	break;
-
-    case LPC_TYPE_ARRAY:
-	fprintf(stderr, "mixed *");
-	break;
-
-    case LPC_TYPE_MAPPING:
-	fprintf(stderr, "mapping");
-	break;
-
-    case LPC_TYPE_MIXED:
-	fprintf(stderr, "mixed");
-	break;
-
-    case LPC_TYPE_VOID:
-	fprintf(stderr, "void");
-	break;
-
-    default:
-	fprintf(stderr, "unknown");
-	break;
-    }
-
-    for (i = LPC_TYPE_REF(type); i != 0; --i) {
-	fprintf(stderr, "*");
-    }
-}
-
-/*
- * disassemble cast type
- */
-static void dis_casttype(LPCType *type)
+void DisCode::emitType(GenContext *context, LPCType *type)
 {
     int i;
 
     switch (type->type & LPC_TYPE_MASK) {
     case LPC_TYPE_NIL:
-	fprintf(stderr, "nil\t");
+	fprintf(context->stream, "nil\t");
 	break;
 
     case LPC_TYPE_INT:
-	fprintf(stderr, "int\t");
+	fprintf(context->stream, "int\t");
 	break;
 
     case LPC_TYPE_FLOAT:
-	fprintf(stderr, "float\t");
+	fprintf(context->stream, "float\t");
 	break;
 
     case LPC_TYPE_STRING:
-	fprintf(stderr, "string");
+	fprintf(context->stream, "string");
 	break;
 
     case LPC_TYPE_OBJECT:
-	fprintf(stderr, "object");
+	fprintf(context->stream, "object");
 	break;
 
     case LPC_TYPE_ARRAY:
-	fprintf(stderr, "mixed *");
+	fprintf(context->stream, "mixed *");
 	break;
 
     case LPC_TYPE_MAPPING:
-	fprintf(stderr, "mapping");
+	fprintf(context->stream, "mapping");
 	break;
 
     case LPC_TYPE_CLASS:
-	fprintf(stderr, "class <%d, %d>", type->inherit, type->index);
+	fprintf(context->stream, "class <%d, %d>", type->inherit, type->index);
 	break;
 
     case LPC_TYPE_MIXED:
-	fprintf(stderr, "mixed\t");
+	fprintf(context->stream, "mixed\t");
 	break;
 
     case LPC_TYPE_VOID:
-	fprintf(stderr, "void\t");
+	fprintf(context->stream, "void\t");
 	break;
 
     default:
-	fprintf(stderr, "unknown");
+	fprintf(context->stream, "unknown");
 	break;
     }
 
     for (i = LPC_TYPE_REF(type->type); i != 0; --i) {
-	fprintf(stderr, "*");
+	fprintf(context->stream, "*");
     }
 }
 
@@ -151,215 +99,218 @@ void DisCode::emit(GenContext *context)
 {
     int i;
 
-    fprintf(stderr, " %04x", addr);
+    fprintf(context->stream, " %04x", addr);
     if (line != context->line) {
-	fprintf(stderr, "%5d", line);
+	fprintf(context->stream, "%5d", line);
 	context->line = line;
     } else {
-	fprintf(stderr, "     ");
+	fprintf(context->stream, "     ");
     }
     if (pop) {
-	fprintf(stderr, " P ");
+	fprintf(context->stream, " P ");
     } else {
-	fprintf(stderr, "   ");
+	fprintf(context->stream, "   ");
     }
 
     switch (instruction) {
     case INT:
-	fprintf(stderr, "INT %lld\n", (long long) num);
+	fprintf(context->stream, "INT %lld\n", (long long) num);
 	break;
 
     case FLOAT:
-	fprintf(stderr, "FLOAT <%08X, %016llX>\n", flt.high,
+	fprintf(context->stream, "FLOAT <%08X, %016llX>\n", flt.high,
 		(unsigned long long) flt.low);
 	break;
 
     case STRING:
-	fprintf(stderr, "STRING <%d, %d>\n", str.inherit, str.index);
+	fprintf(context->stream, "STRING <%d, %d>\n", str.inherit, str.index);
 	break;
 
     case PARAM:
-	fprintf(stderr, "PARAM %d\n", param);
+	fprintf(context->stream, "PARAM %d\n", param);
 	break;
 
     case LOCAL:
-	fprintf(stderr, "LOCAL %d\n", local);
+	fprintf(context->stream, "LOCAL %d\n", local);
 	break;
 
     case GLOBAL:
-	fprintf(stderr, "GLOBAL <%d, %d>\n", var.inherit, var.index);
+	fprintf(context->stream, "GLOBAL <%d, %d>\n", var.inherit, var.index);
 	break;
 
     case INDEX:
-	fprintf(stderr, "INDEX\n");
+	fprintf(context->stream, "INDEX\n");
 	break;
 
     case INDEX2:
-	fprintf(stderr, "INDEX2\n");
+	fprintf(context->stream, "INDEX2\n");
 	break;
 
     case SPREAD:
-	fprintf(stderr, "SPREAD\n");
+	fprintf(context->stream, "SPREAD\n");
 	break;
 
     case SPREAD_LVAL:
-	fprintf(stderr, "SPREAD_LVAL %d\n", spread);
+	fprintf(context->stream, "SPREAD_LVAL %d\n", spread);
 	break;
 
     case STORES_SPREAD:
-	fprintf(stderr, "STORES_SPREAD %d ", spread);
-	dis_casttype(&type);
-	fprintf(stderr, "\n");
+	fprintf(context->stream, "STORES_SPREAD %d ", spread);
+	emitType(context, &type);
+	fprintf(context->stream, "\n");
 	break;
 
     case AGGREGATE:
-	fprintf(stderr, "AGGREGATE %d\n", size);
+	fprintf(context->stream, "AGGREGATE %d\n", size);
 	break;
 
     case MAP_AGGREGATE:
-	fprintf(stderr, "MAP_AGGREGATE %d\n", size);
+	fprintf(context->stream, "MAP_AGGREGATE %d\n", size);
 	break;
 
     case CAST:
-	fprintf(stderr, "CAST ");
-	dis_casttype(&type);
-	fprintf(stderr, "\n");
+	fprintf(context->stream, "CAST ");
+	emitType(context, &type);
+	fprintf(context->stream, "\n");
 	break;
 
     case STORES_CAST:
-	fprintf(stderr, "STORES_CAST ");
-	dis_casttype(&type);
-	fprintf(stderr, "\n");
+	fprintf(context->stream, "STORES_CAST ");
+	emitType(context, &type);
+	fprintf(context->stream, "\n");
 	break;
 
     case INSTANCEOF:
-	fprintf(stderr, "INSTANCEOF <%d, %d>\n", str.inherit, str.index);
+	fprintf(context->stream, "INSTANCEOF <%d, %d>\n", str.inherit,
+		str.index);
 	break;
 
     case CHECK_RANGE:
-	fprintf(stderr, "CHECK_RANGE\n");
+	fprintf(context->stream, "CHECK_RANGE\n");
 	break;
 
     case CHECK_RANGE_FROM:
-	fprintf(stderr, "CHECK_RANGE_FROM\n");
+	fprintf(context->stream, "CHECK_RANGE_FROM\n");
 	break;
 
     case CHECK_RANGE_TO:
-	fprintf(stderr, "CHECK_RANGE_TO\n");
+	fprintf(context->stream, "CHECK_RANGE_TO\n");
 	break;
 
     case STORES:
-	fprintf(stderr, "STORES %d\n", size);
+	fprintf(context->stream, "STORES %d\n", size);
 	break;
 
     case STORES_LVAL:
-	fprintf(stderr, "STORES_LVAL %d\n", size);
+	fprintf(context->stream, "STORES_LVAL %d\n", size);
 	break;
 
     case STORE_PARAM:
-	fprintf(stderr, "STORE_PARAM %d\n", param);
+	fprintf(context->stream, "STORE_PARAM %d\n", param);
 	break;
 
     case STORE_LOCAL:
-	fprintf(stderr, "STORE_LOCAL %d\n", local);
+	fprintf(context->stream, "STORE_LOCAL %d\n", local);
 	break;
 
     case STORE_GLOBAL:
-	fprintf(stderr, "STORE_GLOBAL <%d, %d>\n", var.inherit, var.index);
+	fprintf(context->stream, "STORE_GLOBAL <%d, %d>\n", var.inherit,
+		var.index);
 	break;
 
     case STORE_INDEX:
-	fprintf(stderr, "STORE_INDEX\n");
+	fprintf(context->stream, "STORE_INDEX\n");
 	break;
 
     case STORE_PARAM_INDEX:
-	fprintf(stderr, "STORE_PARAM_INDEX %d\n", param);
+	fprintf(context->stream, "STORE_PARAM_INDEX %d\n", param);
 	break;
 
     case STORE_LOCAL_INDEX:
-	fprintf(stderr, "STORE_LOCAL_INDEX %d\n", local);
+	fprintf(context->stream, "STORE_LOCAL_INDEX %d\n", local);
 	break;
 
     case STORE_GLOBAL_INDEX:
-	fprintf(stderr, "STORE_GLOBAL_INDEX <%d, %d>\n", var.inherit,
+	fprintf(context->stream, "STORE_GLOBAL_INDEX <%d, %d>\n", var.inherit,
 		var.index);
 	break;
 
     case STORE_INDEX_INDEX:
-	fprintf(stderr, "STORE_INDEX_INDEX\n");
+	fprintf(context->stream, "STORE_INDEX_INDEX\n");
 	break;
 
     case STORES_PARAM:
-	fprintf(stderr, "STORES_PARAM %d\n", param);
+	fprintf(context->stream, "STORES_PARAM %d\n", param);
 	break;
 
     case STORES_LOCAL:
-	fprintf(stderr, "STORES_LOCAL %d\n", local);
+	fprintf(context->stream, "STORES_LOCAL %d\n", local);
 	break;
 
     case STORES_GLOBAL:
-	fprintf(stderr, "STORES_GLOBAL <%d, %d>\n", var.inherit, var.index);
+	fprintf(context->stream, "STORES_GLOBAL <%d, %d>\n", var.inherit,
+		var.index);
 	break;
 
     case STORES_INDEX:
-	fprintf(stderr, "STORES_INDEX\n");
+	fprintf(context->stream, "STORES_INDEX\n");
 	break;
 
     case STORES_PARAM_INDEX:
-	fprintf(stderr, "STORES_PARAM_INDEX %d\n", param);
+	fprintf(context->stream, "STORES_PARAM_INDEX %d\n", param);
 	break;
 
     case STORES_LOCAL_INDEX:
-	fprintf(stderr, "STORES_LOCAL_INDEX %d\n", local);
+	fprintf(context->stream, "STORES_LOCAL_INDEX %d\n", local);
 	break;
 
     case STORES_GLOBAL_INDEX:
-	fprintf(stderr, "STORES_GLOBAL_INDEX <%d, %d>\n", var.inherit,
+	fprintf(context->stream, "STORES_GLOBAL_INDEX <%d, %d>\n", var.inherit,
 		var.index);
 	break;
 
     case STORES_INDEX_INDEX:
-	fprintf(stderr, "STORES_INDEX_INDEX\n");
+	fprintf(context->stream, "STORES_INDEX_INDEX\n");
 	break;
 
     case JUMP:
-	fprintf(stderr, "JUMP %04x\n", target);
+	fprintf(context->stream, "JUMP %04x\n", target);
 	break;
 
     case JUMP_ZERO:
-	fprintf(stderr, "JUMP_ZERO %04x\n", target);
+	fprintf(context->stream, "JUMP_ZERO %04x\n", target);
 	break;
 
     case JUMP_NONZERO:
-	fprintf(stderr, "JUMP_NONZERO %04x\n", target);
+	fprintf(context->stream, "JUMP_NONZERO %04x\n", target);
 	break;
 
     case SWITCH_INT:
-	fprintf(stderr, "SWITCH_INT %04x\n", caseInt->addr);
+	fprintf(context->stream, "SWITCH_INT %04x\n", caseInt->addr);
 	for (i = 1; i < size; i++) {
-	    fprintf(stderr, "              case %lld: %04x\n",
+	    fprintf(context->stream, "              case %lld: %04x\n",
 		    (long long) caseInt[i].num, caseInt[i].addr);
 	}
 	break;
 
     case SWITCH_RANGE:
-	fprintf(stderr, "SWITCH_RANGE %04x\n", caseRange->addr);
+	fprintf(context->stream, "SWITCH_RANGE %04x\n", caseRange->addr);
 	for (i = 1; i < size; i++) {
-	    fprintf(stderr, "              case %lld..%lld: %04x\n",
+	    fprintf(context->stream, "              case %lld..%lld: %04x\n",
 		    (long long) caseRange[i].from, (long long) caseRange[i].to,
 		    caseRange[i].addr);
 	}
 	break;
 
     case SWITCH_STRING:
-	fprintf(stderr, "SWITCH_STRING %04x\n", caseString->addr);
+	fprintf(context->stream, "SWITCH_STRING %04x\n", caseString->addr);
 	for (i = 1; i < size; i++) {
 	    if (caseString[i].str.inherit == 0 &&
 		caseString[i].str.index == 0xffff) {
-		fprintf(stderr, "              case nil: %04x\n",
+		fprintf(context->stream, "              case nil: %04x\n",
 			caseString[i].addr);
 	    } else {
-		fprintf(stderr, "              case <%d, %d>: %04x\n",
+		fprintf(context->stream, "              case <%d, %d>: %04x\n",
 			caseString[i].str.inherit, caseString[i].str.index,
 			caseString[i].addr);
 	    }
@@ -368,47 +319,47 @@ void DisCode::emit(GenContext *context)
 
     case KFUNC:
     case KFUNC_SPREAD:
-	fprintf(stderr, "KFUNC %d (%d)\n", kfun.func, kfun.nargs);
+	fprintf(context->stream, "KFUNC %d (%d)\n", kfun.func, kfun.nargs);
 	break;
 
     case KFUNC_LVAL:
     case KFUNC_SPREAD_LVAL:
-	fprintf(stderr, "KFUNC_LVAL %d (%d)\n", kfun.func, kfun.nargs);
+	fprintf(context->stream, "KFUNC_LVAL %d (%d)\n", kfun.func, kfun.nargs);
 	break;
 
     case DFUNC:
     case DFUNC_SPREAD:
-	fprintf(stderr, "DFUNC <%d, %d> (%d)\n", dfun.inherit, dfun.func,
-		dfun.nargs);
+	fprintf(context->stream, "DFUNC <%d, %d> (%d)\n", dfun.inherit,
+		dfun.func, dfun.nargs);
 	break;
 
     case FUNC:
     case FUNC_SPREAD:
-	fprintf(stderr, "FUNC %d (%d)\n", fun.call, fun.nargs);
+	fprintf(context->stream, "FUNC %d (%d)\n", fun.call, fun.nargs);
 	break;
 
     case CATCH:
-	fprintf(stderr, "CATCH %04x\n", target);
+	fprintf(context->stream, "CATCH %04x\n", target);
 	break;
 
     case END_CATCH:
-	fprintf(stderr, "END_CATCH\n");
+	fprintf(context->stream, "END_CATCH\n");
 	break;
 
     case RLIMITS:
-	fprintf(stderr, "RLIMITS\n");
+	fprintf(context->stream, "RLIMITS\n");
 	break;
 
     case RLIMITS_CHECK:
-	fprintf(stderr, "RLIMITS_CHECK\n");
+	fprintf(context->stream, "RLIMITS_CHECK\n");
 	break;
 
     case END_RLIMITS:
-	fprintf(stderr, "END_RLIMITS\n");
+	fprintf(context->stream, "END_RLIMITS\n");
 	break;
 
     case RETURN:
-	fprintf(stderr, "RETURN\n");
+	fprintf(context->stream, "RETURN\n");
 	break;
 
     default:
@@ -432,9 +383,9 @@ Block *DisBlock::create(Code *first, Code *last, CodeSize size)
 /*
  * emit program disassembly
  */
-void DisBlock::emit(CodeFunction *function, CodeSize size)
+void DisBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 {
-    GenContext context(function, size);
+    GenContext context(stream, function, size);
     CodeLine line;
     Block *b;
     Code *code;
@@ -447,21 +398,21 @@ void DisBlock::emit(CodeFunction *function, CodeSize size)
 	if (b->nFrom == 0 && b != this) {
 	    continue;
 	}
-	fprintf(stderr, "{");
+	fprintf(stream, "{");
 	if (b->nFrom != 0) {
-	    fprintf(stderr, " [");
+	    fprintf(stream, " [");
 	    for (i = 0; i < b->nFrom; i++) {
-		fprintf(stderr, "%04x", b->from[i]->first->addr);
+		fprintf(stream, "%04x", b->from[i]->first->addr);
 		if (i != b->nFrom - 1) {
-		    fprintf(stderr, ", ");
+		    fprintf(stream, ", ");
 		}
 	    }
-	    fprintf(stderr, "]");
+	    fprintf(stream, "]");
 	}
 	if (b->level != 0) {
-	    fprintf(stderr, " <%d>", b->level);
+	    fprintf(stream, " <%d>", b->level);
 	}
-	fprintf(stderr, "\n");
+	fprintf(stream, "\n");
 	for (code = b->first; ; code = code->next) {
 	    code->emit(&context);
 	    if (code == b->last) {
@@ -469,18 +420,18 @@ void DisBlock::emit(CodeFunction *function, CodeSize size)
 	    }
 	}
 
-	fprintf(stderr, "}");
+	fprintf(stream, "}");
 	if (b->nTo != 0) {
-	    fprintf(stderr, " [");
+	    fprintf(stream, " [");
 	    for (i = 0; i < b->nTo; i++) {
-		fprintf(stderr, "%04x", b->to[i]->first->addr);
+		fprintf(stream, "%04x", b->to[i]->first->addr);
 		if (i != b->nTo - 1) {
-		    fprintf(stderr, ", ");
+		    fprintf(stream, ", ");
 		}
 	    }
-	    fprintf(stderr, "]");
+	    fprintf(stream, "]");
 	}
-	fprintf(stderr, "\n");
+	fprintf(stream, "\n");
     }
-    fprintf(stderr, "\n");
+    fprintf(stream, "\n");
 }

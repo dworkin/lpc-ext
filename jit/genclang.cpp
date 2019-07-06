@@ -206,8 +206,8 @@ static const struct {
 
 class GenContext : public FlowContext {
 public:
-    GenContext(CodeFunction *func, StackSize size) : FlowContext(func, size) {
-	stream = stderr;
+    GenContext(FILE *stream, CodeFunction *func, StackSize size) :
+	FlowContext(func, size), stream(stream) {
 	next = 0;
 	count = 0;
     }
@@ -1540,9 +1540,9 @@ ClangBlock::~ClangBlock()
 /*
  * emit pseudo instructions for all blocks
  */
-void ClangBlock::emit(CodeFunction *function, CodeSize size)
+void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 {
-    GenContext context(function, size);
+    GenContext context(stream, function, size);
     Block *b;
     LPCParam nParams, n;
     bool initParam;
@@ -1834,7 +1834,7 @@ void ClangObject::emit(char *base)
 			"(i8* %%f, i32 %%nargs) #0 {\n",
 		i + 1);
 	if (b != NULL) {
-	    b->emit(&func, b->fragment());
+	    b->emit(stderr, &func, b->fragment());
 	    b->clear();
 	} else {
 	    fprintf(stderr, "\tret void\n");

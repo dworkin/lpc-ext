@@ -22,7 +22,7 @@ public:
     ClangBlock(Code *fist, Code *last, CodeSize size);
     virtual ~ClangBlock();
 
-    virtual void emit(CodeFunction *function, CodeSize size);
+    virtual void emit(FILE *stream, CodeFunction *function, CodeSize size);
 
     static Block *create(Code *first, Code *last, CodeSize size);
 };
