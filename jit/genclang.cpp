@@ -38,7 +38,7 @@ static const struct {
 # define VM_PARAM_FLOAT			5
     { "vm_param_float", Double, "(i8*, i8)" },
 # define VM_LOCAL			6
-    { "vm_local", "void", "(i8*, i32)" },
+    { "vm_local", "void", "(i8*, i8)" },
 # define VM_GLOBAL			7
     { "vm_global", "void", "(i8*, i16, i8)" },
 # define VM_GLOBAL_INT			8
@@ -227,10 +227,12 @@ public:
      * generate reference
      */
     char *genRef() {
-	static char buf[10];
+	static char bufs[2][10];
+	static int n = 0;
 
-	sprintf(buf, "%%c%d", ++count);
-	return buf;
+	n = (n + 1) % 2;
+	sprintf(bufs[n], "%%c%d", ++count);
+	return bufs[n];
     }
 
     /*
@@ -493,7 +495,7 @@ void ClangCode::result(GenContext *context)
 }
 
 /*
- * emit pseudo instructions for this Code
+ * emit instructions for this Code
  */
 void ClangCode::emit(GenContext *context)
 {
@@ -967,8 +969,8 @@ void ClangCode::emit(GenContext *context)
 	} else {
 	    context->call(VM_POP_BOOL, ref);
 	}
-	fprintf(context->stream, "\tbr i1 %s, %%L%04x, %%L%04x\n", ref,
-		context->next, target);
+	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%L%04x\n",
+		ref, context->next, target);
 	context->sp = sp;
 	return;
 
@@ -981,8 +983,8 @@ void ClangCode::emit(GenContext *context)
 	} else {
 	    context->call(VM_POP_BOOL, ref);
 	}
-	fprintf(context->stream, "\tbr i1 %s, %%L%04x, %%L%04x\n", ref, target,
-		context->next);
+	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%L%04x\n",
+		ref, target, context->next);
 	context->sp = sp;
 	return;
 
@@ -1538,7 +1540,7 @@ ClangBlock::~ClangBlock()
 }
 
 /*
- * emit pseudo instructions for all blocks
+ * emit instructions for all blocks
  */
 void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 {
@@ -1561,7 +1563,7 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 	switch (function->proto[n].type) {
 	case LPC_TYPE_INT:
 	    if (!initParam) {
-		fprintf(context.stream, "%%Lparam:\n");
+		fprintf(context.stream, "Lparam:\n");
 	    }
 	    context.callArgs(VM_PARAM_INT, ClangCode::paramRef(nParams - n, 0));
 	    fprintf(context.stream, "i8 %d)\n", nParams - n);
@@ -1569,7 +1571,7 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 
 	case LPC_TYPE_FLOAT:
 	    if (!initParam) {
-		fprintf(context.stream, "%%Lparam:\n");
+		fprintf(context.stream, "Lparam:\n");
 	    }
 	    context.callArgs(VM_PARAM_FLOAT,
 			     ClangCode::paramRef(nParams - n, 0));
@@ -1582,14 +1584,14 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 	initParam = true;
     }
     if (initParam) {
-	fprintf(context.stream, "\tbr %%L0000\n");
+	fprintf(context.stream, "\tbr label %%L0000\n");
     }
 
     for (b = this; b != NULL; b = b->next) {
 	if (b->nFrom == 0 && b != this) {
 	    continue;
 	}
-	fprintf(context.stream, "%%L%04x:\n", b->first->addr);
+	fprintf(context.stream, "L%04x:\n", b->first->addr);
 	b->prepareFlow(&context);
 	context.prepareGen(b);
 
@@ -1743,7 +1745,8 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 	    if (code == b->last) {
 		switch (code->instruction) {
 		case Code::JUMP:
-		    fprintf(context.stream, "\tbr %%L%04x\n", code->target);
+		    fprintf(context.stream, "\tbr label %%L%04x\n",
+			    code->target);
 		    break;
 
 		case Code::JUMP_ZERO:
@@ -1760,7 +1763,8 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 		    break;
 
 		default:
-		    fprintf(context.stream, "\tbr %%L%04x\n", context.next);
+		    fprintf(context.stream, "\tbr label %%L%04x\n",
+			    context.next);
 		    break;
 		}
 		break;
@@ -1804,12 +1808,12 @@ void ClangObject::table(FILE *stream, int nFunctions)
 {
     int i;
 
-    fprintf(stream, "@functions = [%d x void (i8*, i32, i8*)*] [",
+    fprintf(stream, "@functions = global [%d x void (i8*)*] [",
 	    nFunctions + 1);
     for (i = 1; i <= nFunctions; i++) {
-	fprintf(stream, "void (i8*, i32, i8*)* @func%d, ", i);
+	fprintf(stream, "void (i8*)* @func%d, ", i);
     }
-    fprintf(stream, "null], align %d\n", 8);
+    fprintf(stream, "void (i8*)* null], align %d\n", 8);
 }
 
 /*
@@ -1817,31 +1821,38 @@ void ClangObject::table(FILE *stream, int nFunctions)
  */
 void ClangObject::emit(char *base)
 {
+    char path[1000];
+    FILE *stream;
     int i;
 
     /*
      * generate .ll file
      */
-    header(stderr);
+    sprintf(path, "%s.ll", base);
+    stream = fopen(path, "w");
+    fprintf(stderr, "%s\n", path);
 
-    table(stderr, nFunctions);
+    header(stream);
+
+    table(stream, nFunctions);
 
     for (i = 0; i < nFunctions; i++) {
 	CodeFunction func(object, prog);
 	Block *b = Block::function(&func);
 
-	fprintf(stderr, "\ndefine internal void @func%d"
-			"(i8* %%f, i32 %%nargs) #0 {\n",
+	fprintf(stream, "\ndefine internal void @func%d(i8* %%f) #0 {\n",
 		i + 1);
 	if (b != NULL) {
-	    b->emit(stderr, &func, b->fragment());
+	    b->emit(stream, &func, b->fragment());
 	    b->clear();
 	} else {
-	    fprintf(stderr, "\tret void\n");
+	    fprintf(stream, "\tret void\n");
 	}
 	prog = func.endProg();
-	fprintf(stderr, "}\n");
+	fprintf(stream, "}\n");
     }
+
+    fclose(stream);
 
     /*
      * compile .ll file to object
