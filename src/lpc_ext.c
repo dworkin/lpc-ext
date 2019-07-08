@@ -112,7 +112,6 @@ DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[],
 		   &lpc_md5_start,
 		   &lpc_md5_block,
 		   &lpc_md5_end) &&
-	    ext_cb(ftabs[11], sizes[11], 0) &&
 	    lpc_ext_init(major, minor, config));
 }
 

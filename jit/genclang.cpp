@@ -1,5 +1,6 @@
 # include <stdlib.h>
 # include <stdint.h>
+# include <unistd.h>
 # include <new>
 # include <math.h>
 # include <stdio.h>
@@ -1793,6 +1794,40 @@ ClangObject::~ClangObject()
 {
 }
 
+/*
+ * test clang compiler and generate vm object
+ */
+bool ClangObject::init(const char *base)
+{
+    char buffer[1000];
+    FILE *stream;
+    int i;
+
+    sprintf(buffer, "%s.c", base);
+    stream = fopen(buffer, "w");
+    if (stream == NULL) {
+	return false;
+    }
+    fprintf(stream, "/* automatically generated */\n");
+    for (i = 0; i < VM_FUNCTIONS; i++) {
+	fprintf(stream, "void *%s;\n", functions[i].name);
+    }
+    fprintf(stream, "\nvoid init(void **ftab)\n{\n");
+    for (i = 0; i < VM_FUNCTIONS; i++) {
+	fprintf(stream, "  %s = *ftab++;\n", functions[i].name);
+    }
+    fprintf(stream, "}\n");
+    fclose(stream);
+
+    sprintf(buffer, "%s.so", base);
+    unlink(buffer);
+    sprintf(buffer, "clang -Os -fPIC -shared -o %s.so %s.c", base, base);
+    return (system(buffer) == 0);
+}
+
+/*
+ * generate jit header
+ */
 void ClangObject::header(FILE *stream)
 {
     int i;
@@ -1804,6 +1839,9 @@ void ClangObject::header(FILE *stream)
     }
 }
 
+/*
+ * generate jit function table
+ */
 void ClangObject::table(FILE *stream, int nFunctions)
 {
     int i;

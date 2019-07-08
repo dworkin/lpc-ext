@@ -8,10 +8,15 @@
 # include <sys/types.h>
 # include <sys/stat.h>
 # include <fcntl.h>
+# include <dlfcn.h>
+# ifdef SOLARIS
+# include <link.h>
+# endif
 # include <stdio.h>
 # include "lpc_ext.h"
 # include "jit.h"
 
+static char configDir[1000];
 
 /*
  * NAME:	JIT->init()
@@ -19,13 +24,16 @@
  */
 static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
 		    int nBuiltins, int nKfuns, uint8_t *protos,
-		    size_t protoSize)
+		    size_t protoSize, void **vmtab)
 {
+    char path[1000];
     JitInfo info;
     bool result;
+    void *h;
+    void (*init)(void**);
 
     /*
-     * pass information to the JIT compiler backend, return result
+     * pass information to the JIT compiler backend
      */
     info.major = major;
     info.minor = minor;
@@ -35,10 +43,32 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
     info.nKfuns = nKfuns;
     info.protoSize = protoSize;
 
-    return (lpc_ext_write(&info, sizeof(JitInfo)) == sizeof(JitInfo) &&
-	    lpc_ext_write(protos, protoSize) == protoSize &&
-	    lpc_ext_read(&result, 1) == 1 &&
-	    result);
+    if (lpc_ext_write(&info, sizeof(JitInfo)) != sizeof(JitInfo) ||
+	lpc_ext_write(protos, protoSize) != protoSize ||
+	lpc_ext_read(&result, 1) != 1 ||
+	result != true) {
+	return false;
+    }
+
+    /*
+     * dynamically load vm.so
+     */
+    sprintf(path, "%s/cache/vm.so", configDir);
+    h = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+    if (h == (void *) NULL) {
+	return false;
+    }
+    init = (void *) dlsym(h, "init");
+    if (init == NULL) {
+	dlclose(h);
+	return false;
+    }
+
+    /*
+     * initialize vm object with function table
+     */
+    (*init)(vmtab);
+    return true;
 }
 
 
@@ -52,7 +82,6 @@ typedef struct {
 # define NOBJECTS	800
 
 static CacheEntry objects[NOBJECTS];
-static char configDir[1000];
 static pthread_mutex_t lock;
 
 /*

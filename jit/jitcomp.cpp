@@ -124,6 +124,12 @@ int main(int argc, char *argv[])
 
     cc = new CodeContext(info.intSize, info.inheritSize, protos, info.nBuiltins,
 			 info.nKfuns);
+
+# ifdef GENCLANG
+    if (!ClangObject::init("cache/vm")) {
+	reply = false;
+    } else
+# endif
     reply = true;
     write(1, &reply, 1);
 
@@ -131,20 +137,25 @@ int main(int argc, char *argv[])
 	char path[1000];
 	JitCompile comp;
 	int fd;
+	uint8_t *prog, *ftypes, *vtypes;
 
 	filename(path, hash);
 	fd = open(path, O_RDONLY);
 	read(fd, &comp, sizeof(JitCompile));
-	uint8_t prog[comp.progSize];
+	prog = new uint8_t[comp.progSize];
+	ftypes = new uint8_t[comp.fTypeSize];
+	vtypes = new uint8_t[comp.vTypeSize];
 	read(fd, prog, comp.progSize);
-	uint8_t ftypes[comp.fTypeSize];
 	read(fd, ftypes, comp.fTypeSize);
-	uint8_t vtypes[comp.vTypeSize];
 	read(fd, vtypes, comp.vTypeSize);
 	close(fd);
 
 	CodeObject object(cc, comp.nInherits, ftypes, vtypes);
 	jitComp(&object, prog, comp.nFunctions, path);
+
+	delete[] vtypes;
+	delete[] ftypes;
+	delete[] prog;
     }
 
     return 0;

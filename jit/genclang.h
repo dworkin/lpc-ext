@@ -34,6 +34,8 @@ public:
 
     void emit(char *base);
 
+    static bool init(const char *base);
+
 private:
     void header(FILE *stream);
     void table(FILE *stream, int nFunctions);
