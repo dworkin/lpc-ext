@@ -1998,6 +1998,6 @@ void ClangObject::emit(char *base)
 
     /*
      * compile .ll file to object
-    system("clang -Os -fPIC -shared fname.ll -o fname.so");
+    system("clang -Wno-override-module -Os -fPIC -shared fname.ll -o fname.so");
      */
 }
