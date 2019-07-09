@@ -527,7 +527,8 @@ void ClangCode::emit(GenContext *context)
 		d = -d;
 	    }
 	}
-	fprintf(context->stream, "\t%s = fadd fast " Double " %.26LgL, 0.0\n",
+	/* XXX hexadecimal representation needed for long double? */
+	fprintf(context->stream, "\t%s = fadd fast " Double " %.26Le, 0.0\n",
 		tmpRef(sp), d);
 	result(context);
 	return;
@@ -1834,7 +1835,7 @@ void ClangObject::header(FILE *stream)
 
     fprintf(stream, "target triple = \"%s\"\n\n", TARGET_TRIPLE);
     for (i = 0; i < VM_FUNCTIONS; i++) {
-	fprintf(stream, "@%s = external global %s %s*, align %d\n", 
+	fprintf(stream, "@%s = external constant %s %s*, align %d\n",
 		functions[i].name, functions[i].ret, functions[i].args, 8);
     }
 }
@@ -1846,7 +1847,7 @@ void ClangObject::table(FILE *stream, int nFunctions)
 {
     int i;
 
-    fprintf(stream, "@functions = global [%d x void (i8*)*] [",
+    fprintf(stream, "@functions = constant [%d x void (i8*)*] [",
 	    nFunctions + 1);
     for (i = 1; i <= nFunctions; i++) {
 	fprintf(stream, "void (i8*)* @func%d, ", i);
