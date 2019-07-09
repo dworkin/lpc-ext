@@ -8,7 +8,9 @@ public:
     static bool onStack(class GenContext *context, StackSize sp);
     static char *tmpRef(StackSize sp);
     static char *paramRef(LPCParam param, int ref);
+    static char *paramPhi(LPCParam param, int ref);
     static char *localRef(LPCLocal local, int ref);
+    static char *localPhi(LPCLocal local, int ref);
     static Code *create(CodeFunction *function);
 
 private:

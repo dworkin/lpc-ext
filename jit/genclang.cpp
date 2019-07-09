@@ -429,6 +429,25 @@ char *ClangCode::paramRef(LPCParam param, int ref)
 }
 
 /*
+ * return a name for a parameter phi reference
+ */
+char *ClangCode::paramPhi(LPCParam param, int ref)
+{
+    static char buf[20];
+
+    if (ref < 0) {
+	/* merged */
+	sprintf(buf, "%%p%um%dx", param, -ref);
+    } else {
+	if (ref == GenContext::INITIAL) {
+	    ref = 0;
+	}
+	sprintf(buf, "%%p%ur%dx", param, ref);
+    }
+    return buf;
+}
+
+/*
  * return a name for a local var reference
  */
 char *ClangCode::localRef(LPCLocal local, int ref)
@@ -443,6 +462,25 @@ char *ClangCode::localRef(LPCLocal local, int ref)
 	    ref = 0;
 	}
 	sprintf(buf, "%%l%ur%d", local, ref);
+    }
+    return buf;
+}
+
+/*
+ * return a name for a local var phi reference
+ */
+char *ClangCode::localPhi(LPCLocal local, int ref)
+{
+    static char buf[20];
+
+    if (ref < 0) {
+	/* merged */
+	sprintf(buf, "%%l%um%dx", local, -ref);
+    } else {
+	if (ref == GenContext::INITIAL) {
+	    ref = 0;
+	}
+	sprintf(buf, "%%l%ur%dx", local, ref);
     }
     return buf;
 }
@@ -1597,111 +1635,7 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 	b->prepareFlow(&context);
 	context.prepareGen(b);
 
-	if (b->nFrom > (b != this)) {
-	    /*
-	     * parameters
-	     */
-	    for (n = 0; n < context.nParams; n++) {
-		if (context.inParams[n] == -(b->first->addr + 1)) {
-		    i = 0;
-		    if (b == this) {
-			type = function->proto[nParams - n].type;
-		    } else {
-			type = LPC_TYPE_VOID;
-			for (; i < b->nFrom; i++) {
-			    if (b->from[i]->paramRef(n) != 0) {
-				type = b->from[i]->paramType(n);
-				break;
-			    }
-			}
-		    }
-		    for (; i < b->nFrom; i++) {
-			if (b->from[i]->paramRef(n) != 0 &&
-			    b->from[i]->paramType(n) != type) {
-			    type = LPC_TYPE_VOID;
-			    break;
-			}
-		    }
-
-		    if (type == LPC_TYPE_INT) {
-			fprintf(context.stream, "\t%s = phi " Int,
-				ClangCode::paramRef(n, context.inParams[n]));
-		    } else if (type == LPC_TYPE_FLOAT) {
-			fprintf(context.stream, "\t%s = phi " Double,
-				ClangCode::paramRef(n, context.inParams[n]));
-		    } else {
-			continue;
-		    }
-		    phi = true;
-		    if (b == this) {
-			fprintf(context.stream, " [ %s, %%Lparam ]",
-				ClangCode::paramRef(n, 0));
-			phi = false;
-		    }
-		    for (i = 0; i < b->nFrom; i++) {
-			ref = b->from[i]->paramRef(n);
-			if (ref != context.inParams[n]) {
-			    if (!phi) {
-				fprintf(context.stream, ",");
-			    }
-			    fprintf(context.stream, " [ %s, %%L%04x ]",
-				    ClangCode::paramRef(n, ref),
-				    b->from[i]->first->addr);
-			    phi = false;
-			}
-		    }
-		    fprintf(context.stream, "\n");
-		}
-	    }
-	}
-
 	if (b->nFrom > 1) {
-	    /*
-	     * locals
-	     */
-	    for (n = 0; n < context.nLocals; n++) {
-		if (context.inLocals[n] == -(b->first->addr + 1)) {
-		    type = LPC_TYPE_VOID;
-		    for (i = 0; i < b->nFrom; i++) {
-			if (b->from[i]->localRef(n) != 0) {
-			    type = b->from[i]->localType(n);
-			    break;
-			}
-		    }
-		    for (; i < b->nFrom; i++) {
-			if (b->from[i]->localRef(n) != 0 &&
-			    b->from[i]->localType(n) != type) {
-			    type = LPC_TYPE_VOID;
-			    break;
-			}
-		    }
-
-		    if (type == LPC_TYPE_INT) {
-			fprintf(context.stream, "\t%s = phi " Int,
-				ClangCode::localRef(n, context.inLocals[n]));
-		    } else if (type == LPC_TYPE_FLOAT) {
-			fprintf(context.stream, "\t%s = phi " Double,
-				ClangCode::localRef(n, context.inLocals[n]));
-		    } else {
-			continue;
-		    }
-		    phi = true;
-		    for (i = 0; i < b->nFrom; i++) {
-			ref = b->from[i]->localRef(n);
-			if (ref != context.inLocals[n]) {
-			    if (!phi) {
-				fprintf(context.stream, ",");
-			    }
-			    fprintf(context.stream, " [ %s, %%L%04x ]",
-				    ClangCode::localRef(n, ref),
-				    b->from[i]->first->addr);
-			    phi = false;
-			}
-		    }
-		    fprintf(context.stream, "\n");
-		}
-	    }
-
 	    /*
 	     * stack
 	     */
@@ -1730,13 +1664,182 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 		    if (!phi) {
 			fprintf(context.stream, ",");
 		    }
+		    phi = false;
 		    fprintf(context.stream, " [ %s, %%L%04x ]",
 			    ClangCode::tmpRef(context.nextSp(b->from[i]->endSp,
 							     n)),
 			    b->from[i]->first->addr);
-		    phi = false;
 		}
 		fprintf(context.stream, "\n");
+	    }
+
+	    /*
+	     * locals
+	     */
+	    for (n = 0; n < context.nLocals; n++) {
+		ref = context.inLocals[n];
+		if (ref == -(b->first->addr + 1)) {
+		    type = LPC_TYPE_VOID;
+		    for (i = 0; i < b->nFrom; i++) {
+			if (b->from[i]->localRef(n) != 0) {
+			    type = b->from[i]->localType(n);
+			    break;
+			}
+		    }
+		    for (; i < b->nFrom; i++) {
+			if (b->from[i]->localRef(n) != 0 &&
+			    b->from[i]->localType(n) != type) {
+			    type = LPC_TYPE_VOID;
+			    break;
+			}
+		    }
+
+		    if (type == LPC_TYPE_INT) {
+			fprintf(context.stream, "\t%s = phi " Int,
+				ClangCode::localPhi(n, ref));
+		    } else if (type == LPC_TYPE_FLOAT) {
+			fprintf(context.stream, "\t%s = phi " Double,
+				ClangCode::localPhi(n, ref));
+		    } else {
+			continue;
+		    }
+		    phi = true;
+		    for (i = 0; i < b->nFrom; i++) {
+			if (!phi) {
+			    fprintf(context.stream, ",");
+			}
+			phi = false;
+			fprintf(context.stream, " [ %s, %%L%04x ]",
+				ClangCode::localRef(n, b->from[i]->localRef(n)),
+				b->from[i]->first->addr);
+		    }
+		    fprintf(context.stream, "\n");
+		}
+	    }
+	}
+
+	if (b->nFrom > (b != this)) {
+	    /*
+	     * parameters
+	     */
+	    for (n = 0; n < context.nParams; n++) {
+		ref = context.inParams[n];
+		if (ref == -(b->first->addr + 1)) {
+		    i = 0;
+		    if (b == this) {
+			type = function->proto[nParams - n].type;
+		    } else {
+			type = LPC_TYPE_VOID;
+			for (; i < b->nFrom; i++) {
+			    if (b->from[i]->paramRef(n) != 0) {
+				type = b->from[i]->paramType(n);
+				break;
+			    }
+			}
+		    }
+		    for (; i < b->nFrom; i++) {
+			if (b->from[i]->paramRef(n) != 0 &&
+			    b->from[i]->paramType(n) != type) {
+			    type = LPC_TYPE_VOID;
+			    break;
+			}
+		    }
+
+		    if (type == LPC_TYPE_INT) {
+			fprintf(context.stream, "\t%s = phi " Int,
+				ClangCode::paramPhi(n, ref));
+		    } else if (type == LPC_TYPE_FLOAT) {
+			fprintf(context.stream, "\t%s = phi " Double,
+				ClangCode::paramPhi(n, ref));
+		    } else {
+			continue;
+		    }
+		    phi = true;
+		    if (b == this) {
+			fprintf(context.stream, " [ %s, %%Lparam ]",
+				ClangCode::paramRef(n, 0));
+			phi = false;
+		    }
+		    for (i = 0; i < b->nFrom; i++) {
+			if (!phi) {
+			    fprintf(context.stream, ",");
+			}
+			phi = false;
+			fprintf(context.stream, " [ %s, %%L%04x ]",
+				ClangCode::paramRef(n, b->from[i]->paramRef(n)),
+				b->from[i]->first->addr);
+		    }
+		    fprintf(context.stream, "\n");
+		}
+	    }
+
+	    /*
+	     * copy from phi
+	     */
+	    for (n = 0; n < context.nParams; n++) {
+		ref = context.inParams[n];
+		if (ref == -(b->first->addr + 1)) {
+		    i = 0;
+		    if (b == this) {
+			type = function->proto[nParams - n].type;
+		    } else {
+			type = LPC_TYPE_VOID;
+			for (; i < b->nFrom; i++) {
+			    if (b->from[i]->paramRef(n) != 0) {
+				type = b->from[i]->paramType(n);
+				break;
+			    }
+			}
+		    }
+		    for (; i < b->nFrom; i++) {
+			if (b->from[i]->paramRef(n) != 0 &&
+			    b->from[i]->paramType(n) != type) {
+			    type = LPC_TYPE_VOID;
+			    break;
+			}
+		    }
+
+		    if (type == LPC_TYPE_INT) {
+			context.copyInt(ClangCode::paramRef(n, ref),
+					ClangCode::paramPhi(n, ref));
+		    } else if (type == LPC_TYPE_FLOAT) {
+			context.copyFloat(ClangCode::paramRef(n, ref),
+					  ClangCode::paramPhi(n, ref));
+		    }
+		}
+	    }
+	}
+
+	if (b->nFrom > 1) {
+	    /*
+	     * copy locals from phi
+	     */
+	    for (n = 0; n < context.nLocals; n++) {
+		ref = context.inLocals[n];
+		if (ref == -(b->first->addr + 1)) {
+		    type = LPC_TYPE_VOID;
+		    for (i = 0; i < b->nFrom; i++) {
+			if (b->from[i]->localRef(n) != 0) {
+			    type = b->from[i]->localType(n);
+			    break;
+			}
+		    }
+		    for (; i < b->nFrom; i++) {
+			if (b->from[i]->localRef(n) != 0 &&
+			    b->from[i]->localType(n) != type) {
+			    type = LPC_TYPE_VOID;
+			    break;
+			}
+		    }
+
+		    if (type == LPC_TYPE_INT) {
+			context.copyInt(ClangCode::localRef(n, ref),
+					ClangCode::localPhi(n, ref));
+		    } else if (type == LPC_TYPE_FLOAT) {
+			context.copyFloat(ClangCode::localRef(n, ref),
+					  ClangCode::localPhi(n, ref));
+		    }
+		}
 	    }
 	}
 
