@@ -2,12 +2,12 @@ class TVC {
 public:
     TVC() { }
     TVC(Type type, LPCInt val) :
-	type(type), val(val), code(NULL), merge(STACK_EMPTY) { }
+	type(type), val(val), code(NULL), ref(STACK_EMPTY) { }
 
     Type type;		/* type */
     LPCInt val;		/* value, only relevant for integer on the stack */
     Code *code;		/* instruction that consumes this TVC */
-    StackSize merge;	/* merge reference */
+    StackSize ref;	/* replacement reference */
 };
 
 class BlockContext {
@@ -49,6 +49,8 @@ public:
     StackSize level;		/* catch level */
 
 private:
+    StackSize copyStack(StackSize copy, StackSize from, StackSize to);
+
     static Type mergeType(Type type1, Type type2);
 
     Type *origParams;		/* original parameter types */
@@ -70,10 +72,9 @@ public:
     virtual void evaluateTypes(BlockContext *context);
     StackSize stackPointer() { return sp; }
 
-    static Code *create(CodeFunction *function);
-
-protected:
     static Type simplifiedType(Type type);
+
+    static Code *create(CodeFunction *function);
 
 private:
     StackSize sp;		/* stack pointer */

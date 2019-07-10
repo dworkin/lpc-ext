@@ -89,6 +89,28 @@ Type BlockContext::mergeType(Type type1, Type type2)
 }
 
 /*
+ * copy stack
+ */
+StackSize BlockContext::copyStack(StackSize copy, StackSize from, StackSize to)
+{
+    StackSize sp;
+
+    for (sp = from; sp != to; sp = stack->pop(sp)) {
+	copy = stack->push(copy, TVC(LPC_TYPE_VOID, 0));
+    }
+    for (sp = copy; from != to; from = stack->pop(from)) {
+	TVC val = stack->get(from);
+	val.ref = sp;
+	stack->set(from, val);
+	val.ref = STACK_EMPTY;
+	stack->set(sp, val);
+	sp = stack->pop(sp);
+    }
+
+    return copy;
+}
+
+/*
  * prepare before evaluating a block
  */
 void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
@@ -106,18 +128,7 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
 	    /*
 	     * copy stack from mergeSp
 	     */
-	    b->sp = STACK_EMPTY;
-	    for (sp = mergeSp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
-		b->sp = stack->push(b->sp, TVC(LPC_TYPE_VOID, 0));
-	    }
-	    for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
-		TVC val = stack->get(mergeSp);
-		val.merge = sp;
-		stack->set(mergeSp, val);
-		val.merge = STACK_EMPTY;
-		stack->set(sp, val);
-		mergeSp = stack->pop(mergeSp);
-	    }
+	    b->sp = copyStack(STACK_EMPTY, mergeSp, STACK_EMPTY);
 	} else {
 	    b->sp = mergeSp;
 	}
@@ -130,7 +141,7 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
 	for (sp = b->sp; sp != STACK_EMPTY; sp = stack->pop(sp)) {
 	    TVC val = stack->get(mergeSp);
 	    Type type = val.type;
-	    val.merge = sp;
+	    val.ref = sp;
 	    stack->set(mergeSp, val);
 	    val = stack->get(sp);
 	    val.type = mergeType(val.type, type);
@@ -261,26 +272,39 @@ Type BlockContext::kfun(LPCKFunCall *kf, Code *code)
 	    --nargs;
 	}
 	if (kf->lval != 0) {
-	    /*
-	     * XXX right stack depth, wrong stack types
-	     */
-	    /* pop non-lval arguments */
-	    if (nargs > kf->lval) {
-		nargs = kf->lval;
+	    if (!merging) {
+		StackSize from, to;
+
+		/* skip lvalue arguments */
+		from = sp;
+		while (nargs > kf->lval) {
+		    sp = stack->pop(sp);
+		    --nargs;
+		}
+		to = sp;
+
+		/* pop non-lvalue arguments */
+		while (nargs > 0) {
+		    pop(code);
+		    --nargs;
+		}
+
+		/* push return value */
+		push(TypedCode::simplifiedType(kf->type));
+
+		/* copy lvalue arguments */
+		sp = copyStack(sp, from, to);
 	    }
-	    while (nargs != 0) {
-		pop(code);
-		--nargs;
-	    }
-	    push(LPC_TYPE_ARRAY);
+
+	    type = LPC_TYPE_ARRAY;
 	} else {
 	    while (nargs != 0) {
 		pop(code);
 		--nargs;
 	    }
-	}
 
-	type = kf->type;
+	    type = kf->type;
+	}
     }
 
     spreadArgs = false;
@@ -354,7 +378,7 @@ Code *BlockContext::consumer(StackSize stackPointer, Type type)
 	if (val.code != NULL) {
 	    return val.code;
 	}
-	stackPointer = val.merge;
+	stackPointer = val.ref;
     }
 
     return NULL;
