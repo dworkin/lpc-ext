@@ -1166,7 +1166,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_SUB_INT:
-	    fprintf(context->stream, "\t%s = sub nsw " Int "%s, %s\n",
+	    fprintf(context->stream, "\t%s = sub nsw " Int " %s, %s\n",
 		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    result(context);
@@ -1182,7 +1182,7 @@ void ClangCode::emit(GenContext *context)
 	    switch (context->get(context->sp).type) {
 	    case LPC_TYPE_INT:
 		fprintf(context->stream,
-			"\t%s = sitofp " Int "%s to " Double "\n", tmpRef(sp),
+			"\t%s = sitofp " Int " %s to " Double "\n", tmpRef(sp),
 			tmpRef(context->sp));
 		result(context);
 		return;
@@ -1566,7 +1566,6 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
     GenContext context(stream, function, size);
     Block *b;
     LPCParam nParams, n;
-    bool initParam;
     CodeSize i;
     Type type;
     int ref;
@@ -1576,22 +1575,16 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 
     FlowBlock::evaluate(&context);
 
-    initParam = false;
+    fprintf(context.stream, "Lparam:\n");
     nParams = function->nargs + function->vargs;
     for (n = 1; n <= nParams; n++) {
 	switch (function->proto[n].type) {
 	case LPC_TYPE_INT:
-	    if (!initParam) {
-		fprintf(context.stream, "Lparam:\n");
-	    }
 	    context.callArgs(VM_PARAM_INT, ClangCode::paramRef(nParams - n, 0));
 	    fprintf(context.stream, "i8 %d)\n", nParams - n);
 	    break;
 
 	case LPC_TYPE_FLOAT:
-	    if (!initParam) {
-		fprintf(context.stream, "Lparam:\n");
-	    }
 	    context.callArgs(VM_PARAM_FLOAT,
 			     ClangCode::paramRef(nParams - n, 0));
 	    fprintf(context.stream, "i8 %d)\n", nParams - n);
@@ -1600,11 +1593,8 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 	default:
 	    continue;
 	}
-	initParam = true;
     }
-    if (initParam) {
-	fprintf(context.stream, "\tbr label %%L0000\n");
-    }
+    fprintf(context.stream, "\tbr label %%L0000\n");
 
     for (b = this; b != NULL; b = b->next) {
 	if (b->nFrom == 0 && b != this) {
