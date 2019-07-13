@@ -208,7 +208,11 @@ static const struct {
     { "vm_switch_range", "i32", "(" Int "*, i32, " Int ")" },
 # define VM_SWITCH_STRING		90
     { "vm_switch_string", "i32", "(i8*, i16*, i32)" },
-# define VM_FUNCTIONS			91
+# define VM_RLIMITS			91
+    { "vm_rlimits", "void", "(i8*, i1)" },
+# define VM_RLIMITS_END			92
+    { "vm_rlimits_end", "void", "(i8*)" },
+# define VM_FUNCTIONS			93
 };
 
 class GenContext : public FlowContext {
@@ -1606,17 +1610,17 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case RLIMITS:
-	fprintf(context->stream, "\trlimits(f, %s, %s)\n",
-		tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
+	context->voidCallArgs(VM_RLIMITS);
+	fprintf(context->stream, "i1 true)\n");
 	break;
 
     case RLIMITS_CHECK:
-	fprintf(context->stream, "\trlimits_check(f, %s, %s)\n",
-		tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
+	context->voidCallArgs(VM_RLIMITS);
+	fprintf(context->stream, "i1 false)\n");
 	break;
 
     case END_RLIMITS:
-	fprintf(context->stream, "\trlimits_end\n");
+	context->voidCall(VM_RLIMITS_END);
 	break;
 
     case RETURN:
