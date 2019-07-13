@@ -202,15 +202,22 @@ static const struct {
     { "vm_pop_int", Int, "(i8*)" },
 # define VM_POP_FLOAT			87
     { "vm_pop_float", Double, "(i8*)" },
-# define VM_FUNCTIONS			88
+# define VM_SWITCH_INT			88
+    { "vm_switch_int", "i1", "(i8*)" },
+# define VM_SWITCH_RANGE		89
+    { "vm_switch_range", "i32", "(" Int "*, i32, " Int ")" },
+# define VM_SWITCH_STRING		90
+    { "vm_switch_string", "i32", "(i8*, i16*, i32)" },
+# define VM_FUNCTIONS			91
 };
 
 class GenContext : public FlowContext {
 public:
-    GenContext(FILE *stream, CodeFunction *func, StackSize size) :
-	FlowContext(func, size), stream(stream) {
+    GenContext(FILE *stream, CodeFunction *func, StackSize size, int num) :
+	FlowContext(func, size), stream(stream), num(num) {
 	next = 0;
 	rtype = 0;
+	switchList = NULL;
 	count = 0;
     }
 
@@ -249,6 +256,20 @@ public:
      */
     void copyFloat(char *to, char *from) {
 	fprintf(stream, "\t%s = fadd fast " Double " %s, 0.0\n", to, from);
+    }
+
+    /*
+     * load a function address
+     */
+    char *load(int func) {
+	char *ref;
+
+	ref = genRef();
+	fprintf(stream, "\t%s = load %s %s*, %s %s** @%s, align %d\n",
+		ref, functions[func].ret, functions[func].args,
+		functions[func].ret, functions[func].args,
+		functions[func].name, 8);
+	return ref;
     }
 
     /*
@@ -298,23 +319,10 @@ public:
     }
 
     FILE *stream;		/* output file */
+    int num;			/* function number */
     CodeSize next;		/* address of next block */
-    Type rtype;		/* return value type of KFUNC_LVAL */
-
-private:
-    /*
-     * load a function address
-     */
-    char *load(int func) {
-	char *ref;
-
-	ref = genRef();
-	fprintf(stream, "\t%s = load %s %s*, %s %s** @%s, align %d\n",
-		ref, functions[func].ret, functions[func].args,
-		functions[func].ret, functions[func].args,
-		functions[func].name, 8);
-	return ref;
-    }
+    Type rtype;			/* return value type of KFUNC_LVAL */
+    ClangCode *switchList;	/* list of switch tables */
 
     int count;			/* reference counter */
 };
@@ -323,6 +331,7 @@ private:
 ClangCode::ClangCode(CodeFunction *function) :
     FlowCode(function)
 {
+    list = NULL;
 }
 
 ClangCode::~ClangCode()
@@ -352,12 +361,12 @@ bool ClangCode::onStack(GenContext *context, StackSize sp)
     case STORE_PARAM:
     case STORE_LOCAL:
     case STORE_GLOBAL:
-    case RLIMITS:
-    case RLIMITS_CHECK:
 	return false;
 
     case JUMP_ZERO:
     case JUMP_NONZERO:
+    case SWITCH_INT:
+    case SWITCH_RANGE:
 	return (type != LPC_TYPE_INT);
 
     case KFUNC:
@@ -550,6 +559,40 @@ void ClangCode::result(GenContext *context)
 }
 
 /*
+ * obtain the argument to an int/range switch, and branch to default when
+ * it isn't an int
+ */
+void ClangCode::switchInt(GenContext *context, CodeSize defAddr)
+{
+    char *ref;
+
+    if (context->get(context->sp).type != LPC_TYPE_INT) {
+	ref = context->genRef();
+	context->call(VM_SWITCH_INT, ref);
+	fprintf(context->stream,
+		"\tbr i1 %s, label %%L%04xsw, label %%L%04x\n", ref, addr,
+		defAddr);
+	fprintf(context->stream, "L%04xsw:\n", addr);
+	context->call(VM_POP_INT, tmpRef(context->sp));
+    }
+}
+
+/*
+ * reference a switch table, to be generated
+ */
+void ClangCode::genTable(GenContext *context, const char *type)
+{
+    fprintf(context->stream, "%s* getelementptr inbounds ([%d x %s], "
+	    "[%d x %s]* @func%d.%04x, i32 0, i32 0), i32 %d)\n",
+	    type, 2 * (size - 1), type, 2 * (size - 1), type,
+	    context->num, addr, size - 1);
+
+    /* add myself to the switch table list */
+    list = context->switchList;
+    context->switchList = this;
+}
+
+/*
  * emit instructions for this Code
  */
 void ClangCode::emit(GenContext *context)
@@ -557,6 +600,7 @@ void ClangCode::emit(GenContext *context)
     StackSize sp;
     long double d;
     char *ref;
+    int i;
 
     if (line != context->line) {
 	fprintf(context->stream, "; line %d\n", line);
@@ -1016,18 +1060,67 @@ void ClangCode::emit(GenContext *context)
 
     case SWITCH_INT:
 	// XXX account ticks for backward jump
-	fprintf(context->stream, "\tcall @vm_switch_int()\n");
-	break;
+	switchInt(context, caseInt[0].addr);
+	fprintf(context->stream, "\tswitch " Int " %s, label %%L%04x",
+		tmpRef(context->sp), caseInt[0].addr);
+	if (size > 1) {
+	    fprintf(context->stream, " [\n");
+	    for (i = 1; i < size; i++) {
+		fprintf(context->stream, "\t\t" Int " %lld, label %%L%04x\n",
+			(long long) caseInt[i].num, caseInt[i].addr);
+	    }
+	    fprintf(context->stream, "\t]");
+	}
+	fprintf(context->stream, "\n");
+	context->sp = sp;
+	return;
 
     case SWITCH_RANGE:
 	// XXX account ticks for backward jump
-	fprintf(context->stream, "\tcall @vm_switch_range()\n");
-	break;
+	switchInt(context, caseRange[0].addr);
+	if (size > 1) {
+	    ref = context->genRef();
+	    fprintf(context->stream, "\t%s = call %s %s(", ref,
+		    functions[VM_SWITCH_RANGE].ret,
+		    context->load(VM_SWITCH_RANGE));
+	    genTable(context, "Int");
+	    fprintf(context->stream, "\tswitch i32 %s, label %%L%04x", ref,
+		    caseRange[0].addr);
+	    fprintf(context->stream, " [\n");
+	    for (i = 1; i < size; i++) {
+		fprintf(context->stream, "\t\ti32 %d, label %%L%04x\n", i - 1,
+			caseRange[i].addr);
+	    }
+	    fprintf(context->stream, "\t]");
+	} else {
+	    fprintf(context->stream, "\tbr label %%L%04x\n", caseRange[0].addr);
+	}
+	fprintf(context->stream, "\n");
+	context->sp = sp;
+	return;
 
     case SWITCH_STRING:
 	// XXX account ticks for backward jump
-	fprintf(context->stream, "\tcall @vm_switch_string()\n");
-	break;
+	if (size > 1) {
+	    ref = context->genRef();
+	    context->callArgs(VM_SWITCH_STRING, ref);
+	    genTable(context, "i16");
+	    fprintf(context->stream, "\tswitch i32 %s, label %%L%04x", ref,
+		    caseString[0].addr);
+	    fprintf(context->stream, " [\n");
+	    for (i = 1; i < size; i++) {
+		fprintf(context->stream, "\t\ti32 %d, label %%L%04x\n", i - 1,
+			caseString[i].addr);
+	    }
+	    fprintf(context->stream, "\t]");
+	} else {
+	    context->voidCall(VM_POP);
+	    fprintf(context->stream, "\tbr label %%L%04x\n",
+		    caseString[0].addr);
+	}
+	fprintf(context->stream, "\n");
+	context->sp = sp;
+	return;
 
     case KFUNC:
 	switch (kfun.func) {
@@ -1541,6 +1634,43 @@ void ClangCode::emit(GenContext *context)
 }
 
 /*
+ * emit table for range switch
+ */
+void ClangCode::emitRangeTable(GenContext *context)
+{
+    int i;
+
+    fprintf(context->stream,
+	    "\n@func%d.%04x = internal constant [%d x " Int "] [" Int " %lld, "
+	    Int " %lld",
+	    context->num, addr, 2 * (size - 1), (long long) caseRange[1].from,
+	    (long long) caseRange[1].to);
+    for (i = 2; i < size; i++) {
+	fprintf(context->stream, ", " Int " %lld, " Int " %lld",
+		(long long) caseRange[i].from, (long long) caseRange[i].to);
+    }
+    fprintf(context->stream, "], align 8\n");
+}
+
+/*
+ * emit table for string switch
+ */
+void ClangCode::emitStringTable(GenContext *context)
+{
+    int i;
+
+    fprintf(context->stream,
+	    "\n@func%d.%04x = internal constant [%d x i16] [i16 %u, i16 %u",
+	    context->num, addr, 2 * (size - 1), caseString[1].str.inherit,
+	    caseString[1].str.index);
+    for (i = 2; i < size; i++) {
+	fprintf(context->stream, ", i16 %u, i16 %u", caseString[i].str.inherit,
+		caseString[i].str.index);
+    }
+    fprintf(context->stream, "], align 4\n");
+}
+
+/*
  * create a Clang code
  */
 Code *ClangCode::create(CodeFunction *function)
@@ -1561,9 +1691,8 @@ ClangBlock::~ClangBlock()
 /*
  * emit instructions for all blocks
  */
-void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
+void ClangBlock::emit(GenContext *context, CodeFunction *function)
 {
-    GenContext context(stream, function, size);
     Block *b;
     LPCParam nParams, n;
     CodeSize i;
@@ -1573,54 +1702,55 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
     StackSize sp;
     Code *code;
 
-    FlowBlock::evaluate(&context);
+    FlowBlock::evaluate(context);
 
-    fprintf(context.stream, "Lparam:\n");
+    fprintf(context->stream, "Lparam:\n");
     nParams = function->nargs + function->vargs;
     for (n = 1; n <= nParams; n++) {
 	switch (function->proto[n].type) {
 	case LPC_TYPE_INT:
-	    context.callArgs(VM_PARAM_INT, ClangCode::paramRef(nParams - n, 0));
-	    fprintf(context.stream, "i8 %d)\n", nParams - n);
+	    context->callArgs(VM_PARAM_INT,
+			      ClangCode::paramRef(nParams - n, 0));
+	    fprintf(context->stream, "i8 %d)\n", nParams - n);
 	    break;
 
 	case LPC_TYPE_FLOAT:
-	    context.callArgs(VM_PARAM_FLOAT,
-			     ClangCode::paramRef(nParams - n, 0));
-	    fprintf(context.stream, "i8 %d)\n", nParams - n);
+	    context->callArgs(VM_PARAM_FLOAT,
+			      ClangCode::paramRef(nParams - n, 0));
+	    fprintf(context->stream, "i8 %d)\n", nParams - n);
 	    break;
 
 	default:
 	    continue;
 	}
     }
-    fprintf(context.stream, "\tbr label %%L0000\n");
+    fprintf(context->stream, "\tbr label %%L0000\n");
 
     for (b = this; b != NULL; b = b->next) {
 	if (b->nFrom == 0 && b != this) {
 	    continue;
 	}
-	fprintf(context.stream, "L%04x:\n", b->first->addr);
-	b->prepareFlow(&context);
-	context.prepareGen(b);
+	fprintf(context->stream, "L%04x:\n", b->first->addr);
+	b->prepareFlow(context);
+	context->prepareGen(b);
 
 	if (b->nFrom > 1) {
 	    /*
 	     * stack
 	     */
 	    for (n = 0, sp = b->sp; sp != STACK_EMPTY;
-		 n++, sp = context.nextSp(sp)) {
-		if (ClangCode::onStack(&context, sp)) {
+		 n++, sp = context->nextSp(sp)) {
+		if (ClangCode::onStack(context, sp)) {
 		    continue;
 		}
-		switch (context.get(sp).type) {
+		switch (context->get(sp).type) {
 		case LPC_TYPE_INT:
-		    fprintf(context.stream, "\t%s = phi " Int,
+		    fprintf(context->stream, "\t%s = phi " Int,
 			    ClangCode::tmpRef(sp));
 		    break;
 
 		case LPC_TYPE_FLOAT:
-		    fprintf(context.stream, "\t%s = phi " Double,
+		    fprintf(context->stream, "\t%s = phi " Double,
 			    ClangCode::tmpRef(sp));
 		    break;
 
@@ -1631,22 +1761,22 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 
 		for (i = 0; i < b->nFrom; i++) {
 		    if (!phi) {
-			fprintf(context.stream, ",");
+			fprintf(context->stream, ",");
 		    }
 		    phi = false;
-		    fprintf(context.stream, " [ %s, %%L%04x ]",
-			    ClangCode::tmpRef(context.nextSp(b->from[i]->endSp,
-							     n)),
+		    fprintf(context->stream, " [%s, %%L%04x]",
+			    ClangCode::tmpRef(context->nextSp(b->from[i]->endSp,
+							      n)),
 			    b->from[i]->first->addr);
 		}
-		fprintf(context.stream, "\n");
+		fprintf(context->stream, "\n");
 	    }
 
 	    /*
 	     * locals
 	     */
-	    for (n = 0; n < context.nLocals; n++) {
-		ref = context.inLocals[n];
+	    for (n = 0; n < context->nLocals; n++) {
+		ref = context->inLocals[n];
 		if (ref == -(b->first->addr + 1)) {
 		    type = LPC_TYPE_VOID;
 		    for (i = 0; i < b->nFrom; i++) {
@@ -1664,10 +1794,10 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 		    }
 
 		    if (type == LPC_TYPE_INT) {
-			fprintf(context.stream, "\t%s = phi " Int,
+			fprintf(context->stream, "\t%s = phi " Int,
 				ClangCode::localPhi(n, ref));
 		    } else if (type == LPC_TYPE_FLOAT) {
-			fprintf(context.stream, "\t%s = phi " Double,
+			fprintf(context->stream, "\t%s = phi " Double,
 				ClangCode::localPhi(n, ref));
 		    } else {
 			continue;
@@ -1675,14 +1805,14 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 		    phi = true;
 		    for (i = 0; i < b->nFrom; i++) {
 			if (!phi) {
-			    fprintf(context.stream, ",");
+			    fprintf(context->stream, ",");
 			}
 			phi = false;
-			fprintf(context.stream, " [ %s, %%L%04x ]",
+			fprintf(context->stream, " [%s, %%L%04x]",
 				ClangCode::localRef(n, b->from[i]->localRef(n)),
 				b->from[i]->first->addr);
 		    }
-		    fprintf(context.stream, "\n");
+		    fprintf(context->stream, "\n");
 		}
 	    }
 	}
@@ -1691,8 +1821,8 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 	    /*
 	     * parameters
 	     */
-	    for (n = 0; n < context.nParams; n++) {
-		ref = context.inParams[n];
+	    for (n = 0; n < context->nParams; n++) {
+		ref = context->inParams[n];
 		if (ref == -(b->first->addr + 1)) {
 		    i = 0;
 		    if (b == this) {
@@ -1715,38 +1845,38 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 		    }
 
 		    if (type == LPC_TYPE_INT) {
-			fprintf(context.stream, "\t%s = phi " Int,
+			fprintf(context->stream, "\t%s = phi " Int,
 				ClangCode::paramPhi(n, ref));
 		    } else if (type == LPC_TYPE_FLOAT) {
-			fprintf(context.stream, "\t%s = phi " Double,
+			fprintf(context->stream, "\t%s = phi " Double,
 				ClangCode::paramPhi(n, ref));
 		    } else {
 			continue;
 		    }
 		    phi = true;
 		    if (b == this) {
-			fprintf(context.stream, " [ %s, %%Lparam ]",
+			fprintf(context->stream, " [%s, %%Lparam]",
 				ClangCode::paramRef(n, 0));
 			phi = false;
 		    }
 		    for (i = 0; i < b->nFrom; i++) {
 			if (!phi) {
-			    fprintf(context.stream, ",");
+			    fprintf(context->stream, ",");
 			}
 			phi = false;
-			fprintf(context.stream, " [ %s, %%L%04x ]",
+			fprintf(context->stream, " [%s, %%L%04x]",
 				ClangCode::paramRef(n, b->from[i]->paramRef(n)),
 				b->from[i]->first->addr);
 		    }
-		    fprintf(context.stream, "\n");
+		    fprintf(context->stream, "\n");
 		}
 	    }
 
 	    /*
 	     * copy from phi
 	     */
-	    for (n = 0; n < context.nParams; n++) {
-		ref = context.inParams[n];
+	    for (n = 0; n < context->nParams; n++) {
+		ref = context->inParams[n];
 		if (ref == -(b->first->addr + 1)) {
 		    i = 0;
 		    if (b == this) {
@@ -1769,11 +1899,11 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 		    }
 
 		    if (type == LPC_TYPE_INT) {
-			context.copyInt(ClangCode::paramRef(n, ref),
-					ClangCode::paramPhi(n, ref));
+			context->copyInt(ClangCode::paramRef(n, ref),
+					 ClangCode::paramPhi(n, ref));
 		    } else if (type == LPC_TYPE_FLOAT) {
-			context.copyFloat(ClangCode::paramRef(n, ref),
-					  ClangCode::paramPhi(n, ref));
+			context->copyFloat(ClangCode::paramRef(n, ref),
+					   ClangCode::paramPhi(n, ref));
 		    }
 		}
 	    }
@@ -1783,8 +1913,8 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 	    /*
 	     * copy locals from phi
 	     */
-	    for (n = 0; n < context.nLocals; n++) {
-		ref = context.inLocals[n];
+	    for (n = 0; n < context->nLocals; n++) {
+		ref = context->inLocals[n];
 		if (ref == -(b->first->addr + 1)) {
 		    type = LPC_TYPE_VOID;
 		    for (i = 0; i < b->nFrom; i++) {
@@ -1802,24 +1932,24 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 		    }
 
 		    if (type == LPC_TYPE_INT) {
-			context.copyInt(ClangCode::localRef(n, ref),
-					ClangCode::localPhi(n, ref));
+			context->copyInt(ClangCode::localRef(n, ref),
+					 ClangCode::localPhi(n, ref));
 		    } else if (type == LPC_TYPE_FLOAT) {
-			context.copyFloat(ClangCode::localRef(n, ref),
-					  ClangCode::localPhi(n, ref));
+			context->copyFloat(ClangCode::localRef(n, ref),
+					   ClangCode::localPhi(n, ref));
 		    }
 		}
 	    }
 	}
 
-	context.sp = b->sp;
-	context.level = level;
+	context->sp = b->sp;
+	context->level = level;
 	for (code = b->first; ; code = code->next) {
-	    code->emit(&context);
+	    code->emit(context);
 	    if (code == b->last) {
 		switch (code->instruction) {
 		case Code::JUMP:
-		    fprintf(context.stream, "\tbr label %%L%04x\n",
+		    fprintf(context->stream, "\tbr label %%L%04x\n",
 			    code->target);
 		    break;
 
@@ -1833,12 +1963,12 @@ void ClangBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
 		    break;
 
 		case Code::END_CATCH:
-		    context.level--;
+		    context->level--;
 		    break;
 
 		default:
-		    fprintf(context.stream, "\tbr label %%L%04x\n",
-			    context.next);
+		    fprintf(context->stream, "\tbr label %%L%04x\n",
+			    context->next);
 		    break;
 		}
 		break;
@@ -1932,41 +2062,54 @@ void ClangObject::table(FILE *stream, int nFunctions)
  */
 void ClangObject::emit(char *base)
 {
-    char path[1000];
+    char buffer[1000];
     FILE *stream;
     int i;
 
     /*
      * generate .ll file
      */
-    sprintf(path, "%s.ll", base);
-    stream = fopen(path, "w");
-    fprintf(stderr, "%s\n", path);
+    sprintf(buffer, "%s.ll", base);
+    stream = fopen(buffer, "w");
 
     header(stream);
 
     table(stream, nFunctions);
 
-    for (i = 0; i < nFunctions; i++) {
+    for (i = 1; i <= nFunctions; i++) {
 	CodeFunction func(object, prog);
 	Block *b = Block::function(&func);
 
-	fprintf(stream, "\ndefine internal void @func%d(i8* %%f) #0 {\n",
-		i + 1);
+	fprintf(stream, "\ndefine internal void @func%d(i8* %%f) #0 {\n", i);
 	if (b != NULL) {
-	    b->emit(stream, &func, b->fragment());
+	    GenContext context(stream, &func, b->fragment(), i);
+	    ClangCode *code;
+
+	    b->emit(&context, &func);
+	    fprintf(stream, "}\n");
+	    for (code = context.switchList; code != NULL; code = code->list) {
+		if (code->instruction == Code::SWITCH_RANGE) {
+		    code->emitRangeTable(&context);
+		} else {
+		    code->emitStringTable(&context);
+		}
+	    }
 	    b->clear();
 	} else {
-	    fprintf(stream, "\tret void\n");
+	    fprintf(stream, "L0000:\n\tret void\n}\n");
 	}
 	prog = func.endProg();
-	fprintf(stream, "}\n");
     }
 
     fclose(stream);
 
     /*
-     * compile .ll file to object
-    system("clang -Wno-override-module -Os -fPIC -shared fname.ll -o fname.so");
+     * compile .ll file to shared object
      */
+    sprintf(buffer, "clang -Os -fPIC -shared "
+# ifdef __APPLE__
+	    "-Wno-override-module -undefined dynamic_lookup "
+# endif
+	    "-o %s.so %s.ll", base, base);
+    system(buffer);
 }

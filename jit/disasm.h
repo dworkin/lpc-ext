@@ -16,7 +16,7 @@ public:
     DisBlock(Code *first, Code *last, CodeSize size);
     virtual ~DisBlock();
 
-    virtual void emit(FILE *stream, CodeFunction *function, CodeSize size);
+    virtual void emit(class GenContext *context, CodeFunction *function);
 
     static Block *create(Code *first, Code *last, CodeSize size);
 };

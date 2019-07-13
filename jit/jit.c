@@ -166,6 +166,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
      * write to file
      */
     filename(file, hash);
+    fprintf(stderr, "%lld: %s\n", (long long) index, file);
     sprintf(path, "%s/cache/%c%c", configDir, file[0], file[1]);
     mkdir(path, 0750);
     sprintf(path + strlen(path), "/%s", file);

@@ -18,7 +18,7 @@ public:
     virtual void evaluateFlow(class FlowContext *context, Block **list);
     virtual void evaluateInputs(class FlowContext *context, Block **list);
     virtual void evaluateOutputs(class FlowContext *context, Block **list);
-    virtual void emit(FILE *stream, CodeFunction *function, CodeSize size);
+    virtual void emit(class GenContext *context, CodeFunction *function);
 
     static Block *function(CodeFunction *function);
     static Block *nextVisit(Block **List);

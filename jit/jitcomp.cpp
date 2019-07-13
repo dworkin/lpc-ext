@@ -106,6 +106,7 @@ int main(int argc, char *argv[])
     if (argc != 2 || chdir(argv[1]) < 0) {
 	return 1;
     }
+    mkdir("cache", 0750);
 
     /* read init params from 0 */
     if (read(0, &info, sizeof(JitInfo)) != sizeof(JitInfo)) {

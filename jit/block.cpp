@@ -684,7 +684,7 @@ int Block::localRef(LPCLocal local)
     return 0;
 }
 
-void Block::emit(FILE *stream, CodeFunction *function, CodeSize size)
+void Block::emit(class GenContext *context, CodeFunction *function)
 {
 }
 

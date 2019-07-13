@@ -383,55 +383,54 @@ Block *DisBlock::create(Code *first, Code *last, CodeSize size)
 /*
  * emit program disassembly
  */
-void DisBlock::emit(FILE *stream, CodeFunction *function, CodeSize size)
+void DisBlock::emit(GenContext *context, CodeFunction *function)
 {
-    GenContext context(stream, function, size);
     CodeLine line;
     Block *b;
     Code *code;
     CodeSize i, sp;
 
-    FlowBlock::evaluate(&context);
+    FlowBlock::evaluate(context);
 
     line = 0;
     for (b = this; b != NULL; b = b->next) {
 	if (b->nFrom == 0 && b != this) {
 	    continue;
 	}
-	fprintf(stream, "{");
+	fprintf(context->stream, "{");
 	if (b->nFrom != 0) {
-	    fprintf(stream, " [");
+	    fprintf(context->stream, " [");
 	    for (i = 0; i < b->nFrom; i++) {
-		fprintf(stream, "%04x", b->from[i]->first->addr);
+		fprintf(context->stream, "%04x", b->from[i]->first->addr);
 		if (i != b->nFrom - 1) {
-		    fprintf(stream, ", ");
+		    fprintf(context->stream, ", ");
 		}
 	    }
-	    fprintf(stream, "]");
+	    fprintf(context->stream, "]");
 	}
 	if (b->level != 0) {
-	    fprintf(stream, " <%d>", b->level);
+	    fprintf(context->stream, " <%d>", b->level);
 	}
-	fprintf(stream, "\n");
+	fprintf(context->stream, "\n");
 	for (code = b->first; ; code = code->next) {
-	    code->emit(&context);
+	    code->emit(context);
 	    if (code == b->last) {
 		break;
 	    }
 	}
 
-	fprintf(stream, "}");
+	fprintf(context->stream, "}");
 	if (b->nTo != 0) {
-	    fprintf(stream, " [");
+	    fprintf(context->stream, " [");
 	    for (i = 0; i < b->nTo; i++) {
-		fprintf(stream, "%04x", b->to[i]->first->addr);
+		fprintf(context->stream, "%04x", b->to[i]->first->addr);
 		if (i != b->nTo - 1) {
-		    fprintf(stream, ", ");
+		    fprintf(context->stream, ", ");
 		}
 	    }
-	    fprintf(stream, "]");
+	    fprintf(context->stream, "]");
 	}
-	fprintf(stream, "\n");
+	fprintf(context->stream, "\n");
     }
-    fprintf(stream, "\n");
+    fprintf(context->stream, "\n");
 }
