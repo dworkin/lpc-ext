@@ -20,3 +20,8 @@ public:
 
     static Block *create(Code *first, Code *last, CodeSize size);
 };
+
+class DisFunction {
+public:
+    static void emit(FILE *stream, CodeFunction *function);
+};

@@ -434,3 +434,21 @@ void DisBlock::emit(GenContext *context, CodeFunction *function)
     }
     fprintf(context->stream, "\n");
 }
+
+/*
+ * emit function disassembly
+ */
+void DisFunction::emit(FILE *stream, CodeFunction *function)
+{
+    Block *b = Block::function(function);
+    CodeSize size;
+
+    if (b != NULL) {
+	size = b->fragment();
+	if (size != 0) {
+	    GenContext context(stream, function, size);
+	    b->emit(&context, function);
+	}
+	b->clear();
+    }
+}

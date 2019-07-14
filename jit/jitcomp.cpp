@@ -53,16 +53,7 @@ static void jitComp(CodeObject *object, uint8_t *prog, int nFunctions,
 
     for (int i = 0; i < nFunctions; i++) {
 	CodeFunction func(object, prog);
-	CodeSize size;
-	Block *b = Block::function(&func);
-
-	if (b != NULL) {
-	    size = b->fragment();
-	    if (size != 0) {
-		b->emit(stderr, &func, size);
-	    }
-	    b->clear();
-	}
+	DisFunction::emit(stderr, &func);
 	prog = func.endProg();
 	fprintf(stderr, "\n");
     }
