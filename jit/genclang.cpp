@@ -1281,40 +1281,36 @@ void ClangCode::emit(GenContext *context)
 		fprintf(context->stream,
 			"\t%s = sitofp " Int " %s to " Double "\n", tmpRef(sp),
 			tmpRef(context->sp));
-		result(context);
-		return;
+		break;
 
 	    case LPC_TYPE_FLOAT:
 		context->copyFloat(tmpRef(sp), tmpRef(context->sp));
-		result(context);
-		return;
+		break;
 
 	    default:
 		context->call(VM_TOFLOAT, tmpRef(sp));
-		result(context);
-		return;
+		break;
 	    }
-	    break;
+	    result(context);
+	    return;
 
 	case KF_TOINT:
 	    switch (context->get(context->sp).type) {
 	    case LPC_TYPE_INT:
 		context->copyInt(tmpRef(sp), tmpRef(context->sp));
-		result(context);
-		return;
+		break;
 
 	    case LPC_TYPE_FLOAT:
 		context->callArgs(VM_TOINT_FLOAT, tmpRef(sp));
 		fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
-		result(context);
-		return;
+		break;
 
 	    default:
 		context->call(VM_TOINT, tmpRef(sp));
-		result(context);
-		return;
+		break;
 	    }
-	    break;
+	    result(context);
+	    return;
 
 	case KF_TST_INT:
 	    ref = context->genRef();
