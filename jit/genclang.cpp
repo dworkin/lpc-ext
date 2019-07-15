@@ -587,7 +587,7 @@ void ClangCode::switchInt(GenContext *context, CodeSize defAddr)
 void ClangCode::genTable(GenContext *context, const char *type)
 {
     fprintf(context->stream, "%s* getelementptr inbounds ([%d x %s], "
-	    "[%d x %s]* @func%d.%04x, i32 0, i32 0), i32 %d)\n",
+	    "[%d x %s]* @func%d.%04x, i32 0, i32 0), i32 %u",
 	    type, 2 * (size - 1), type, 2 * (size - 1), type,
 	    context->num, addr, size - 1);
 
@@ -1087,10 +1087,10 @@ void ClangCode::emit(GenContext *context)
 	    fprintf(context->stream, "\t%s = call %s %s(", ref,
 		    functions[VM_SWITCH_RANGE].ret,
 		    context->load(VM_SWITCH_RANGE));
-	    genTable(context, "Int");
-	    fprintf(context->stream, "\tswitch i32 %s, label %%L%04x", ref,
-		    caseRange[0].addr);
-	    fprintf(context->stream, " [\n");
+	    genTable(context, "i32");
+	    fprintf(context->stream,
+		    ", " Int " %s)\n\tswitch i32 %s, label %%L%04x [\n",
+		    tmpRef(context->sp), ref, caseRange[0].addr);
 	    for (i = 1; i < size; i++) {
 		fprintf(context->stream, "\t\ti32 %d, label %%L%04x\n", i - 1,
 			caseRange[i].addr);
@@ -1109,9 +1109,8 @@ void ClangCode::emit(GenContext *context)
 	    ref = context->genRef();
 	    context->callArgs(VM_SWITCH_STRING, ref);
 	    genTable(context, "i16");
-	    fprintf(context->stream, "\tswitch i32 %s, label %%L%04x", ref,
-		    caseString[0].addr);
-	    fprintf(context->stream, " [\n");
+	    fprintf(context->stream, ")\n\tswitch i32 %s, label %%L%04x [\n",
+		    ref, caseString[0].addr);
 	    for (i = 1; i < size; i++) {
 		fprintf(context->stream, "\t\ti32 %d, label %%L%04x\n", i - 1,
 			caseString[i].addr);
