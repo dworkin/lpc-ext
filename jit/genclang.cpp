@@ -345,35 +345,31 @@ ClangCode::~ClangCode()
 }
 
 /*
- * return true if the result of the current instruction should be pushed
- * on the stack
+ * return a type if a value should be kept off the stack, LPC_TYPE_NIL otherwise
  */
-bool ClangCode::onStack(GenContext *context, StackSize sp)
+Type ClangCode::offStack(GenContext *context, StackSize sp)
 {
     Type type;
     Code *code;
 
     type = context->get(sp).type;
-    if (type != LPC_TYPE_INT && type != LPC_TYPE_FLOAT) {
-	return true;
-    }
-
     code = context->consumer(sp, type);
     if (code == NULL) {
-	return true;
+	return LPC_TYPE_NIL;
     }
 
     switch (code->instruction) {
     case STORE_PARAM:
     case STORE_LOCAL:
     case STORE_GLOBAL:
-	return false;
+	return (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) ?
+		type : LPC_TYPE_NIL;
 
     case JUMP_ZERO:
     case JUMP_NONZERO:
     case SWITCH_INT:
     case SWITCH_RANGE:
-	return (type != LPC_TYPE_INT);
+	return (type == LPC_TYPE_INT) ? type : LPC_TYPE_NIL;
 
     case KFUNC:
 	switch (code->kfun.func) {
@@ -396,11 +392,11 @@ bool ClangCode::onStack(GenContext *context, StackSize sp)
 	case KF_RSHIFT_INT:
 	case KF_SUB_INT:
 	case KF_SUB1_INT:
-	case KF_TOFLOAT:
-	case KF_TOINT:
 	case KF_TST_INT:
 	case KF_UMIN_INT:
 	case KF_XOR_INT:
+	    return LPC_TYPE_INT;
+
 	case KF_ADD_FLT:
 	case KF_ADD1_FLT:
 	case KF_DIV_FLT:
@@ -416,14 +412,19 @@ bool ClangCode::onStack(GenContext *context, StackSize sp)
 	case KF_SUB1_FLT:
 	case KF_TST_FLT:
 	case KF_UMIN_FLT:
-	    return false;
+	    return LPC_TYPE_FLOAT;
+
+	case KF_TOFLOAT:
+	case KF_TOINT:
+	    return (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) ?
+		    type : LPC_TYPE_NIL;
 
 	default:
-	    return true;
+	    return LPC_TYPE_NIL;
 	}
 
     default:
-	return true;
+	return LPC_TYPE_NIL;
     }
 }
 
@@ -552,7 +553,7 @@ void ClangCode::result(GenContext *context)
     StackSize sp;
 
     sp = stackPointer();
-    if (!pop && onStack(context, sp)) {
+    if (!pop && offStack(context, sp) == LPC_TYPE_NIL) {
 	if (context->get(sp).type == LPC_TYPE_INT) {
 	    context->voidCallArgs(VM_INT);
 	    fprintf(context->stream, Int " %s)\n", tmpRef(sp));
@@ -705,7 +706,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case INDEX:
-	if (context->get(sp).type == LPC_TYPE_INT) {
+	if (offStack(context, sp) == LPC_TYPE_INT) {
 	    context->call(VM_INDEX_INT, tmpRef(sp));
 	    result(context);
 	    return;
@@ -714,7 +715,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case INDEX2:
-	if (context->get(sp).type == LPC_TYPE_INT) {
+	if (offStack(context, sp) == LPC_TYPE_INT) {
 	    context->call(VM_INDEX2_INT, tmpRef(sp));
 	    result(context);
 	    return;
@@ -1459,16 +1460,18 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	default:
-	    if (!onStack(context, sp)) {
-		if (context->get(sp).type == LPC_TYPE_INT) {
-		    context->callArgs(VM_KFUNC_INT, tmpRef(sp));
-		    fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
-			    kfun.nargs);
-		} else {
-		    context->callArgs(VM_KFUNC_FLOAT, tmpRef(sp));
-		    fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
-			    kfun.nargs);
-		}
+	    switch (offStack(context, sp)) {
+	    case LPC_TYPE_INT:
+		context->callArgs(VM_KFUNC_INT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
+			kfun.nargs);
+		context->sp = sp;
+		return;
+
+	    case LPC_TYPE_FLOAT:
+		context->callArgs(VM_KFUNC_FLOAT, tmpRef(sp));
+		fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
+			kfun.nargs);
 		context->sp = sp;
 		return;
 	    }
@@ -1483,21 +1486,22 @@ void ClangCode::emit(GenContext *context)
     case KFUNC_LVAL:
 	context->rtype = kfun.type;
 	context->voidCallArgs(VM_KFUNC);
-	fprintf(context->stream, "i16 %u, i32 %d)\n", kfun.func,
-		kfun.nargs);
+	fprintf(context->stream, "i16 %u, i32 %d)\n", kfun.func, kfun.nargs);
 	break;
 
     case KFUNC_SPREAD:
-	if (!onStack(context, sp)) {
-	    if (context->get(sp).type == LPC_TYPE_INT) {
-		context->callArgs(VM_KFUNC_SPREAD_INT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
-			kfun.nargs);
-	    } else {
-		context->callArgs(VM_KFUNC_SPREAD_FLOAT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
-			kfun.nargs);
-	    }
+	switch (offStack(context, sp)) {
+	case LPC_TYPE_INT:
+	    context->callArgs(VM_KFUNC_SPREAD_INT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
+		    kfun.nargs);
+	    context->sp = sp;
+	    return;
+
+	case LPC_TYPE_FLOAT:
+	    context->callArgs(VM_KFUNC_SPREAD_FLOAT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i32 %u)\n", kfun.func,
+		    kfun.nargs);
 	    context->sp = sp;
 	    return;
 	}
@@ -1514,16 +1518,18 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case DFUNC:
-	if (!onStack(context, sp)) {
-	    if (context->get(sp).type == LPC_TYPE_INT) {
-		context->callArgs(VM_DFUNC_INT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n",
-			dfun.inherit, dfun.func, dfun.nargs);
-	    } else {
-		context->callArgs(VM_DFUNC_FLOAT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n",
-			dfun.inherit, dfun.func, dfun.nargs);
-	    }
+	switch (offStack(context, sp)) {
+	case LPC_TYPE_INT:
+	    context->callArgs(VM_DFUNC_INT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n", dfun.inherit,
+		    dfun.func, dfun.nargs);
+	    context->sp = sp;
+	    return;
+
+	case LPC_TYPE_FLOAT:
+	    context->callArgs(VM_DFUNC_FLOAT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n", dfun.inherit,
+		    dfun.func, dfun.nargs);
 	    context->sp = sp;
 	    return;
 	}
@@ -1534,16 +1540,18 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case DFUNC_SPREAD:
-	if (!onStack(context, sp)) {
-	    if (context->get(sp).type == LPC_TYPE_INT) {
-		context->callArgs(VM_DFUNC_SPREAD_INT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n",
-			dfun.inherit, dfun.func, dfun.nargs);
-	    } else {
-		context->callArgs(VM_DFUNC_SPREAD_FLOAT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n",
-			dfun.inherit, dfun.func, dfun.nargs);
-	    }
+	switch (offStack(context, sp)) {
+	case LPC_TYPE_INT:
+	    context->callArgs(VM_DFUNC_SPREAD_INT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n", dfun.inherit,
+		    dfun.func, dfun.nargs);
+	    context->sp = sp;
+	    return;
+
+	case LPC_TYPE_FLOAT:
+	    context->callArgs(VM_DFUNC_SPREAD_FLOAT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i8 %u, i32 %u)\n", dfun.inherit,
+		    dfun.func, dfun.nargs);
 	    context->sp = sp;
 	    return;
 	}
@@ -1554,16 +1562,16 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case FUNC:
-	if (!onStack(context, sp)) {
-	    if (context->get(sp).type == LPC_TYPE_INT) {
-		context->callArgs(VM_FUNC_INT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call,
-			fun.nargs);
-	    } else {
-		context->callArgs(VM_FUNC_FLOAT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call,
-			fun.nargs);
-	    }
+	switch (offStack(context, sp)) {
+	case LPC_TYPE_INT:
+	    context->callArgs(VM_FUNC_INT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
+	    context->sp = sp;
+	    return;
+
+	case LPC_TYPE_FLOAT:
+	    context->callArgs(VM_FUNC_FLOAT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
 	    context->sp = sp;
 	    return;
 	}
@@ -1573,16 +1581,16 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case FUNC_SPREAD:
-	if (!onStack(context, sp)) {
-	    if (context->get(sp).type == LPC_TYPE_INT) {
-		context->callArgs(VM_FUNC_SPREAD_INT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call,
-			fun.nargs);
-	    } else {
-		context->callArgs(VM_FUNC_SPREAD_FLOAT, tmpRef(sp));
-		fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call,
-			fun.nargs);
-	    }
+	switch (offStack(context, sp)) {
+	case LPC_TYPE_INT:
+	    context->callArgs(VM_FUNC_SPREAD_INT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
+	    context->sp = sp;
+	    return;
+
+	case LPC_TYPE_FLOAT:
+	    context->callArgs(VM_FUNC_SPREAD_FLOAT, tmpRef(sp));
+	    fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
 	    context->sp = sp;
 	    return;
 	}
@@ -1741,7 +1749,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	     */
 	    for (n = 0, sp = b->sp; sp != STACK_EMPTY;
 		 n++, sp = context->nextSp(sp)) {
-		if (ClangCode::onStack(context, sp)) {
+		if (ClangCode::offStack(context, sp) == LPC_TYPE_NIL) {
 		    continue;
 		}
 		switch (context->get(sp).type) {

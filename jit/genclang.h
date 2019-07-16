@@ -7,7 +7,7 @@ public:
     void emitRangeTable(class GenContext *context);
     void emitStringTable(class GenContext *context);
 
-    static bool onStack(class GenContext *context, StackSize sp);
+    static Type offStack(class GenContext *context, StackSize sp);
     static char *tmpRef(StackSize sp);
     static char *paramRef(LPCParam param, int ref);
     static char *paramPhi(LPCParam param, int ref);
