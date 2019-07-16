@@ -220,6 +220,7 @@ public:
     GenContext(FILE *stream, CodeFunction *func, StackSize size, int num) :
 	FlowContext(func, size), stream(stream), num(num) {
 	next = 0;
+	line = 0;
 	rtype = 0;
 	switchList = NULL;
 	count = 0;
@@ -325,6 +326,7 @@ public:
     FILE *stream;		/* output file */
     int num;			/* function number */
     CodeSize next;		/* address of next block */
+    CodeLine line;		/* current line number */
     Type rtype;			/* return value type of KFUNC_LVAL */
     ClangCode *switchList;	/* list of switch tables */
 

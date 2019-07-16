@@ -25,7 +25,6 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
     nParams = func->nargs + func->vargs;
     if (nParams != 0) {
 	params = new Type[nParams];
-	origParams = new Type[nParams];
 
 	for (i = 1; i <= nParams; i++) {
 	    params[nParams - i] = func->proto[i].type;
@@ -33,25 +32,21 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
 	if (func->fclass & CodeFunction::CLASS_ELLIPSIS) {
 	    params[0] = LPC_TYPE_ARRAY;
 	}
-	memcpy(origParams, params, nParams);
     } else {
-	origParams = params = NULL;
+	params = NULL;
     }
 
     nLocals = func->locals;
     if (nLocals != 0) {
 	locals = new Type[nLocals];
-	origLocals = new Type[nLocals];
 
 	for (i = 0; i < nLocals; i++) {
 	    locals[i] = LPC_TYPE_NIL;
 	}
-	memcpy(origLocals, locals, nLocals);
     } else {
-	origLocals = locals = NULL;
+	locals = NULL;
     }
 
-    line = 0;
     stack = new Stack<TVC>((size * 3) / 2);
     altSp = sp = STACK_EMPTY;
     storeCount = 0;
@@ -64,9 +59,7 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
 BlockContext::~BlockContext()
 {
     delete[] params;
-    delete[] origParams;
     delete[] locals;
-    delete[] origLocals;
     delete stack;
 }
 
@@ -119,9 +112,7 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
     StackSize sp;
 
     memcpy(params, mergeParams, nParams);
-    memcpy(origParams, mergeParams, nParams);
     memcpy(locals, mergeLocals, nLocals);
-    memcpy(origLocals, mergeLocals, nLocals);
 
     if (b->sp == STACK_INVALID) {
 	if (b->nFrom > 1) {
@@ -350,11 +341,20 @@ StackSize BlockContext::merge(StackSize codeSp)
 /*
  * propagate changes to following blocks?
  */
-bool BlockContext::changed()
+bool BlockContext::changed(Type *params, Type *locals)
 {
+    LPCParam i;
+
+    for (i = 0; i < nParams; i++) {
+	this->params[i] = mergeType(params[i], this->params[i]);
+    }
+    for (i = 0; i < nLocals; i++) {
+	this->locals[i] = mergeType(locals[i], this->locals[i]);
+    }
+
     return (sp != STACK_EMPTY ||
-	    memcmp(origParams, params, nParams) != 0 ||
-	    memcmp(origLocals, locals, nLocals) != 0);
+	    memcmp(params, this->params, nParams) != 0 ||
+	    memcmp(locals, this->locals, nLocals) != 0);
 }
 
 /*
@@ -728,6 +728,15 @@ void TypedBlock::evaluateTypes(BlockContext *context, Block **list)
     CodeSize i, j;
     Block *b;
 
+    context->sp = sp;
+
+    for (code = first; ; code = code->next) {
+	code->evaluateTypes(context);
+	if (code == last) {
+	    break;
+	}
+    }
+
     if (endSp == STACK_INVALID) {
 	/*
 	 * initialize params & locals
@@ -738,37 +747,28 @@ void TypedBlock::evaluateTypes(BlockContext *context, Block **list)
 	if (context->nLocals != 0) {
 	    locals = new Type[context->nLocals];
 	}
+    } else if (!context->changed(params, locals)) {
+	return;
     }
 
-    context->sp = sp;
+    /*
+     * save state
+     */
+    endSp = context->sp;
+    memcpy(params, context->params, context->nParams);
+    memcpy(locals, context->locals, context->nLocals);
 
-    for (code = first; ; code = code->next) {
-	code->evaluateTypes(context);
-	if (code == last) {
-	    break;
-	}
-    }
+    /* followups */
+    for (i = 0; i < nTo; i++) {
+	b = to[i];
 
-    if (endSp == STACK_INVALID || context->changed()) {
-	/*
-	 * save state
-	 */
-	endSp = context->sp;
-	memcpy(params, context->params, context->nParams);
-	memcpy(locals, context->locals, context->nLocals);
+	/* find proper from */
+	for (j = 0; b->from[j] != this; j++) ;
 
-	/* followups */
-	for (i = 0; i < nTo; i++) {
-	    b = to[i];
-
-	    /* find proper from */
-	    for (j = 0; b->from[j] != this; j++) ;
-
-	    if (!b->fromVisit[j]) {
-		b->fromVisit[j] = true;
-		if (b != this) {
-		    b->toVisit(list);
-		}
+	if (!b->fromVisit[j]) {
+	    b->fromVisit[j] = true;
+	    if (b != this) {
+		b->toVisit(list);
 	    }
 	}
     }

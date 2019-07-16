@@ -34,7 +34,7 @@ public:
     Type kfun(LPCKFunCall *kf, Code *code);
     void args(int nargs, Code *code);
     StackSize merge(StackSize codeSp);
-    bool changed();
+    bool changed(Type *params, Type *locals);
     TVC get(StackSize stackPointer);
     Code *consumer(StackSize stackPointer, Type type);
     StackSize nextSp(StackSize stackPointer, int depth = 1);
@@ -45,7 +45,6 @@ public:
     LPCLocal nLocals;		/* # local variables */
     StackSize sp;		/* stack pointer */
     Type castType;		/* CASTX argument */
-    CodeLine line;		/* current line */
     StackSize level;		/* catch level */
 
 private:
@@ -53,8 +52,6 @@ private:
 
     static Type mergeType(Type type1, Type type2);
 
-    Type *origParams;		/* original parameter types */
-    Type *origLocals;		/* original local variable types */
     Stack<TVC> *stack;		/* type/val/code stack */
     TVC altStack[3];		/* alternative stack */
     StackSize altSp;		/* alternative stack pointer */
