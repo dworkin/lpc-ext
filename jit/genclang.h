@@ -30,9 +30,13 @@ public:
     ClangBlock(Code *fist, Code *last, CodeSize size);
     virtual ~ClangBlock();
 
+    virtual char *label(Block *to);
     virtual void emit(class GenContext *context, CodeFunction *function);
 
     static Block *create(Code *first, Code *last, CodeSize size);
+
+private:
+    char buf[12];
 };
 
 class ClangObject {

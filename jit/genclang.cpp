@@ -212,13 +212,20 @@ static const struct {
     { "vm_rlimits", "void", "(i8*, i1)" },
 # define VM_RLIMITS_END			92
     { "vm_rlimits_end", "void", "(i8*)" },
-# define VM_FUNCTIONS			93
+# define VM_CATCH			93
+    { "vm_catch", "i8*", "(i8*, i1)" },
+# define VM_CAUGHT			94
+    { "vm_caught", "void", "(i8*)" },
+# define VM_CATCH_END			95
+    { "vm_catch_end", "void", "(i8*)" },
+# define VM_FUNCTIONS			96
 };
 
 class GenContext : public FlowContext {
 public:
     GenContext(FILE *stream, CodeFunction *func, StackSize size, int num) :
 	FlowContext(func, size), stream(stream), num(num) {
+	block = NULL;
 	next = 0;
 	line = 0;
 	rtype = 0;
@@ -232,6 +239,7 @@ public:
      * prepare context for block
      */
     void prepareGen(class Block *b) {
+	block = b;
 	if (b->nTo != 0) {
 	    next = b->to[0]->first->addr;
 	}
@@ -241,10 +249,10 @@ public:
      * generate reference
      */
     char *genRef() {
-	static char bufs[2][10];
+	static char bufs[3][10];
 	static int n = 0;
 
-	n = (n + 1) % 2;
+	n = (n + 1) % 3;
 	sprintf(bufs[n], "%%c%d", ++count);
 	return bufs[n];
     }
@@ -325,11 +333,11 @@ public:
 
     FILE *stream;		/* output file */
     int num;			/* function number */
+    Block *block;		/* current block */
     CodeSize next;		/* address of next block */
     CodeLine line;		/* current line number */
     Type rtype;			/* return value type of KFUNC_LVAL */
     ClangCode *switchList;	/* list of switch tables */
-
     int count;			/* reference counter */
 };
 
@@ -576,11 +584,15 @@ void ClangCode::switchInt(GenContext *context, CodeSize defAddr)
     if (context->get(context->sp).type != LPC_TYPE_INT) {
 	ref = context->genRef();
 	context->call(VM_SWITCH_INT, ref);
-	fprintf(context->stream,
-		"\tbr i1 %s, label %%L%04xsw, label %%L%04x\n", ref, addr,
-		defAddr);
-	fprintf(context->stream, "L%04xsw:\n", addr);
+	fprintf(context->stream, "\tbr i1 %s, label %%%s, ", ref,
+		context->block->label(NULL));
+	fprintf(context->stream, "label %%%s\n",
+		context->block->label(context->block->to[0]));
+	fprintf(context->stream, "%s:\n", context->block->label(NULL));
 	context->call(VM_POP_INT, tmpRef(context->sp));
+    } else {
+	ref = context->block->label(NULL);
+	fprintf(context->stream, "\tbr label %%%s\n%s:\n", ref, ref);
     }
 }
 
@@ -606,7 +618,7 @@ void ClangCode::emit(GenContext *context)
 {
     StackSize sp;
     long double d;
-    char *ref;
+    char *ref, *ref2;
     int i;
 
     if (line != context->line) {
@@ -1068,8 +1080,9 @@ void ClangCode::emit(GenContext *context)
     case SWITCH_INT:
 	// XXX account ticks for backward jump
 	switchInt(context, caseInt[0].addr);
-	fprintf(context->stream, "\tswitch " Int " %s, label %%L%04x",
-		tmpRef(context->sp), caseInt[0].addr);
+	fprintf(context->stream, "\tswitch " Int " %s, label %%%s",
+		tmpRef(context->sp),
+		context->block->label(context->block->to[0]));
 	if (size > 1) {
 	    fprintf(context->stream, " [\n");
 	    for (i = 1; i < size; i++) {
@@ -1078,7 +1091,8 @@ void ClangCode::emit(GenContext *context)
 	    }
 	    fprintf(context->stream, "\t]");
 	}
-	fprintf(context->stream, "\n");
+	fprintf(context->stream, "\n%s:\n\tbr label %%L%04x\n",
+		context->block->label(context->block->to[0]), caseInt[0].addr);
 	context->sp = sp;
 	return;
 
@@ -1092,17 +1106,21 @@ void ClangCode::emit(GenContext *context)
 		    context->load(VM_SWITCH_RANGE));
 	    genTable(context, "i32");
 	    fprintf(context->stream,
-		    ", " Int " %s)\n\tswitch i32 %s, label %%L%04x [\n",
-		    tmpRef(context->sp), ref, caseRange[0].addr);
+		    ", " Int " %s)\n\tswitch i32 %s, label %%%s [\n",
+		    tmpRef(context->sp), ref,
+		    context->block->label(context->block->to[0]));
 	    for (i = 1; i < size; i++) {
 		fprintf(context->stream, "\t\ti32 %d, label %%L%04x\n", i - 1,
 			caseRange[i].addr);
 	    }
 	    fprintf(context->stream, "\t]");
 	} else {
-	    fprintf(context->stream, "\tbr label %%L%04x\n", caseRange[0].addr);
+	    fprintf(context->stream, "\tbr label %%%s\n",
+		    context->block->label(context->block->to[0]));
 	}
-	fprintf(context->stream, "\n");
+	fprintf(context->stream, "\n%s:\n\tbr label %%L%04x\n",
+		context->block->label(context->block->to[0]),
+		caseRange[0].addr);
 	context->sp = sp;
 	return;
 
@@ -1600,18 +1618,29 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case CATCH:
+	ref = context->genRef();
+	context->callArgs(VM_CATCH, ref);
 	if (pop) {
-	    fprintf(context->stream, "\tcatch_pop(f) %%L%04x, %%L%04x\n", context->next,
-		    target);
+	    fprintf(context->stream, "i1 false)\n");
 	} else {
-	    fprintf(context->stream, "\tcatch(f) %%L%04x, %%L%04x\n", context->next,
-		    target);
+	    fprintf(context->stream, "i1 true)\n");
 	}
+	ref2 = context->genRef();
+	fprintf(context->stream, "\t%s = call i32 @_setjmp(i8* %s)\n", ref2,
+		ref);
+	ref = context->genRef();
+	fprintf(context->stream, "\t%s = icmp ne i32 %s, 0\n", ref, ref2);
+	ref2 = context->block->label(context->block->to[1]);
+	fprintf(context->stream, "\tbr i1 %s, label %%%s, label %%L%04x\n",
+		ref, ref2, context->next);
+	fprintf(context->stream, "%s:\n", ref2);
+	context->voidCall(VM_CAUGHT);
+	fprintf(context->stream, "\tbr label %%L%04x\n", target);
 	context->sp = sp;
 	return;
 
     case END_CATCH:
-	fprintf(context->stream, "\tcatch_end\n");
+	context->voidCall(VM_CATCH_END);
 	break;
 
     case RLIMITS:
@@ -1698,6 +1727,38 @@ ClangBlock::~ClangBlock()
 }
 
 /*
+ * determine the context-sensitive label of this block for a followup
+ */
+char *ClangBlock::label(Block *to)
+{
+    switch (last->instruction) {
+    case Code::CATCH:
+	if (to == this->to[1]) {
+	    /* caught */
+	    sprintf(buf, "L%04xC", first->addr);
+	    return buf;
+	}
+	break;
+
+    case Code::SWITCH_INT:
+    case Code::SWITCH_RANGE:
+        if (to == this->to[0]) {
+	    /* default */
+	    sprintf(buf, "L%04xS%04x", first->addr, to->first->addr);
+	} else {
+	    sprintf(buf, "L%04xS", first->addr);
+	}
+	return buf;
+
+    default:
+	break;
+    }
+
+    sprintf(buf, "L%04x", first->addr);
+    return buf;
+}
+
+/*
  * emit instructions for all blocks
  */
 void ClangBlock::emit(GenContext *context, CodeFunction *function)
@@ -1773,10 +1834,10 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 			fprintf(context->stream, ",");
 		    }
 		    phi = false;
-		    fprintf(context->stream, " [%s, %%L%04x]",
+		    fprintf(context->stream, " [%s, %%%s]",
 			    ClangCode::tmpRef(context->nextSp(b->from[i]->endSp,
 							      n)),
-			    b->from[i]->first->addr);
+			    b->from[i]->label(b));
 		}
 		fprintf(context->stream, "\n");
 	    }
@@ -1817,9 +1878,9 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 			    fprintf(context->stream, ",");
 			}
 			phi = false;
-			fprintf(context->stream, " [%s, %%L%04x]",
+			fprintf(context->stream, " [%s, %%%s]",
 				ClangCode::localRef(n, b->from[i]->localRef(n)),
-				b->from[i]->first->addr);
+				b->from[i]->label(b));
 		    }
 		    fprintf(context->stream, "\n");
 		}
@@ -1873,9 +1934,9 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 			    fprintf(context->stream, ",");
 			}
 			phi = false;
-			fprintf(context->stream, " [%s, %%L%04x]",
+			fprintf(context->stream, " [%s, %%%s]",
 				ClangCode::paramRef(n, b->from[i]->paramRef(n)),
-				b->from[i]->first->addr);
+				b->from[i]->label(b));
 		    }
 		    fprintf(context->stream, "\n");
 		}
@@ -1955,6 +2016,9 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	context->level = level;
 	for (code = b->first; ; code = code->next) {
 	    code->emit(context);
+	    if (code->instruction == Code::END_CATCH) {
+		context->level--;
+	    }
 	    if (code == b->last) {
 		switch (code->instruction) {
 		case Code::JUMP:
@@ -1969,10 +2033,6 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		case Code::SWITCH_STRING:
 		case Code::CATCH:
 		case Code::RETURN:
-		    break;
-
-		case Code::END_CATCH:
-		    context->level--;
 		    break;
 
 		default:
@@ -2049,6 +2109,7 @@ void ClangObject::header(FILE *stream)
 	fprintf(stream, "@%s = external constant %s %s*, align %d\n",
 		functions[i].name, functions[i].ret, functions[i].args, 8);
     }
+    fprintf(stream, "declare i32 @_setjmp(i8*) #1\n");
 }
 
 /*

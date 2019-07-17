@@ -684,6 +684,11 @@ int Block::localRef(LPCLocal local)
     return 0;
 }
 
+char *Block::label(Block *to)
+{
+    return NULL;
+}
+
 void Block::emit(class GenContext *context, CodeFunction *function)
 {
 }
