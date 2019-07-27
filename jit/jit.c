@@ -209,6 +209,10 @@ static int jit_execute(uint64_t index, uint64_t instance, int version, int func)
     return retval;
 }
 
+static void jit_release(uint64_t index, uint64_t instance)
+{
+}
+
 /*
  * NAME:	LPC->ext_init()
  * DESCRIPTION:	initialize JIT compiler frontend
@@ -222,7 +226,7 @@ int lpc_ext_init(int major, int minor, const char *config)
     strcpy(configDir, config);
     sprintf(jitcomp, "exec %s/jitcomp %s", config, config);
     lpc_ext_spawn(jitcomp);
-    (*lpc_ext_jit)(&jit_init, &jit_compile, &jit_execute);
+    (*lpc_ext_jit)(&jit_init, &jit_compile, &jit_execute, &jit_release);
 
     return 1;
 }

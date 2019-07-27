@@ -76,6 +76,7 @@ typedef void		      (*LPC_jit_compile)(uint64_t, uint64_t, int,
 						 uint8_t*, size_t, uint8_t*,
 						 size_t);
 typedef int		      (*LPC_jit_execute)(uint64_t, uint64_t, int, int);
+typedef void		      (*LPC_jit_release)(uint64_t, uint64_t);
 
 
 extern int			lpc_ext_init(int, int, const char*);
@@ -90,7 +91,8 @@ extern int			lpc_ext_write(const void*, int);
 LPCEXT void			(*lpc_ext_kfun)(const LPC_ext_kfun*, int);
 LPCEXT void			(*lpc_ext_dbase)(LPC_ext_dbase*);
 LPCEXT int			(*lpc_ext_jit)(LPC_jit_init, LPC_jit_compile,
-					       LPC_jit_execute);
+					       LPC_jit_execute,
+					       LPC_jit_release);
 
 LPCEXT LPC_object		(*lpc_frame_object)(LPC_frame);
 LPCEXT LPC_dataspace		(*lpc_frame_dataspace)(LPC_frame);
