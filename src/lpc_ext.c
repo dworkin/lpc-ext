@@ -40,7 +40,7 @@ static int ext_cb(void *ftab[], int size, int n, ...)
 
 static void (*ext_spawn)(void (*)(int*, int), void (*)(void));
 static void (*ext_fdclose)(int*, int);
-static int in, out;
+static int in, out, back;
 
 /*
  * NAME:	ext->init()
@@ -49,7 +49,7 @@ static int in, out;
 DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[],
 		       const char *config)
 {
-    in = out = -1;
+    in = out = back = -1;
 
     return (major == LPC_EXT_VERSION_MAJOR && minor >= LPC_EXT_VERSION_MINOR &&
            ext_cb(ftabs[0], sizes[0], 5,
@@ -146,6 +146,7 @@ static void ext_finish(void)
 {
     close(in);
     close(out);
+    close(back);
 }
 
 /*
@@ -168,9 +169,10 @@ void lpc_ext_spawn(const char *program)
     if (pid > 0) {
 	in = input[0];
 	out = output[1];
+	back = input[1];
 	fcntl(in, F_SETFD, FD_CLOEXEC);
 	fcntl(out, F_SETFD, FD_CLOEXEC);
-	close(input[1]);
+	fcntl(back, F_SETFD, FD_CLOEXEC);
 	close(output[0]);
 	do {
 	    wait(&status);
@@ -228,4 +230,13 @@ int lpc_ext_read(void *buffer, int len)
 int lpc_ext_write(const void *buffer, int len)
 {
     return write(out, buffer, len);
+}
+
+/*
+ * NAME:	lpc_ext->writeback()
+ * DESCRIPTION:	write back to oneself
+ */
+int lpc_ext_writeback(const void *buffer, int len)
+{
+    return write(back, buffer, len);
 }
