@@ -71,6 +71,14 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
     return true;
 }
 
+/*
+ * NAME:	JIT->finish()
+ * DESCRIPTION:	finish JIT compiler interface
+ */
+static void jit_finish(void)
+{
+}
+
 
 typedef struct {
     uint64_t index;	/* object index */
@@ -226,7 +234,8 @@ int lpc_ext_init(int major, int minor, const char *config)
     strcpy(configDir, config);
     sprintf(jitcomp, "exec %s/jitcomp %s", config, config);
     lpc_ext_spawn(jitcomp);
-    (*lpc_ext_jit)(&jit_init, &jit_compile, &jit_execute, &jit_release);
+    (*lpc_ext_jit)(&jit_init, &jit_finish, &jit_compile, &jit_execute,
+		   &jit_release);
 
     return 1;
 }

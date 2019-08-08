@@ -71,6 +71,7 @@ typedef struct {
 } LPC_ext_dbase;
 typedef int		      (*LPC_jit_init)(int, int, size_t, size_t, int,
 					      int, uint8_t*, size_t, void**);
+typedef void		      (*LPC_jit_finish)(void);
 typedef void		      (*LPC_jit_compile)(uint64_t, uint64_t, int,
 						 uint8_t*, size_t, int,
 						 uint8_t*, size_t, uint8_t*,
@@ -91,8 +92,8 @@ extern int			lpc_ext_writeback(const void*, int);
 
 LPCEXT void			(*lpc_ext_kfun)(const LPC_ext_kfun*, int);
 LPCEXT void			(*lpc_ext_dbase)(LPC_ext_dbase*);
-LPCEXT int			(*lpc_ext_jit)(LPC_jit_init, LPC_jit_compile,
-					       LPC_jit_execute,
+LPCEXT int			(*lpc_ext_jit)(LPC_jit_init, LPC_jit_finish,
+					       LPC_jit_compile, LPC_jit_execute,
 					       LPC_jit_release);
 
 LPCEXT LPC_object		(*lpc_frame_object)(LPC_frame);
