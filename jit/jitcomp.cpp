@@ -44,7 +44,7 @@ void fatal(const char *format, ...)
 /*
  * JIT compile a single object using a particular code generator
  */
-static void jitComp(CodeObject *object, uint8_t *prog, int nFunctions,
+static bool jitComp(CodeObject *object, uint8_t *prog, int nFunctions,
 		    char *base)
 {
 # ifdef DISASM
@@ -57,13 +57,15 @@ static void jitComp(CodeObject *object, uint8_t *prog, int nFunctions,
 	prog = func.endProg();
 	fprintf(stderr, "\n");
     }
+
+    return false;
 # endif
 # ifdef GENCLANG
     Code::producer(&ClangCode::create);
     Block::producer(&ClangBlock::create);
 
     ClangObject clang(object, prog, nFunctions);
-    clang.emit(base);
+    return clang.emit(base);
 # endif
 }
 
@@ -90,7 +92,7 @@ static void filename(char *buffer, uint8_t *hash)
 int main(int argc, char *argv[])
 {
     JitInfo info;
-    uint8_t hash[16];
+    uint8_t cmdhash[17];
     char reply;
     CodeContext *cc;
 
@@ -125,13 +127,14 @@ int main(int argc, char *argv[])
     reply = true;
     write(1, &reply, 1);
 
-    while (read(0, hash, 16) == 16) {
+    cmdhash[0] = '\0';
+    while (read(0, cmdhash + 1, 16) == 16) {
 	char path[1000];
 	JitCompile comp;
 	int fd;
 	uint8_t *prog, *ftypes, *vtypes;
 
-	filename(path, hash);
+	filename(path, cmdhash + 1);
 	fd = open(path, O_RDONLY);
 	read(fd, &comp, sizeof(JitCompile));
 	prog = new uint8_t[comp.progSize];
@@ -143,7 +146,9 @@ int main(int argc, char *argv[])
 	close(fd);
 
 	CodeObject object(cc, comp.nInherits, ftypes, vtypes);
-	jitComp(&object, prog, comp.nFunctions, path);
+	if (jitComp(&object, prog, comp.nFunctions, path)) {
+	    write(1, cmdhash, 17);
+	}
 
 	delete[] vtypes;
 	delete[] ftypes;

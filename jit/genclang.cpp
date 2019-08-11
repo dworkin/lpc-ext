@@ -2130,7 +2130,7 @@ void ClangObject::table(FILE *stream, int nFunctions)
 /*
  * create a dynamically loadable object
  */
-void ClangObject::emit(char *base)
+bool ClangObject::emit(char *base)
 {
     char buffer[1000];
     FILE *stream;
@@ -2181,5 +2181,5 @@ void ClangObject::emit(char *base)
 	    "-Wno-override-module -undefined dynamic_lookup "
 # endif
 	    "-o %s.so %s.ll", base, base);
-    system(buffer);
+    return (system(buffer) == 0);
 }

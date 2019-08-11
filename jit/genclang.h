@@ -44,7 +44,7 @@ public:
     ClangObject(CodeObject *object, uint8_t *prog, int nFunctions);
     virtual ~ClangObject();
 
-    void emit(char *base);
+    bool emit(char *base);
 
     static bool init(const char *base);
 
