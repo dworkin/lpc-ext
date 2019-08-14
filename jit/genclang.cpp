@@ -218,7 +218,11 @@ static const struct {
     { "vm_caught", "void", "(i8*)" },
 # define VM_CATCH_END			95
     { "vm_catch_end", "void", "(i8*)" },
-# define VM_FUNCTIONS			96
+# define VM_LINE			96
+    { "vm_line", "void", "(i8*, i16)" },
+# define VM_TICKS			97
+    { "vm_ticks", "void", "(i8*, " Int ")" },
+# define VM_FUNCTIONS			98
 };
 
 class GenContext : public FlowContext {
@@ -622,7 +626,8 @@ void ClangCode::emit(GenContext *context)
     int i;
 
     if (line != context->line) {
-	fprintf(context->stream, "; line %d\n", line);
+	context->voidCallArgs(VM_LINE);
+	fprintf(context->stream, "i16 %u)\n", line);
 	context->line = line;
     }
 
@@ -2014,6 +2019,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 
 	context->sp = b->sp;
 	context->level = level;
+	context->line = 0;
 	for (code = b->first; ; code = code->next) {
 	    code->emit(context);
 	    if (code->instruction == Code::END_CATCH) {

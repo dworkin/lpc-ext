@@ -394,7 +394,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
 	    /*
 	     * inform backend
 	     */
-	    lpc_ext_write(hash, 16);
+	    lpc_ext_write(hash + 8, 16);
 	}
     }
 }
