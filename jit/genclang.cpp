@@ -693,7 +693,7 @@ void ClangCode::emit(GenContext *context)
 
 	default:
 	    context->voidCallArgs(VM_LOCAL);
-	    fprintf(context->stream, "i8 %u)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local + 1);
 	    break;
 	}
 	break;
@@ -830,7 +830,7 @@ void ClangCode::emit(GenContext *context)
 	    context->copyInt(localRef(context, local), tmpRef(context->sp));
 	    if (context->level > 0) {
 		context->voidCallArgs(VM_STORE_LOCAL_INT);
-		fprintf(context->stream, "i8 %u, " Int " %s)\n", local,
+		fprintf(context->stream, "i8 %u, " Int " %s)\n", local + 1,
 			tmpRef(context->sp));
 	    }
 	    if (!pop) {
@@ -843,7 +843,7 @@ void ClangCode::emit(GenContext *context)
 	    context->copyFloat(localRef(context, local), tmpRef(context->sp));
 	    if (context->level > 0) {
 		context->voidCallArgs(VM_STORE_LOCAL_FLOAT);
-		fprintf(context->stream, "i8 %u, " Double " %s)\n", local,
+		fprintf(context->stream, "i8 %u, " Double " %s)\n", local + 1,
 			tmpRef(context->sp));
 	    }
 	    if (!pop) {
@@ -854,7 +854,7 @@ void ClangCode::emit(GenContext *context)
 
 	default:
 	    context->voidCallArgs(VM_STORE_LOCAL);
-	    fprintf(context->stream, "i8 %u)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local + 1);
 	    break;
 	}
 	break;
@@ -900,7 +900,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORE_LOCAL_INDEX:
 	context->voidCallArgs(VM_STORE_LOCAL_INDEX);
-	fprintf(context->stream, "i8 %u)\n", local);
+	fprintf(context->stream, "i8 %u)\n", local + 1);
 	break;
 
     case STORE_GLOBAL_INDEX:
@@ -986,17 +986,17 @@ void ClangCode::emit(GenContext *context)
 	switch (context->castType) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_STORES_LOCAL_INT, localRef(context, local));
-	    fprintf(context->stream, "i8 %u)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local + 1);
 	    break;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_STORES_LOCAL_FLOAT, localRef(context, local));
-	    fprintf(context->stream, "i8 %u)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local + 1);
 	    break;
 
 	default:
 	    context->voidCallArgs(VM_STORES_LOCAL);
-	    fprintf(context->stream, "i8 %u)\n", local);
+	    fprintf(context->stream, "i8 %u)\n", local + 1);
 	    break;
 	}
 	if (!context->storeN()) {
@@ -1029,7 +1029,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_LOCAL_INDEX:
 	context->voidCallArgs(VM_STORES_LOCAL_INDEX);
-	fprintf(context->stream, "i8 %u)\n", local);
+	fprintf(context->stream, "i8 %u)\n", local + 1);
 	if (!context->storeN()) {
 	    context->popStores(tmpRef(sp));
 	}
