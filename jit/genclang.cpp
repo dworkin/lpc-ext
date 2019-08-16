@@ -184,45 +184,39 @@ static const struct {
     { "vm_dfunc_spread_float", Double, "(i8*, i16, i8, i32)" },
 # define VM_FUNC			78
     { "vm_func", "void", "(i8*, i16, i32)" },
-# define VM_FUNC_INT			79
-    { "vm_func_int", Int, "(i8*, i16, i32)" },
-# define VM_FUNC_FLOAT			80
-    { "vm_func_float", Double, "(i8*, i16, i32)" },
-# define VM_FUNC_SPREAD			81
+# define VM_FUNC_SPREAD			79
     { "vm_func_spread", "void", "(i8*, i16, i32)" },
-# define VM_FUNC_SPREAD_INT		82
-    { "vm_func_spread_int", Int, "(i8*, i16, i32)" },
-# define VM_FUNC_SPREAD_FLOAT		83
-    { "vm_func_spread_float", Double, "(i8*, i16, i32)" },
-# define VM_POP				84
+# define VM_POP				80
     { "vm_pop", "void", "(i8*)" },
-# define VM_POP_BOOL			85
+# define VM_POP_BOOL			81
     { "vm_pop_bool", "i1", "(i8*)" },
-# define VM_POP_INT			86
+# define VM_POP_INT			82
     { "vm_pop_int", Int, "(i8*)" },
-# define VM_POP_FLOAT			87
+# define VM_POP_FLOAT			83
     { "vm_pop_float", Double, "(i8*)" },
-# define VM_SWITCH_INT			88
+# define VM_SWITCH_INT			84
     { "vm_switch_int", "i1", "(i8*)" },
-# define VM_SWITCH_RANGE		89
+# define VM_SWITCH_RANGE		85
     { "vm_switch_range", "i32", "(" Int "*, i32, " Int ")" },
-# define VM_SWITCH_STRING		90
+# define VM_SWITCH_STRING		86
     { "vm_switch_string", "i32", "(i8*, i16*, i32)" },
-# define VM_RLIMITS			91
+# define VM_RLIMITS			87
     { "vm_rlimits", "void", "(i8*, i1)" },
-# define VM_RLIMITS_END			92
+# define VM_RLIMITS_END			88
     { "vm_rlimits_end", "void", "(i8*)" },
-# define VM_CATCH			93
+# define VM_CATCH			89
     { "vm_catch", "i8*", "(i8*, i1)" },
-# define VM_CAUGHT			94
+# define VM_CAUGHT			90
     { "vm_caught", "void", "(i8*)" },
-# define VM_CATCH_END			95
+# define VM_CATCH_END			91
     { "vm_catch_end", "void", "(i8*)" },
-# define VM_LINE			96
+# define VM_LINE			92
     { "vm_line", "void", "(i8*, i16)" },
-# define VM_TICKS			97
+# define VM_TICKS			93
     { "vm_ticks", "void", "(i8*, " Int ")" },
-# define VM_FUNCTIONS			98
+# define VM_LOOP_TICKS			94
+    { "vm_loop_ticks", "void", "(i8*)" },
+# define VM_FUNCTIONS			95
 };
 
 class GenContext : public FlowContext {
@@ -1585,39 +1579,11 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case FUNC:
-	switch (offStack(context, sp)) {
-	case LPC_TYPE_INT:
-	    context->callArgs(VM_FUNC_INT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
-	    context->sp = sp;
-	    return;
-
-	case LPC_TYPE_FLOAT:
-	    context->callArgs(VM_FUNC_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
-	    context->sp = sp;
-	    return;
-	}
-
 	context->voidCallArgs(VM_FUNC);
 	fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
 	break;
 
     case FUNC_SPREAD:
-	switch (offStack(context, sp)) {
-	case LPC_TYPE_INT:
-	    context->callArgs(VM_FUNC_SPREAD_INT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
-	    context->sp = sp;
-	    return;
-
-	case LPC_TYPE_FLOAT:
-	    context->callArgs(VM_FUNC_SPREAD_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
-	    context->sp = sp;
-	    return;
-	}
-
 	context->voidCallArgs(VM_FUNC_SPREAD);
 	fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
 	break;
