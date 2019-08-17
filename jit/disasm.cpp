@@ -18,10 +18,13 @@ extern "C" {
 class GenContext : public FlowContext {
 public:
     GenContext(FILE *stream, CodeFunction *func, StackSize size) :
-	FlowContext(func, size), stream(stream) { }
+	FlowContext(func, size), stream(stream) {
+	line = 0;
+    }
     virtual ~GenContext() { }
 
     FILE *stream;
+    CodeLine line;
 };
 
 

@@ -57,9 +57,9 @@ static bool jitComp(CodeObject *object, uint8_t *prog, int nFunctions,
 	prog = func.endProg();
 	fprintf(stderr, "\n");
     }
-
     return false;
 # endif
+
 # ifdef GENCLANG
     Code::producer(&ClangCode::create);
     Block::producer(&ClangBlock::create);

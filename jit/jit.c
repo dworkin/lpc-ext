@@ -264,11 +264,13 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
 		    int nBuiltins, int nKfuns, uint8_t *protos,
 		    size_t protoSize, void **vmtab)
 {
-    char path[1000];
     JitInfo info;
     bool result;
+# ifdef GENCLANG
+    char path[1000];
     void *h;
     void (*init)(void**);
+# endif
 
     /*
      * pass information to the JIT compiler backend
@@ -288,6 +290,7 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
 	return false;
     }
 
+# ifdef GENCLANG
     /*
      * dynamically load vm.so
      */
@@ -306,6 +309,7 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
      * initialize vm object with function table
      */
     (*init)(vmtab);
+# endif
 
     /*
      * create loader thread
