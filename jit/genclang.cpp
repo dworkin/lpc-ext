@@ -227,6 +227,7 @@ public:
 	next = 0;
 	line = 0;
 	rtype = 0;
+	storeSkip = false;
 	switchList = NULL;
 	count = 0;
     }
@@ -316,6 +317,20 @@ public:
     }
 
     /*
+     * possibly skip stores
+     */
+    void skip(bool flag) {
+	storeSkip = flag;
+    }
+
+    /*
+     * skipping stores?
+     */
+    bool skipping() {
+	return storeSkip;
+    }
+
+    /*
      * clean up after STORES
      */
     void popStores(char *ref) {
@@ -335,6 +350,7 @@ public:
     CodeSize next;		/* address of next block */
     CodeLine line;		/* current line number */
     Type rtype;			/* return value type of KFUNC_LVAL */
+    bool storeSkip;		/* skipping stores? */
     ClangCode *switchList;	/* list of switch tables */
     int count;			/* reference counter */
 };
@@ -922,6 +938,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES:
 	if (context->stores(size, NULL)) {
+	    context->skip(false);
 	    context->voidCallArgs(VM_STORES);
 	    fprintf(context->stream, "i8 %u)\n", size);
 	} else {
@@ -931,6 +948,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_LVAL:
 	if (context->stores(size, (pop) ? this : NULL)) {
+	    context->skip(true);
 	    if (next->instruction == STORES_SPREAD) {
 		context->voidCallArgs(VM_STORES_SPREAD);
 		fprintf(context->stream, "i8 %u, ", size);
@@ -995,13 +1013,13 @@ void ClangCode::emit(GenContext *context)
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_STORES_LOCAL_INT, localRef(context, local));
 	    fprintf(context->stream, "i8 %u, " Int " %s)\n", local + 1,
-		    localPre(context, local));
+		    (context->skipping()) ? localPre(context, local) : "0");
 	    break;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_STORES_LOCAL_FLOAT, localRef(context, local));
 	    fprintf(context->stream, "i8 %u, " Double " %s)\n", local + 1,
-		    localPre(context, local));
+		    (context->skipping()) ? localPre(context, local) : "0.0");
 	    break;
 
 	default:
