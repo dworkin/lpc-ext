@@ -20,6 +20,7 @@ public:
 private:
     char *paramRef(class GenContext *context, LPCParam param);
     char *localRef(class GenContext *context, LPCLocal local);
+    char *localPre(class GenContext *context, LPCLocal local);
     void result(class GenContext *context);
     void switchInt(GenContext *context, CodeSize defAddr);
     void genTable(class GenContext *context, const char *type);

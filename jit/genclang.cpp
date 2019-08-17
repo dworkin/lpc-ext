@@ -117,9 +117,9 @@ static const struct {
 # define VM_STORES_LOCAL		44
     { "vm_stores_local", "void", "(i8*, i8)" },
 # define VM_STORES_LOCAL_INT		45
-    { "vm_stores_local_int", Int, "(i8*, i8)" },
+    { "vm_stores_local_int", Int, "(i8*, i8, " Int ")" },
 # define VM_STORES_LOCAL_FLOAT		46
-    { "vm_stores_local_float", Double, "(i8*, i8)" },
+    { "vm_stores_local_float", Double, "(i8*, i8, " Double ")" },
 # define VM_STORES_GLOBAL		47
     { "vm_stores_global", "void", "(i8*, i16, i8)" },
 # define VM_STORES_INDEX		48
@@ -545,6 +545,20 @@ char *ClangCode::localRef(GenContext *context, LPCLocal local)
     int ref;
 
     ref = outputRef();
+    if (ref == 0) {
+	ref = context->inLocals[local];
+    }
+    return localRef(local, ref);
+}
+
+/*
+ * return a name for the local input var this Code refers to
+ */
+char *ClangCode::localPre(GenContext *context, LPCLocal local)
+{
+    int ref;
+
+    ref = inputRef();
     if (ref == 0) {
 	ref = context->inLocals[local];
     }
@@ -980,12 +994,14 @@ void ClangCode::emit(GenContext *context)
 	switch (context->castType) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_STORES_LOCAL_INT, localRef(context, local));
-	    fprintf(context->stream, "i8 %u)\n", local + 1);
+	    fprintf(context->stream, "i8 %u, " Int " %s)\n", local + 1,
+		    localPre(context, local));
 	    break;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_STORES_LOCAL_FLOAT, localRef(context, local));
-	    fprintf(context->stream, "i8 %u)\n", local + 1);
+	    fprintf(context->stream, "i8 %u, " Double " %s)\n", local + 1,
+		    localPre(context, local));
 	    break;
 
 	default:
