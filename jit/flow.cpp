@@ -25,11 +25,37 @@ FlowContext::~FlowContext()
 {
 }
 
+/*
+ * get a reference to a parameter
+ */
+int FlowContext::paramRef(LPCParam param)
+{
+    if (outParams[param] != 0) {
+	return outParams[param];
+    } else {
+	inParams[param] = NEEDED;
+	return 0;
+    }
+}
+
+/*
+ * get a reference to a local variable
+ */
+int FlowContext::localRef(LPCLocal local)
+{
+    if (outLocals[local] != 0) {
+	return outLocals[local];
+    } else {
+	inLocals[local] = NEEDED;
+	return 0;
+    }
+}
+
 
 FlowCode::FlowCode(CodeFunction *function) :
     TypedCode(function)
 {
-    ref = 0;
+    in = out = 0;
 }
 
 FlowCode::~FlowCode()
@@ -43,35 +69,29 @@ void FlowCode::evaluateFlow(FlowContext *context)
 {
     switch (instruction) {
     case PARAM:
-	if (context->outParams[param] != 0) {
-	    ref = context->outParams[param];
-	} else {
-	    context->inParams[param] = FlowContext::NEEDED;
-	    ref = 0;
-	}
+	out = context->paramRef(param);
 	break;
 
     case LOCAL:
-	if (context->outLocals[local] != 0) {
-	    ref = context->outLocals[local];
-	} else {
-	    context->inLocals[local] = FlowContext::NEEDED;
-	    ref = 0;
-	}
+	out = context->localRef(local);
 	break;
 
-    case STORE_PARAM:
-    case STORE_PARAM_INDEX:
     case STORES_PARAM:
     case STORES_PARAM_INDEX:
-	context->outParams[param] = ref = addr + 1;
+	in = context->paramRef(param);
+	/* fall through */
+    case STORE_PARAM:
+    case STORE_PARAM_INDEX:
+	context->outParams[param] = out = addr + 1;
 	break;
 
-    case STORE_LOCAL:
-    case STORE_LOCAL_INDEX:
     case STORES_LOCAL:
     case STORES_LOCAL_INDEX:
-	context->outLocals[local] = ref = addr + 1;
+	in = context->localRef(local);
+	/* fall through */
+    case STORE_LOCAL:
+    case STORE_LOCAL_INDEX:
+	context->outLocals[local] = out = addr + 1;
 	break;
 
     default:

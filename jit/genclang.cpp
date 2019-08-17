@@ -530,7 +530,7 @@ char *ClangCode::paramRef(GenContext *context, LPCParam param)
 {
     int ref;
 
-    ref = reference();
+    ref = outputRef();
     if (ref == 0) {
 	ref = context->inParams[param];
     }
@@ -544,7 +544,7 @@ char *ClangCode::localRef(GenContext *context, LPCLocal local)
 {
     int ref;
 
-    ref = reference();
+    ref = outputRef();
     if (ref == 0) {
 	ref = context->inLocals[local];
     }

@@ -3,6 +3,9 @@ public:
     FlowContext(CodeFunction *func, StackSize size);
     virtual ~FlowContext();
 
+    int paramRef(LPCParam param);
+    int localRef(LPCLocal local);
+
     static const int INITIAL =	0x20000;
     static const int NEEDED =	0x20001;
 
@@ -19,12 +22,16 @@ public:
 
     static Code *create(CodeFunction *function);
 
-    int reference() {
-	return ref;
+    int inputRef() {
+	return in;
+    }
+    int outputRef() {
+	return out;
     }
 
 private:
-    int ref;			/* variable reference */
+    int in;			/* variable input reference */
+    int out;			/* variable output reference */
 };
 
 class FlowBlock : public TypedBlock {
