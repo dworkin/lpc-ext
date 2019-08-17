@@ -25,8 +25,11 @@ all:	jitcomp
 jitcomp: $(OBJ)
 	$(CXX) $(OBJ) -o jitcomp
 
+jit.o:	jit.h ../src/lpc_ext.h
+	$(CC) -c $(CFLAGS) $(CODEGEN) -I../src jit.c
+
 clean:
-	rm -f $(OBJ) gentt.h jitcomp
+	rm -f jit.o $(OBJ) gentt.h jitcomp
 
 gentt.h:
 	clang -v  2>&1 | \
