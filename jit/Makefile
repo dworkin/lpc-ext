@@ -29,7 +29,7 @@ jit.o:	jit.h ../src/lpc_ext.h
 	$(CC) -c $(CFLAGS) $(CODEGEN) -I../src jit.c
 
 clean:
-	rm -f jit.o $(OBJ) gentt.h jitcomp
+	rm -rf jit.o $(OBJ) gentt.h jitcomp cache
 
 gentt.h:
 	clang -v  2>&1 | \
