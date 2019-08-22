@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     }
 
     cc = new CodeContext(info.intSize, info.inheritSize, protos, info.nBuiltins,
-			 info.nKfuns);
+			 info.nKfuns, info.typechecking);
 
 # ifdef GENCLANG
     if (!ClangObject::init("cache/vm")) {

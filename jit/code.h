@@ -12,7 +12,7 @@ public:
     };
 
     CodeContext(size_t intSize, size_t inhSize, CodeByte *protos, int nBuiltins,
-		int nKfuns);
+		int nKfuns, int typechecking);
     virtual ~CodeContext();
 
     CodeByte *type(CodeByte *pc, LPCType *vType);
@@ -23,6 +23,7 @@ public:
     size_t inhSize;		/* inherit size */
     Kfun *kfuns;		/* kfun prototypes */
     LPCKFun nkfun;		/* # kfuns */
+    int typechecking;		/* typechecking mode */
 };
 
 class CodeObject {

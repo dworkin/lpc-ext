@@ -15,7 +15,7 @@ extern "C" {
 			  FETCH2U(pc) : FETCH1U(pc))
 
 CodeContext::CodeContext(size_t intSize, size_t inhSize, CodeByte *protos,
-			 int nBuiltins, int nKfuns)
+			 int nBuiltins, int nKfuns, int typechecking)
 {
     int i, size;
     Kfun *kfun;
@@ -62,6 +62,7 @@ CodeContext::CodeContext(size_t intSize, size_t inhSize, CodeByte *protos,
 	    proto++;
 	} while (--size != 0);
     }
+    this->typechecking = typechecking;
 }
 
 CodeContext::~CodeContext()
@@ -186,7 +187,11 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte *prog)
     fclass = PROTO_CLASS(program);
     program = &PROTO_FTYPE(program);
     do {
-	program = context->type(program, proto++);
+	program = context->type(program, proto);
+	if (context->typechecking == 0) {
+	    proto->type = LPC_TYPE_MIXED;
+	}
+	proto++;
     } while (--size != 0);
 
     /* retrieve code from function */
