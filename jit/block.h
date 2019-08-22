@@ -11,8 +11,10 @@ public:
     virtual void setContext(class BlockContext *context, Block *b);
     virtual Type paramType(LPCParam param);
     virtual Type localType(LPCLocal local);
-    virtual int paramRef(LPCParam param);
-    virtual int localRef(LPCLocal local);
+    virtual int paramIn(LPCParam param);
+    virtual int paramOut(LPCParam param);
+    virtual int localIn(LPCLocal local);
+    virtual int localOut(LPCLocal local);
     virtual void prepareFlow(class FlowContext *context);
     virtual void evaluateTypes(class BlockContext *context, Block **list);
     virtual void evaluateFlow(class FlowContext *context, Block **list);

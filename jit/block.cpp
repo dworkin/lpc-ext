@@ -674,12 +674,22 @@ Type Block::localType(LPCLocal local)
     return LPC_TYPE_VOID;
 }
 
-int Block::paramRef(LPCParam param)
+int Block::paramIn(LPCParam param)
 {
     return 0;
 }
 
-int Block::localRef(LPCLocal local)
+int Block::paramOut(LPCParam param)
+{
+    return 0;
+}
+
+int Block::localIn(LPCLocal local)
+{
+    return 0;
+}
+
+int Block::localOut(LPCLocal local)
 {
     return 0;
 }

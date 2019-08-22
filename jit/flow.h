@@ -39,13 +39,22 @@ public:
     FlowBlock(Code *fist, Code *last, CodeSize size);
     virtual ~FlowBlock();
 
-    virtual int paramRef(LPCParam param);
-    virtual int localRef(LPCLocal local);
+    virtual int paramIn(LPCParam param);
+    virtual int paramOut(LPCParam param);
+    virtual int localIn(LPCLocal local);
+    virtual int localOut(LPCLocal local);
     virtual void prepareFlow(FlowContext *context);
     virtual void evaluateFlow(FlowContext *context, Block **list);
     virtual void evaluateInputs(FlowContext *context, Block **list);
     virtual void evaluateOutputs(FlowContext *context, Block **list);
     void evaluate(FlowContext *context);
+
+    static bool paramMerged(Block *b, LPCParam param) {
+	return (b->paramIn(param) == -(b->first->addr + 1));
+    }
+    static bool localMerged(Block *b, LPCLocal local) {
+	return (b->localIn(local) == -(b->first->addr + 1));
+    }
 
     static Block *create(Code *first, Code *last, CodeSize size);
 

@@ -34,6 +34,9 @@ public:
     virtual char *label(Block *to);
     virtual void emit(class GenContext *context, CodeFunction *function);
 
+    static Type mergedParamType(Block *b, LPCParam param, Type type);
+    static Type mergedLocalType(Block *b, LPCLocal local);
+
     static Block *create(Code *first, Code *last, CodeSize size);
 
 private:

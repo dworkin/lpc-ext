@@ -123,17 +123,33 @@ FlowBlock::~FlowBlock()
 }
 
 /*
+ * return input param reference
+ */
+int FlowBlock::paramIn(LPCParam param)
+{
+    return inParams[param];
+}
+
+/*
  * return output param reference
  */
-int FlowBlock::paramRef(LPCParam param)
+int FlowBlock::paramOut(LPCParam param)
 {
     return (outParams[param] != 0) ? outParams[param] : inParams[param];
 }
 
 /*
+ * return input local var reference
+ */
+int FlowBlock::localIn(LPCLocal local)
+{
+    return inLocals[local];
+}
+
+/*
  * return output local var reference
  */
-int FlowBlock::localRef(LPCLocal local)
+int FlowBlock::localOut(LPCLocal local)
 {
     return (outLocals[local] != 0) ? outLocals[local] : inLocals[local];
 }
