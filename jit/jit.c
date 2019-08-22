@@ -151,6 +151,7 @@ static void *o_del(Object **r)
 
 
 static char configDir[1000];
+static int typechecking;
 static pthread_mutex_t lock;
 static pthread_t tid;
 
@@ -261,7 +262,7 @@ static void *jit_thread(void *arg)
  * DESCRIPTION:	initialize JIT compiler interface
  */
 static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
-		    int nBuiltins, int nKfuns, uint8_t *protos,
+		    int tc, int nBuiltins, int nKfuns, uint8_t *protos,
 		    size_t protoSize, void **vmtab)
 {
     JitInfo info;
@@ -277,6 +278,7 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
      */
     info.major = major;
     info.minor = minor;
+    info.typechecking = typechecking = tc;
     info.intSize = intSize;
     info.inheritSize = inheritSize;
     info.nBuiltins = nBuiltins;
@@ -355,6 +357,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
     p = buffer;
     comp = (JitCompile *) p;
     memset(comp, '\0', sizeof(JitCompile));
+    comp->typechecking = typechecking;
     comp->nInherits = nInherits;
     comp->nFunctions = nFunctions;
     comp->progSize = progSize;

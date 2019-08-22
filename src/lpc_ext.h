@@ -70,7 +70,8 @@ typedef struct {
     int (*restore_snapshot)	(LPC_db*, LPC_db_request*);
 } LPC_ext_dbase;
 typedef int		      (*LPC_jit_init)(int, int, size_t, size_t, int,
-					      int, uint8_t*, size_t, void**);
+					      int, int, uint8_t*, size_t,
+					      void**);
 typedef void		      (*LPC_jit_finish)(void);
 typedef void		      (*LPC_jit_compile)(uint64_t, uint64_t, int,
 						 uint8_t*, size_t, int,
