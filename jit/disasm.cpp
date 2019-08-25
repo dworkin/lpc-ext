@@ -345,6 +345,10 @@ void DisCode::emit(GenContext *context)
 	fprintf(context->stream, "CATCH %04x\n", target);
 	break;
 
+    case CAUGHT:
+	fprintf(context->stream, "CAUGHT %04x\n", target);
+	break;
+
     case END_CATCH:
 	fprintf(context->stream, "END_CATCH\n");
 	break;

@@ -166,7 +166,6 @@ Block *Block::function(CodeFunction *function)
     while (function->endProg() == NULL) {
 	/* add new code */
 	code = Code::produce(function);
-	code->next = NULL;
 	if (first == NULL) {
 	    first = last = code;
 	} else {
@@ -256,6 +255,16 @@ Block *Block::function(CodeFunction *function)
 		}
 		break;
 
+	    case Code::CATCH:
+		last = code->next = Code::produce(NULL);
+		last->instruction = Code::CAUGHT;
+		last->addr = code->addr + 1;
+		last->line = code->line;
+		last->target = code->target;
+		code->target = code->addr + 3;
+		code = last;
+		break;
+
 	    case Code::STORES:
 		if (lval) {
 		    code->instruction = Code::STORES_LVAL;
@@ -268,6 +277,7 @@ Block *Block::function(CodeFunction *function)
 		break;
 	    }
 	}
+	code->next = NULL;
     }
 
     return (first != NULL) ?
@@ -287,6 +297,7 @@ Block *Block::pass1()
     for (b = this, code = this->first; code != NULL; code = code->next) {
 	switch (code->instruction) {
 	case Code::JUMP:
+	case Code::CAUGHT:
 	    /* split at jump target */
 	    b = b->split(code->target);
 	    if (b == NULL) {
@@ -542,9 +553,9 @@ Block *Block::pass2(Block *tree, StackSize size)
 		 * special case for CATCH: the context will be gone after an
 		 * exception occurs
 		 */
-		b->to[0]->toVisitOnce(&list, stackPointer, catchLevel);
-		b->to[1]->toVisitOnce(&list, context.pop(stackPointer),
+		b->to[0]->toVisitOnce(&list, context.pop(stackPointer),
 				      catchLevel - 1);
+		b->to[1]->toVisitOnce(&list, stackPointer, catchLevel);
 	    } else {
 		for (i = 0; i < b->nTo; i++) {
 		    b->to[i]->toVisitOnce(&list, stackPointer, catchLevel);
@@ -578,16 +589,28 @@ void Block::pass3(Block *b)
 	switch (code->instruction) {
 	case Code::JUMP_ZERO:
 	case Code::JUMP_NONZERO:
-	case Code::CATCH:
 	    code = code->next;
 	    if (code->instruction == Code::JUMP) {
 		f->to[0] = b = b->find(code->target);
 	    }
 	    /* fall through */
 	case Code::JUMP:
+	case Code::CAUGHT:
 	case Code::SWITCH_INT:
 	case Code::SWITCH_RANGE:
 	case Code::SWITCH_STRING:
+	    for (i = 0; i < f->nTo; i++) {
+		if (f->to[i]->nFrom++ == 0) {
+		    f->to[i]->toVisit(&list);
+		}
+	    }
+	    break;
+
+	case Code::CATCH:
+	    code = f->to[1]->first;
+	    if (code->instruction == Code::JUMP) {
+		f->to[1] = b = b->find(code->target);
+	    }
 	    for (i = 0; i < f->nTo; i++) {
 		if (f->to[i]->nFrom++ == 0) {
 		    f->to[i]->toVisit(&list);

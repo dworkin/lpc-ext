@@ -642,6 +642,7 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	context->push(LPC_TYPE_STRING);
 	break;
 
+    case CAUGHT:
     case END_CATCH:
 	break;
 

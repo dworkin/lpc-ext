@@ -1699,14 +1699,15 @@ void ClangCode::emit(GenContext *context)
 		ref);
 	ref = context->genRef();
 	fprintf(context->stream, "\t%s = icmp ne i32 %s, 0\n", ref, ref2);
-	ref2 = context->block->label(context->block->to[1]);
-	fprintf(context->stream, "\tbr i1 %s, label %%%s, label %%L%04x\n",
-		ref, ref2, context->next);
-	fprintf(context->stream, "%s:\n", ref2);
-	context->voidCall(VM_CAUGHT);
-	fprintf(context->stream, "\tbr label %%L%04x\n", target);
+	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%L%04x\n",
+		ref, context->next, target);
 	context->sp = sp;
 	return;
+
+    case CAUGHT:
+	// XXX account ticks for backward jump
+	context->voidCall(VM_CAUGHT);
+	break;
 
     case END_CATCH:
 	context->voidCall(VM_CATCH_END);
@@ -1802,7 +1803,7 @@ char *ClangBlock::label(Block *to)
 {
     switch (last->instruction) {
     case Code::CATCH:
-	if (to == this->to[1]) {
+	if (to == this->to[0]) {
 	    /* caught */
 	    sprintf(buf, "L%04xC", first->addr);
 	    return buf;
@@ -2109,6 +2110,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	    if (code == b->last) {
 		switch (code->instruction) {
 		case Code::JUMP:
+		case Code::CAUGHT:
 		    fprintf(context->stream, "\tbr label %%L%04x\n",
 			    code->target);
 		    break;

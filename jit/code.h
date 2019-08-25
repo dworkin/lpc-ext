@@ -105,7 +105,6 @@ public:
     static Code *produce(CodeFunction *function);
     static void producer(Code *(*factory)(CodeFunction*));
 
-    CodeFunction *function;		/* function this code is in */
     Code *next;				/* following instruction */
     CodeSize addr;			/* address of this instruction */
     CodeLine line;			/* line number of this instruction */
@@ -163,6 +162,7 @@ public:
 	FUNC,
 	FUNC_SPREAD,
 	CATCH,
+	CAUGHT,
 	END_CATCH,
 	RLIMITS,
 	RLIMITS_CHECK,

@@ -509,14 +509,16 @@ Code::Code(CodeFunction *function)
     int i;
     CodeContext::Kfun *kf;
 
-    this->function = function;
-    context = function->object->context;
-    pc = function->getPC(&addr);
+    pop = false;
+    if (function == NULL) {
+	return;		/* pseudo-instruction */
+    }
 
     /*
      * retrieve instruction
      */
-    pop = false;
+    context = function->object->context;
+    pc = function->getPC(&addr);
     instr = FETCH1U(pc);
 
     /*
