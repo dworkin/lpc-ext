@@ -18,8 +18,9 @@ extern "C" {
 # include "genclang.h"
 # include "jitcomp.h"
 
-# define Int	"i32"
-# define Double	"double"
+# define Int		"i32"
+# define Double		"double"
+# define INT_SIZE	4
 
 static const struct {
     const char *name;			/* function name */
@@ -282,7 +283,7 @@ public:
 	fprintf(stream, "\t%s = load %s %s*, %s %s** @%s, align %d\n",
 		ref, functions[func].ret, functions[func].args,
 		functions[func].ret, functions[func].args,
-		functions[func].name, 8);
+		functions[func].name, (int) sizeof(void *));
 	return ref;
     }
 
@@ -709,7 +710,6 @@ void ClangCode::emit(GenContext *context)
 		d = -d;
 	    }
 	}
-	/* XXX hexadecimal representation needed for long double? */
 	fprintf(context->stream, "\t%s = fadd fast " Double " %.26Le, 0.0\n",
 		tmpRef(sp), d);
 	result(context);
@@ -1757,7 +1757,7 @@ void ClangCode::emitRangeTable(GenContext *context)
 	fprintf(context->stream, ", " Int " %lld, " Int " %lld",
 		(long long) caseRange[i].from, (long long) caseRange[i].to);
     }
-    fprintf(context->stream, "], align 8\n");
+    fprintf(context->stream, "], align %d\n", INT_SIZE);
 }
 
 /*
@@ -2202,7 +2202,8 @@ void ClangObject::header(FILE *stream)
     fprintf(stream, "target triple = \"%s\"\n\n", TARGET_TRIPLE);
     for (i = 0; i < VM_FUNCTIONS; i++) {
 	fprintf(stream, "@%s = external constant %s %s*, align %d\n",
-		functions[i].name, functions[i].ret, functions[i].args, 8);
+		functions[i].name, functions[i].ret, functions[i].args,
+		(int) sizeof(void *));
     }
     fprintf(stream, "declare i32 @_setjmp(i8*) #1\n");
 }
@@ -2219,7 +2220,7 @@ void ClangObject::table(FILE *stream, int nFunctions)
     for (i = 1; i <= nFunctions; i++) {
 	fprintf(stream, "void (i8*)* @func%d, ", i);
     }
-    fprintf(stream, "void (i8*)* null], align %d\n", 8);
+    fprintf(stream, "void (i8*)* null], align %d\n", (int) sizeof(void *));
 }
 
 /*
@@ -2265,6 +2266,10 @@ bool ClangObject::emit(char *base)
 	}
 	prog = func.endProg();
     }
+
+    /* attributes */
+    fprintf(stream, "attributes #0 = { nounwind }\n"
+		    "attributes #1 = { nounwind returns_twice }\n");
 
     fclose(stream);
 
