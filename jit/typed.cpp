@@ -318,6 +318,22 @@ void BlockContext::args(int nargs, Code *code)
 }
 
 /*
+ * Handle caught by resetting all parameter/variable types to LPC_TYPE_MIXED.
+ * XXX Only do this for variables whose types are altered inside a catch.
+ */
+void BlockContext::caught()
+{
+    LPCParam i;
+
+    for (i = 0; i < nParams; i++) {
+	params[i] = LPC_TYPE_MIXED;
+    }
+    for (i = 0; i < nLocals; i++) {
+	locals[i] = LPC_TYPE_MIXED;
+    }
+}
+
+/*
  * merge stacks after evaluating code
  */
 StackSize BlockContext::merge(StackSize codeSp)
@@ -643,6 +659,9 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	break;
 
     case CAUGHT:
+	context->caught();
+	break;
+
     case END_CATCH:
 	break;
 

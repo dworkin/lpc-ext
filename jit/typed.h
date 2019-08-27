@@ -33,6 +33,7 @@ public:
     }
     Type kfun(LPCKFunCall *kf, Code *code);
     void args(int nargs, Code *code);
+    void caught();
     StackSize merge(StackSize codeSp);
     bool changed(Type *params, Type *locals);
     TVC get(StackSize stackPointer);

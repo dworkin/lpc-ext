@@ -2101,6 +2101,9 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		case Code::CATCH:
 		    context->saveBeforeMerge(b);
 		    break;
+
+		default:
+		    break;
 		}
 	    }
 	    code->emit(context);

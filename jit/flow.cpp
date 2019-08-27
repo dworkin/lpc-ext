@@ -321,9 +321,11 @@ void FlowBlock::evaluate(FlowContext *context)
      * flow back inputs
      */
     while ((b=nextVisit(&list)) != NULL) {
-	b->prepareFlow(context);
-	for (i = 0; i < b->nFrom; i++) {
-	    b->from[i]->evaluateInputs(context, &list);
+	if (b->first->instruction != Code::CAUGHT) {
+	    b->prepareFlow(context);
+	    for (i = 0; i < b->nFrom; i++) {
+		b->from[i]->evaluateInputs(context, &list);
+	    }
 	}
     }
 
@@ -348,13 +350,17 @@ void FlowBlock::evaluate(FlowContext *context)
     for (b = this; b != NULL; b = b->next) {
 	b->prepareFlow(context);
 	for (i = 0; i < b->nTo; i++) {
-	    b->to[i]->evaluateOutputs(context, &list);
+	    if (b->to[i]->first->instruction != Code::CAUGHT) {
+		b->to[i]->evaluateOutputs(context, &list);
+	    }
 	}
     }
     while ((b=nextVisit(&list)) != NULL) {
 	b->prepareFlow(context);
 	for (i = 0; i < b->nTo; i++) {
-	    b->to[i]->evaluateOutputs(context, &list);
+	    if (b->to[i]->first->instruction != Code::CAUGHT) {
+		b->to[i]->evaluateOutputs(context, &list);
+	    }
 	}
     }
 }
