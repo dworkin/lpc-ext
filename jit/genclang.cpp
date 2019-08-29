@@ -2087,7 +2087,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	}
 
 	context->sp = b->sp;
-	context->level = level;
+	context->level = b->level;
 	context->line = 0;
 	for (code = b->first; ; code = code->next) {
 	    if (code == b->last && context->level == 0) {
