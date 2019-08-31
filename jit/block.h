@@ -45,6 +45,7 @@ public:
 private:
     enum Context {
 	CATCH,
+	CATCH_POP,
 	RLIMITS
     };
 

@@ -210,11 +210,11 @@ static const struct {
 # define VM_RLIMITS_END			90
     { "vm_rlimits_end", "void", "(i8*)" },
 # define VM_CATCH			91
-    { "vm_catch", "i8*", "(i8*, i1)" },
+    { "vm_catch", "i8*", "(i8*)" },
 # define VM_CAUGHT			92
-    { "vm_caught", "void", "(i8*)" },
+    { "vm_caught", "void", "(i8*, i1)" },
 # define VM_CATCH_END			93
-    { "vm_catch_end", "void", "(i8*)" },
+    { "vm_catch_end", "void", "(i8*, i1)" },
 # define VM_LINE			94
     { "vm_line", "void", "(i8*, i16)" },
 # define VM_LOOP_TICKS			95
@@ -1688,12 +1688,7 @@ void ClangCode::emit(GenContext *context)
 
     case CATCH:
 	ref = context->genRef();
-	context->callArgs(VM_CATCH, ref);
-	if (pop) {
-	    fprintf(context->stream, "i1 false)\n");
-	} else {
-	    fprintf(context->stream, "i1 true)\n");
-	}
+	context->call(VM_CATCH, ref);
 	ref2 = context->genRef();
 	fprintf(context->stream, "\t%s = call i32 @_setjmp(i8* %s)\n", ref2,
 		ref);
@@ -1701,17 +1696,28 @@ void ClangCode::emit(GenContext *context)
 	fprintf(context->stream, "\t%s = icmp ne i32 %s, 0\n", ref, ref2);
 	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%L%04x\n",
 		ref, context->next, target);
-	context->sp = sp;
-	return;
+	break;
 
     case CAUGHT:
 	// XXX account ticks for backward jump
-	context->voidCall(VM_CAUGHT);
-	break;
+	context->voidCallArgs(VM_CAUGHT);
+	if (pop) {
+	    fprintf(context->stream, "i1 false)\n");
+	} else {
+	    fprintf(context->stream, "i1 true)\n");
+	}
+	context->sp = sp;
+	return;
 
     case END_CATCH:
-	context->voidCall(VM_CATCH_END);
-	break;
+	context->voidCallArgs(VM_CATCH_END);
+	if (pop) {
+	    fprintf(context->stream, "i1 false)\n");
+	} else {
+	    fprintf(context->stream, "i1 true)\n");
+	}
+	context->sp = sp;
+	return;
 
     case RLIMITS:
 	context->voidCallArgs(VM_RLIMITS);
