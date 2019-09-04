@@ -15,7 +15,7 @@ public:
     static char *localPhi(LPCLocal local, int ref);
     static Code *create(CodeFunction *function);
 
-    ClangCode *list;	/* next in switch list */
+    ClangCode *list;		/* next in switch list */
 
 private:
     char *paramRef(class GenContext *context, LPCParam param);
@@ -52,7 +52,7 @@ private:
     void header(FILE *stream);
     void table(FILE *stream, int nFunctions);
 
-    CodeObject *object;
-    uint8_t *prog;
-    int nFunctions;
+    CodeObject *object;		/* object being compiled */
+    uint8_t *prog;		/* LPC bytecode */
+    int nFunctions;		/* # functions in object */
 };
