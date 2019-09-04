@@ -9,7 +9,7 @@ CC=cc
 
 CFLAGS=	-fPIC -DPIC $(CCFLAGS)
 LD=$(CC)
-LDFLAGS=-shared
+LDFLAGS=-shared $(DEBUG)
 
 OBJ=	src/lpc_ext.o
 LIBLIB=	kfun/rgx/libiberty

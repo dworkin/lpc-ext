@@ -23,7 +23,7 @@ endif
 all:	jitcomp
 
 jitcomp: $(OBJ)
-	$(CXX) $(OBJ) -o jitcomp
+	$(CXX) $(DEBUG) -o jitcomp $(OBJ)
 
 jit.o:	jit.h ../src/lpc_ext.h
 	$(CC) -c $(CFLAGS) $(CODEGEN) -I../src jit.c
