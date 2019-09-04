@@ -14,7 +14,9 @@ LDFLAGS=-shared $(DEBUG)
 OBJ=	src/lpc_ext.o
 LIBLIB=	kfun/rgx/libiberty
 
-all: lower_case.$(EXT) regexp.$(EXT) jit.$(EXT)
+all:	lower_case.$(EXT) regexp.$(EXT)
+
+jit:	jit.$(EXT)
 
 src/lpc_ext.o:	src/lpc_ext.c src/lpc_ext.h
 	$(CC) -o $@ -c $(CFLAGS) -Isrc src/lpc_ext.c
