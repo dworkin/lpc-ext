@@ -22,7 +22,7 @@ private:
     char *localRef(class GenContext *context, LPCLocal local);
     char *localPre(class GenContext *context, LPCLocal local);
     void result(class GenContext *context);
-    void switchInt(GenContext *context, CodeSize defAddr);
+    void switchInt(GenContext *context);
     void genTable(class GenContext *context, const char *type);
 };
 
@@ -31,16 +31,12 @@ public:
     ClangBlock(Code *fist, Code *last, CodeSize size);
     virtual ~ClangBlock();
 
-    virtual char *label(Block *to);
     virtual void emit(class GenContext *context, CodeFunction *function);
 
     static Type mergedParamType(Block *b, LPCParam param, Type type);
     static Type mergedLocalType(Block *b, LPCLocal local);
 
     static Block *create(Code *first, Code *last, CodeSize size);
-
-private:
-    char buf[12];
 };
 
 class ClangObject {

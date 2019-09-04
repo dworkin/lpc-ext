@@ -348,6 +348,68 @@ public:
     }
 
     /*
+     * block exit label
+     */
+    char *label(Block *from, Block *to) {
+	static char buf[12];
+
+	switch (from->last->instruction) {
+	case Code::SWITCH_INT:
+	case Code::SWITCH_RANGE:
+	    if (to == from->to[0]) {
+		/* default */
+		sprintf(buf, "L%04xS%04x", from->first->addr, to->first->addr);
+	    } else {
+		sprintf(buf, "L%04xS", from->first->addr);
+	    }
+	    break;
+
+	default:
+	    if (to != NULL && from->first->addr >= to->first->addr) {
+		sprintf(buf, "L%04xT%04x", from->first->addr, to->first->addr);
+	    } else {
+		sprintf(buf, "L%04x", from->first->addr);
+	    }
+	    break;
+	}
+
+	return buf;
+    }
+
+    /*
+     * default block exit label
+     */
+    char *label(Block *to) {
+	return label(block, to);
+    }
+
+    /*
+     * default block target label
+     */
+    char *target(Block *to) {
+	static char buf[12];
+
+	if (to != NULL && block->first->addr >= to->first->addr) {
+	    sprintf(buf, "L%04xT%04x", block->first->addr, to->first->addr);
+	} else {
+	    sprintf(buf, "L%04x", to->first->addr);
+	}
+
+	return buf;
+    }
+
+    /*
+     * account for loop ticks
+     */
+    void jumpTicks(Block *to) {
+	if (block->first->addr >= to->first->addr) {
+	    fprintf(stream, "%s:\n", label(to));
+	    voidCall(VM_LOOP_TICKS);
+	    fprintf(stream, "\tbr label %%L%04x\n", to->first->addr);
+	}
+    }
+
+    /*
      * store local variables that are merged to LPC_TYPE_MIXED in a followup
      */
     void saveBeforeMerge(Block *b) {
@@ -642,7 +704,7 @@ void ClangCode::result(GenContext *context)
  * obtain the argument to an int/range switch, and branch to default when
  * it isn't an int
  */
-void ClangCode::switchInt(GenContext *context, CodeSize defAddr)
+void ClangCode::switchInt(GenContext *context)
 {
     char *ref;
 
@@ -650,13 +712,13 @@ void ClangCode::switchInt(GenContext *context, CodeSize defAddr)
 	ref = context->genRef();
 	context->call(VM_SWITCH_INT, ref);
 	fprintf(context->stream, "\tbr i1 %s, label %%%s, ", ref,
-		context->block->label(NULL));
+		context->label(NULL));
 	fprintf(context->stream, "label %%%s\n",
-		context->block->label(context->block->to[0]));
-	fprintf(context->stream, "%s:\n", context->block->label(NULL));
+		context->label(context->block->to[0]));
+	fprintf(context->stream, "%s:\n", context->label(NULL));
 	context->call(VM_POP_INT, tmpRef(context->sp));
     } else {
-	ref = context->block->label(NULL);
+	ref = context->label(NULL);
 	fprintf(context->stream, "\tbr label %%%s\n%s:\n", ref, ref);
     }
 }
@@ -1143,11 +1205,9 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case JUMP:
-	// XXX account ticks for backward jump
 	break;
 
     case JUMP_ZERO:
-	// XXX account ticks for backward jump
 	ref = context->genRef();
 	if (context->get(context->sp).type == LPC_TYPE_INT) {
 	    fprintf(context->stream, "\t%s = icmp ne " Int " %s, 0\n", ref,
@@ -1155,13 +1215,13 @@ void ClangCode::emit(GenContext *context)
 	} else {
 	    context->call(VM_POP_BOOL, ref);
 	}
-	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%L%04x\n",
-		ref, context->next, target);
+	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%%s\n",
+		ref, context->next, context->target(context->block->to[1]));
+	context->jumpTicks(context->block->to[1]);
 	context->sp = sp;
 	return;
 
     case JUMP_NONZERO:
-	// XXX account ticks for backward jump
 	ref = context->genRef();
 	if (context->get(context->sp).type == LPC_TYPE_INT) {
 	    fprintf(context->stream, "\t%s = icmp ne " Int " %s, 0\n", ref,
@@ -1169,33 +1229,39 @@ void ClangCode::emit(GenContext *context)
 	} else {
 	    context->call(VM_POP_BOOL, ref);
 	}
-	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%L%04x\n",
-		ref, target, context->next);
+	fprintf(context->stream, "\tbr i1 %s, label %%%s, label %%L%04x\n",
+		ref, context->target(context->block->to[1]), context->next);
+	context->jumpTicks(context->block->to[1]);
 	context->sp = sp;
 	return;
 
     case SWITCH_INT:
-	// XXX account ticks for backward jump
-	switchInt(context, caseInt[0].addr);
+	switchInt(context);
 	fprintf(context->stream, "\tswitch " Int " %s, label %%%s",
-		tmpRef(context->sp),
-		context->block->label(context->block->to[0]));
+		tmpRef(context->sp), context->label(context->block->to[0]));
 	if (size > 1) {
 	    fprintf(context->stream, " [\n");
 	    for (i = 1; i < size; i++) {
-		fprintf(context->stream, "\t\t" Int " %lld, label %%L%04x\n",
-			(long long) caseInt[i].num, caseInt[i].addr);
+		fprintf(context->stream, "\t\t" Int " %lld, label %%%s\n",
+			(long long) caseInt[i].num,
+			context->target(context->block->to[i]));
 	    }
 	    fprintf(context->stream, "\t]");
 	}
-	fprintf(context->stream, "\n%s:\n\tbr label %%L%04x\n",
-		context->block->label(context->block->to[0]), caseInt[0].addr);
+	fprintf(context->stream, "\n%s:\n",
+		context->label(context->block->to[0]));
+	if (context->block->first->addr >= context->block->to[0]->first->addr) {
+	    context->voidCall(VM_LOOP_TICKS);
+	}
+	fprintf(context->stream, "\tbr label %%L%04x\n", caseInt[0].addr);
+	for (i = 1; i < size; i++) {
+	    context->jumpTicks(context->block->to[i]);
+	}
 	context->sp = sp;
 	return;
 
     case SWITCH_RANGE:
-	// XXX account ticks for backward jump
-	switchInt(context, caseRange[0].addr);
+	switchInt(context);
 	if (size > 1) {
 	    ref = context->genRef();
 	    fprintf(context->stream, "\t%s = call %s %s(", ref,
@@ -1205,41 +1271,48 @@ void ClangCode::emit(GenContext *context)
 	    fprintf(context->stream,
 		    ", " Int " %s)\n\tswitch i32 %s, label %%%s [\n",
 		    tmpRef(context->sp), ref,
-		    context->block->label(context->block->to[0]));
+		    context->label(context->block->to[0]));
 	    for (i = 1; i < size; i++) {
-		fprintf(context->stream, "\t\ti32 %d, label %%L%04x\n", i - 1,
-			caseRange[i].addr);
+		fprintf(context->stream, "\t\ti32 %d, label %%%s\n", i - 1,
+			context->target(context->block->to[i]));
 	    }
 	    fprintf(context->stream, "\t]");
 	} else {
 	    fprintf(context->stream, "\tbr label %%%s\n",
-		    context->block->label(context->block->to[0]));
+		    context->label(context->block->to[0]));
 	}
-	fprintf(context->stream, "\n%s:\n\tbr label %%L%04x\n",
-		context->block->label(context->block->to[0]),
-		caseRange[0].addr);
+	fprintf(context->stream, "\n%s:\n",
+		context->label(context->block->to[0]));
+	if (context->block->first->addr >= context->block->to[0]->first->addr) {
+	    context->voidCall(VM_LOOP_TICKS);
+	}
+	fprintf(context->stream, "\tbr label %%L%04x\n", caseRange[0].addr);
+	for (i = 1; i < size; i++) {
+	    context->jumpTicks(context->block->to[i]);
+	}
 	context->sp = sp;
 	return;
 
     case SWITCH_STRING:
-	// XXX account ticks for backward jump
 	if (size > 1) {
 	    ref = context->genRef();
 	    context->callArgs(VM_SWITCH_STRING, ref);
 	    genTable(context, "i16");
-	    fprintf(context->stream, ")\n\tswitch i32 %s, label %%L%04x [\n",
-		    ref, caseString[0].addr);
+	    fprintf(context->stream, ")\n\tswitch i32 %s, label %%%s [\n",
+		    ref, context->target(context->block->to[0]));
 	    for (i = 1; i < size; i++) {
-		fprintf(context->stream, "\t\ti32 %d, label %%L%04x\n", i - 1,
-			caseString[i].addr);
+		fprintf(context->stream, "\t\ti32 %d, label %%%s\n", i - 1,
+			context->target(context->block->to[i]));
 	    }
-	    fprintf(context->stream, "\t]");
+	    fprintf(context->stream, "\t]\n");
 	} else {
 	    context->voidCall(VM_POP);
-	    fprintf(context->stream, "\tbr label %%L%04x\n",
-		    caseString[0].addr);
+	    fprintf(context->stream, "\tbr label %%%s\n",
+		    context->target(context->block->to[0]));
 	}
-	fprintf(context->stream, "\n");
+	for (i = 0; i < size; i++) {
+	    context->jumpTicks(context->block->to[i]);
+	}
 	context->sp = sp;
 	return;
 
@@ -1694,12 +1767,12 @@ void ClangCode::emit(GenContext *context)
 		ref);
 	ref = context->genRef();
 	fprintf(context->stream, "\t%s = icmp ne i32 %s, 0\n", ref, ref2);
-	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%L%04x\n",
-		ref, context->next, target);
+	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%%s\n",
+		ref, context->next, context->target(context->block->to[1]));
+	context->jumpTicks(context->block->to[1]);
 	break;
 
     case CAUGHT:
-	// XXX account ticks for backward jump
 	context->voidCallArgs(VM_CAUGHT);
 	if (pop) {
 	    fprintf(context->stream, "i1 false)\n");
@@ -1800,38 +1873,6 @@ ClangBlock::ClangBlock(Code *first, Code *last, CodeSize size) :
 
 ClangBlock::~ClangBlock()
 {
-}
-
-/*
- * determine the context-sensitive label of this block for a followup
- */
-char *ClangBlock::label(Block *to)
-{
-    switch (last->instruction) {
-    case Code::CATCH:
-	if (to == this->to[0]) {
-	    /* caught */
-	    sprintf(buf, "L%04xC", first->addr);
-	    return buf;
-	}
-	break;
-
-    case Code::SWITCH_INT:
-    case Code::SWITCH_RANGE:
-        if (to == this->to[0]) {
-	    /* default */
-	    sprintf(buf, "L%04xS%04x", first->addr, to->first->addr);
-	} else {
-	    sprintf(buf, "L%04xS", first->addr);
-	}
-	return buf;
-
-    default:
-	break;
-    }
-
-    sprintf(buf, "L%04x", first->addr);
-    return buf;
 }
 
 /*
@@ -1971,7 +2012,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    fprintf(context->stream, " [%s, %%%s]",
 			    ClangCode::tmpRef(context->nextSp(b->from[i]->endSp,
 							      n)),
-			    b->from[i]->label(b));
+			    context->label(b->from[i], b));
 		}
 		fprintf(context->stream, "\n");
 	    }
@@ -2004,7 +2045,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    phi = false;
 		    fprintf(context->stream, " [%s, %%%s]",
 			    ClangCode::localRef(n, b->from[i]->localOut(n)),
-			    b->from[i]->label(b));
+			    context->label(b->from[i], b));
 		}
 		fprintf(context->stream, "\n");
 	    }
@@ -2046,7 +2087,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    phi = false;
 		    fprintf(context->stream, " [%s, %%%s]",
 			    ClangCode::paramRef(n, b->from[i]->paramOut(n)),
-			    b->from[i]->label(b));
+			    context->label(b->from[i], b));
 		}
 		fprintf(context->stream, "\n");
 	    }
@@ -2098,7 +2139,6 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	for (code = b->first; ; code = code->next) {
 	    if (code == b->last && context->level == 0) {
 		switch (code->instruction) {
-		case Code::JUMP:
 		case Code::JUMP_ZERO:
 		case Code::JUMP_NONZERO:
 		case Code::SWITCH_INT:
@@ -2118,12 +2158,6 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	    }
 	    if (code == b->last) {
 		switch (code->instruction) {
-		case Code::JUMP:
-		case Code::CAUGHT:
-		    fprintf(context->stream, "\tbr label %%L%04x\n",
-			    code->target);
-		    break;
-
 		case Code::JUMP_ZERO:
 		case Code::JUMP_NONZERO:
 		case Code::SWITCH_INT:
@@ -2137,8 +2171,9 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    if (context->level == 0) {
 			context->saveBeforeMerge(b);
 		    }
-		    fprintf(context->stream, "\tbr label %%L%04x\n",
-			    context->next);
+		    fprintf(context->stream, "\tbr label %%%s\n",
+			    context->target(b->to[0]));
+		    context->jumpTicks(b->to[0]);
 		    break;
 		}
 		break;

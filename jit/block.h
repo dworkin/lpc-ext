@@ -20,7 +20,6 @@ public:
     virtual void evaluateFlow(class FlowContext *context, Block **list);
     virtual void evaluateInputs(class FlowContext *context, Block **list);
     virtual void evaluateOutputs(class FlowContext *context, Block **list);
-    virtual char *label(Block *to);
     virtual void emit(class GenContext *context, CodeFunction *function);
 
     static Block *function(CodeFunction *function);
