@@ -21,6 +21,7 @@ extern "C" {
 # define Int		"i32"
 # define Double		"double"
 # define INT_SIZE	4
+# undef  LLVM3_6	/* generate IR for LLVM 3.6 and before */
 
 static const struct {
     const char *name;			/* function name */
@@ -280,8 +281,14 @@ public:
 	char *ref;
 
 	ref = genRef();
-	fprintf(stream, "\t%s = load %s %s*, %s %s** @%s, align %d\n",
-		ref, functions[func].ret, functions[func].args,
+	fprintf(stream, "\t%s = load "
+# ifndef LLVM3_6
+				      "%s %s*, "
+# endif
+						"%s %s** @%s, align %d\n", ref,
+# ifndef LLVM3_6
+		functions[func].ret, functions[func].args,
+# endif
 		functions[func].ret, functions[func].args,
 		functions[func].name, (int) sizeof(void *));
 	return ref;
@@ -728,10 +735,15 @@ void ClangCode::switchInt(GenContext *context)
  */
 void ClangCode::genTable(GenContext *context, const char *type)
 {
-    fprintf(context->stream, "%s* getelementptr inbounds ([%d x %s], "
-	    "[%d x %s]* @func%d.%04x, i32 0, i32 0), i32 %u",
-	    type, 2 * (size - 1), type, 2 * (size - 1), type,
-	    context->num, addr, size - 1);
+    fprintf(context->stream, "%s* getelementptr inbounds ("
+# ifndef LLVM3_6
+							   "[%d x %s], "
+# endif
+	    "[%d x %s]* @func%d.%04x, i32 0, i32 0), i32 %u", type,
+# ifndef LLVM3_6
+	    2 * (size - 1), type,
+# endif
+	    2 * (size - 1), type, context->num, addr, size - 1);
 
     /* add myself to the switch table list */
     list = context->switchList;
