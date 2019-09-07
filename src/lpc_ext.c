@@ -7,8 +7,8 @@
 
 # define LPCEXT			/* declare */
 # include "lpc_ext.h"
-# include <unistd.h>
 # include <stdarg.h>
+# include <unistd.h>
 # include <sys/types.h>
 # include <sys/wait.h>
 # include <fcntl.h>
@@ -153,7 +153,7 @@ static void ext_finish(void)
  * NAME:	lpc_ext->spawn()
  * DESCRIPTION:	spawn a child process and execute the given program
  */
-void lpc_ext_spawn(const char *program)
+int lpc_ext_spawn(const char *program)
 {
     int input[2], output[2];
     int pid;
@@ -179,6 +179,7 @@ void lpc_ext_spawn(const char *program)
 	} while (!WIFEXITED(status));
 
 	(*ext_spawn)(&ext_fdlist, &ext_finish);
+	return 1;
     } else if (pid == 0) {
 	dup2(output[0], 0);
 	dup2(input[1], 1);
@@ -211,7 +212,14 @@ void lpc_ext_spawn(const char *program)
 
 	/* child, grandchild if exec fails */
 	_exit(0);
+    } else {
+	close(input[0]);
+	close(input[1]);
+	close(output[0]);
+	close(output[1]);
     }
+
+    return 0;	/* failure of some sort */
 }
 
 /*

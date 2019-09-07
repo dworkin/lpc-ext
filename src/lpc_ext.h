@@ -83,7 +83,7 @@ typedef void		      (*LPC_jit_release)(uint64_t, uint64_t);
 
 
 extern int			lpc_ext_init(int, int, const char*);
-extern void			lpc_ext_spawn(const char*);
+extern int			lpc_ext_spawn(const char*);
 extern int			lpc_ext_read(void*, int);
 extern int			lpc_ext_write(const void*, int);
 extern int			lpc_ext_writeback(const void*, int);
