@@ -203,7 +203,8 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte *prog)
 	size = FETCH2U(program);
 	lines = program + size;
     } else {
-	stack = locals = size = 0;
+	stack = size = 0;
+	locals = 0;
 	lines = program;
     }
 }
@@ -559,7 +560,8 @@ Code::Code(CodeFunction *function)
 	    flt.low = 0;
 	} else {
 	    flt.high = (((xfloat.high & 0x8000) + fexp + 0x3c00) << 16) +
-		       ((xfloat.high & 0xf) << 12) + (xfloat.low >> 20);
+		       ((xfloat.high & 0xf) << 12) +
+		       (uint32_t) (xfloat.low >> 20);
 	    flt.low = xfloat.low << 44;
 	}
 	instruction = FLOAT;

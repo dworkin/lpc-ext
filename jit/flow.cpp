@@ -303,7 +303,6 @@ void FlowBlock::evaluateOutputs(FlowContext *context, Block **list)
 void FlowBlock::evaluate(FlowContext *context)
 {
     Block *list, *b;
-    Code *code;
     CodeSize i;
     LPCParam n;
 

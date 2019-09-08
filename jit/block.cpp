@@ -159,7 +159,7 @@ Block *Block::function(CodeFunction *function)
     CodeSize addr, stores;
     bool lval, spread;
 
-    first = NULL;
+    first = last = NULL;
     program = function->getPC(&addr);
     stores = 0;
     lval = spread = false;

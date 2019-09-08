@@ -225,7 +225,7 @@ Type BlockContext::kfun(LPCKFunCall *kf, Code *code)
 	    if (val < 0) {
 		if (val <= SUM_AGGREGATE) {
 		    /* aggregate */
-		    for (i = SUM_AGGREGATE - val; i != 0; --i) {
+		    for (i = SUM_AGGREGATE - (int) val; i != 0; --i) {
 			pop(code);
 		    }
 		    summand = LPC_TYPE_ARRAY;
@@ -743,8 +743,6 @@ void TypedBlock::setContext(BlockContext *context, Block *b)
 void TypedBlock::evaluateTypes(BlockContext *context, Block **list)
 {
     Code *code;
-    LPCParam n;
-    int ref, fromRef;
     CodeSize i, j;
     Block *b;
 
@@ -801,7 +799,6 @@ void TypedBlock::evaluate(BlockContext *context)
 {
     Block *list, *b;
     StackSize sp;
-    Code *code;
     CodeSize i;
 
     /*

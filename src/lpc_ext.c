@@ -69,7 +69,7 @@ static int read(HANDLE h, void *buffer, int len)
  * NAME:	write()
  * DESCRIPTION:	Windows compatibility wrapper
  */
-static int write(HANDLE h, void *buffer, int len)
+static int write(HANDLE h, const void *buffer, int len)
 {
     int size;
 
