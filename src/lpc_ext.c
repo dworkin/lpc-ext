@@ -8,10 +8,14 @@
 # define LPCEXT			/* declare */
 # include "lpc_ext.h"
 # include <stdarg.h>
+# ifndef WIN32
 # include <unistd.h>
 # include <sys/types.h>
 # include <sys/wait.h>
 # include <fcntl.h>
+# else
+# include <process.h>
+# endif
 
 
 /*
@@ -40,7 +44,50 @@ static int ext_cb(void *ftab[], int size, int n, ...)
 
 static void (*ext_spawn)(void (*)(int*, int), void (*)(void));
 static void (*ext_fdclose)(int*, int);
+
+# ifndef WIN32
+# define INVALID_HANDLE_VALUE	-1
 static int in, out, back;
+# else
+static HANDLE in, out, back;
+
+/*
+ * NAME:	read()
+ * DESCRIPTION:	Windows compatibility wrapper
+ */
+static int read(HANDLE h, void *buffer, int len)
+{
+    int size;
+
+    if (!ReadFile(h, buffer, len, &size, NULL)) {
+	return -1;
+    }
+    return size;
+}
+
+/*
+ * NAME:	write()
+ * DESCRIPTION:	Windows compatibility wrapper
+ */
+static int write(HANDLE h, void *buffer, int len)
+{
+    int size;
+
+    if (!WriteFile(h, buffer, len, &size, NULL)) {
+	return -1;
+    }
+    return size;
+}
+
+/*
+ * NAME:	close()
+ * DESCRIPTION:	Windows compatibility wrapper
+ */
+static void close(HANDLE h)
+{
+    CloseHandle(h);
+}
+# endif
 
 /*
  * NAME:	ext->init()
@@ -49,7 +96,7 @@ static int in, out, back;
 DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[],
 		       const char *config)
 {
-    in = out = back = -1;
+    in = out = back = INVALID_HANDLE_VALUE;
 
     return (major == LPC_EXT_VERSION_MAJOR && minor >= LPC_EXT_VERSION_MINOR &&
            ext_cb(ftabs[0], sizes[0], 5,
@@ -155,6 +202,7 @@ static void ext_finish(void)
  */
 int lpc_ext_spawn(const char *program)
 {
+# ifndef WIN32
     int input[2], output[2];
     int pid;
     int status;
@@ -220,6 +268,55 @@ int lpc_ext_spawn(const char *program)
     }
 
     return 0;	/* failure of some sort */
+# else
+    SECURITY_ATTRIBUTES sattr;
+    HANDLE output;
+    STARTUPINFO sinfo;
+    PROCESS_INFORMATION pinfo;
+
+    /* create pipes */
+    sattr.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sattr.bInheritHandle = TRUE;
+    sattr.lpSecurityDescriptor = NULL;
+    if (!CreatePipe(&in, &back, &sattr, 0)) {
+	return 0;
+    }
+    if (!SetHandleInformation(in, HANDLE_FLAG_INHERIT, 0) &&
+	!CreatePipe(&output, &out, &sattr, 0)) {
+	CloseHandle(in);
+	CloseHandle(back);
+	return 0;
+    }
+    if (!SetHandleInformation(out, HANDLE_FLAG_INHERIT, 0)) {
+	CloseHandle(in);
+	CloseHandle(back);
+	CloseHandle(output);
+	CloseHandle(out);
+	return 0;
+    }
+
+    /* spawn process */
+    ZeroMemory(&sinfo, sizeof(STARTUPINFO));
+    sinfo.cb = sizeof(STARTUPINFO);
+    sinfo.hStdInput = output;
+    sinfo.hStdOutput = back;
+    sinfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    sinfo.dwFlags |= STARTF_USESTDHANDLES;
+    ZeroMemory(&pinfo, sizeof(PROCESS_INFORMATION));
+    if (!CreateProcess(NULL, (LPTSTR) program, NULL, NULL, TRUE, 0, NULL, NULL,
+		       &sinfo, &pinfo)) {
+	CloseHandle(in);
+	CloseHandle(back);
+	CloseHandle(output);
+	CloseHandle(out);
+	return 0;
+    }
+
+    CloseHandle(pinfo.hProcess);
+    CloseHandle(pinfo.hThread);
+    CloseHandle(output);
+    return 1;
+# endif
 }
 
 /*
