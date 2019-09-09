@@ -1,5 +1,10 @@
 # include <stdlib.h>
+# ifndef WIN32
 # include <unistd.h>
+# else
+# include <io.h>
+# include <direct.h>
+# endif
 # include <stdint.h>
 # include <stdarg.h>
 # include <sys/types.h>
@@ -24,6 +29,17 @@ extern "C" {
 # include "genclang.h"
 # endif
 # include "jitcomp.h"
+
+# ifndef WIN32
+# define O_BINARY		0
+# else
+# define open			_open
+# define close			_close
+# define read			_read
+# define write			_write
+# define mkdir(path, mode)	_mkdir(path)
+# define chdir			_chdir
+# endif
 
 /*
  * fatal error
@@ -94,6 +110,7 @@ int main(int argc, char *argv[])
     JitInfo info;
     uint8_t cmdhash[17];
     char reply;
+    uint8_t protos[65536];
     CodeContext *cc;
 
     if (argc != 2 || chdir(argv[1]) < 0) {
@@ -105,7 +122,6 @@ int main(int argc, char *argv[])
     if (read(0, &info, sizeof(JitInfo)) != sizeof(JitInfo)) {
 	return 2;
     }
-    uint8_t protos[info.protoSize];
     if (read(0, protos, info.protoSize) != info.protoSize) {
 	return 2;
     }
@@ -129,7 +145,7 @@ int main(int argc, char *argv[])
 	uint8_t *prog, *ftypes, *vtypes;
 
 	filename(path, cmdhash + 1);
-	fd = open(path, O_RDONLY);
+	fd = open(path, O_RDONLY | O_BINARY);
 	read(fd, &comp, sizeof(JitCompile));
 	prog = new uint8_t[comp.progSize];
 	ftypes = new uint8_t[comp.fTypeSize];

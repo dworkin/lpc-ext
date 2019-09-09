@@ -1,17 +1,24 @@
+# ifndef WIN32
 # include <stdlib.h>
 # include <unistd.h>
-# include <stdint.h>
-# include <stdarg.h>
-# include <stdbool.h>
 # include <pthread.h>
 # include <string.h>
 # include <sys/types.h>
 # include <sys/stat.h>
-# include <fcntl.h>
 # include <dlfcn.h>
+# else
+# include <Windows.h>
+# include <process.h>
+# include <io.h>
+# include <direct.h>
+# endif
+# include <stdint.h>
+# include <stdarg.h>
+# include <stdbool.h>
 # ifdef SOLARIS
 # include <link.h>
 # endif
+# include <fcntl.h>
 # include <stdio.h>
 # include "lpc_ext.h"
 # include "jit.h"
@@ -152,9 +159,47 @@ static void *o_del(Object **r)
 
 static char configDir[1000];
 static int typechecking;
+static void** vm;
+
+# ifndef WIN32
+# define THREAD_START(func)	pthread_create(&tid, NULL, func, NULL)
+# define THREAD_STOP()		pthread_join(tid, NULL)
+# define MUTEX_INIT(lock)	pthread_mutex_init(lock, NULL)
+# define MUTEX_DESTROY(lock)	pthread_mutex_destroy(lock)
+# define MUTEX_LOCK(lock)	pthread_mutex_lock(lock)
+# define MUTEX_UNLOCK(lock)	pthread_mutex_unlock(lock)
+# define DLL_OPEN(mod)		dlopen(mod, RTLD_NOW | RTLD_LOCAL)
+# define DLL_CLOSE(handle)	dlclose(handle)
+# define DLL_SYM(handle, sym)	dlsym(handle, sym)
+# define O_BINARY		0
+# define DLL_EXT		".so"
+
+typedef void* Handle;
+
 static pthread_mutex_t lock;
 static pthread_t tid;
-static void **vm;
+# else
+# define THREAD_START(func)	_beginthread((void (*)(void*)) func, 0, NULL)
+# define THREAD_STOP()		/* */
+# define MUTEX_INIT(lock)	InitializeCriticalSection(lock)
+# define MUTEX_DESTROY(lock)	DeleteCriticalSection(lock)
+# define MUTEX_LOCK(lock)	EnterCriticalSection(lock)
+# define MUTEX_UNLOCK(lock)	LeaveCriticalSection(lock)
+# define DLL_OPEN(mod)		LoadLibrary((LPCSTR) mod)
+# define DLL_CLOSE(handle)	FreeLibrary(handle)
+# define DLL_SYM(handle, sym)	GetProcAddress(handle, (LPCSTR) sym)
+# define alloca			_alloca
+# define access			_access
+# define mkdir(path, mode)	_mkdir(path)
+# define open			_open
+# define write			_write
+# define close			_close
+# define DLL_EXT		".dll"
+
+typedef HMODULE Handle;
+
+static CRITICAL_SECTION lock;
+# endif
 
 /*
  * NAME:	filename()
@@ -190,7 +235,7 @@ static void md5hash(uint8_t *hash, unsigned char *buffer, size_t size)
 	(*lpc_md5_block)(digest, buffer);
     }
     memcpy(tmp, buffer, sz);
-    (*lpc_md5_end)(hash, digest, tmp, sz, size);
+    (*lpc_md5_end)(hash, digest, tmp, (uint16_t) sz, size);
 }
 
 /*
@@ -200,7 +245,7 @@ static void md5hash(uint8_t *hash, unsigned char *buffer, size_t size)
 static void *jit_thread(void *arg)
 {
     uint8_t hash[24];
-    void *handle;
+    Handle handle;
 
     while (lpc_ext_read(hash + 7, 17) == 17) {
 	if (hash[7] == '\0') {
@@ -211,14 +256,14 @@ static void *jit_thread(void *arg)
 
 	    /* compiled */
 	    filename(fname, hash + 8);
-	    sprintf(module, "%s/cache/%c%c/%s.so", configDir, fname[0],
+	    sprintf(module, "%s/cache/%c%c/%s" DLL_EXT, configDir, fname[0],
 		    fname[1], fname);
 	    p = NULL;
-	    handle = dlopen(module, RTLD_NOW | RTLD_LOCAL);
+	    handle = DLL_OPEN(module);
 	    if (handle != NULL) {
-		functions = dlsym(handle, "functions");
+		functions = (Function *) DLL_SYM(handle, "functions");
 		if (functions != NULL) {
-		    pthread_mutex_lock(&lock); {
+		    MUTEX_LOCK(&lock); {
 			p = *p_find(hash + 8);
 			if (p != NULL) {
 			    p->handle = handle;
@@ -227,12 +272,12 @@ static void *jit_thread(void *arg)
 			} else {
 			    p = NULL;
 			}
-		    } pthread_mutex_unlock(&lock);
+		    } MUTEX_UNLOCK(&lock);
 		}
 	    }
 
 	    if (p == NULL && handle != NULL) {
-		dlclose(handle);
+		DLL_CLOSE(handle);
 	    }
 	} else {
 	    uint64_t index, instance;
@@ -241,17 +286,17 @@ static void *jit_thread(void *arg)
 	    index = *((uint64_t *) (hash + 8));
 	    instance = *((uint64_t *) (hash + 16));
 
-	    pthread_mutex_lock(&lock); {
+	    MUTEX_LOCK(&lock); {
 		Object **r;
 
 		r = o_find(index, instance);
 		if (*r != NULL) {
 		    handle = o_del(r);
 		    if (handle != NULL) {
-			dlclose(handle);
+			DLL_CLOSE(handle);
 		    }
 		}
-	    } pthread_mutex_unlock(&lock);
+	    } MUTEX_UNLOCK(&lock);
 	}
     }
 
@@ -292,8 +337,8 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
     /*
      * create loader thread
      */
-    pthread_mutex_init(&lock, NULL);
-    pthread_create(&tid, NULL, &jit_thread, NULL);
+    MUTEX_INIT(&lock);
+    THREAD_START(&jit_thread);
 
     return true;
 }
@@ -304,7 +349,8 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
  */
 static void jit_finish(void)
 {
-    pthread_join(tid, NULL);
+    THREAD_STOP();
+    MUTEX_DESTROY(&lock);
 }
 
 
@@ -319,7 +365,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
 {
     size_t size;
     JitCompile *comp;
-    unsigned char *p;
+    unsigned char buffer[131072], *p;
     uint8_t hash[24];
     Object *c;
     char file[33], path[1000];
@@ -329,7 +375,6 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
      * fill buffer with data for compiler backend
      */
     size = sizeof(JitCompile) + progSize + fTypeSize + vTypeSize;
-    unsigned char buffer[size];
     p = buffer;
     comp = (JitCompile *) p;
     memset(comp, '\0', sizeof(JitCompile));
@@ -350,17 +395,17 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
      * compute MD5 hash
      */
     md5hash(hash + 8, buffer, size);
-    pthread_mutex_lock(&lock); {
+    MUTEX_LOCK(&lock); {
 	c = *o_find(index, instance);
 	c->program = p_new(hash + 8);
-    } pthread_mutex_unlock(&lock);
+    } MUTEX_UNLOCK(&lock);
 
     if (c->program->functions == NULL) {
 	filename(file, hash + 8);
 	sprintf(path, "%s/cache/%c%c", configDir, file[0], file[1]);
 	mkdir(path, 0750);
 	sprintf(path + strlen(path), "/%s", file);
-	if (access(path, F_OK) == 0) {
+	if (access(path, 0) == 0) {
 	    /*
 	     * reuse compiled object XXX may not be compiled yet?
 	     */
@@ -370,7 +415,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
 	    /*
 	     * write to file
 	     */
-	    fd = open(path, O_CREAT | O_TRUNC | O_WRONLY, 0640);
+	    fd = open(path, O_CREAT | O_TRUNC | O_WRONLY | O_BINARY, 0640);
 	    write(fd, buffer, size);
 	    close(fd);
 
@@ -391,13 +436,13 @@ static int jit_execute(uint64_t index, uint64_t instance, int version, int func,
 {
     Object **r, *o;
 
-    pthread_mutex_lock(&lock); {
+    MUTEX_LOCK(&lock); {
 	r = o_find(index, instance);
 	o = *r;
 	if (o == NULL) {
 	    o_new(r, index, instance);
 	}
-    } pthread_mutex_unlock(&lock);
+    } MUTEX_UNLOCK(&lock);
 
     if (o != NULL) {
 	if (o->program != NULL && o->program->functions != NULL) {
@@ -434,7 +479,11 @@ int lpc_ext_init(int major, int minor, const char *config)
     char jitcomp[2000];
 
     strcpy(configDir, config);
+# ifndef WIN32
     sprintf(jitcomp, "exec %s/jitcomp %s", config, config);
+# else
+    sprintf(jitcomp, "%s/jitcomp.exe %s", config, config);
+# endif
     if (lpc_ext_spawn(jitcomp)) {
 	(*lpc_ext_jit)(&jit_init, &jit_finish, &jit_compile, &jit_execute,
 		       &jit_release);

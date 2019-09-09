@@ -1,6 +1,8 @@
 # include <stdlib.h>
 # include <stdint.h>
+# ifndef WIN32
 # include <unistd.h>
+# endif
 # include <new>
 # include <math.h>
 # include <stdio.h>
@@ -14,7 +16,11 @@ extern "C" {
 # include "block.h"
 # include "typed.h"
 # include "flow.h"
+# ifndef WIN32
 # include "gentt.h"
+# else
+# define TARGET_TRIPLE "i686-pc-windows-msvc"
+# endif
 # include "genclang.h"
 # include "jitcomp.h"
 
@@ -293,7 +299,7 @@ public:
 # endif
 					    "i8** %sg, align %d\n",
 		ref, ref, (int) sizeof(void *));
-	fprintf(stream, "\t%s = bitcast i8*%sl to %s %s*\n",
+	fprintf(stream, "\t%s = bitcast i8* %sl to %s %s*\n",
 		ref, ref, functions[func].ret, functions[func].args);
 	return ref;
     }
@@ -2067,7 +2073,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	    }
 	}
 
-	if (b->nFrom > (b != this)) {
+	if (b->nFrom > (int) (b != this)) {
 	    /*
 	     * parameters
 	     */
@@ -2234,7 +2240,11 @@ void ClangObject::table(FILE *stream, int nFunctions)
 {
     int i;
 
-    fprintf(stream, "@functions = constant [%d x void (i8**, i8*)*] [",
+    fprintf(stream, "@functions ="
+# ifdef WIN32
+				 " dllexport"
+# endif
+					    " constant [%d x void (i8**, i8*)*] [",
 	    nFunctions + 1);
     for (i = 1; i <= nFunctions; i++) {
 	fprintf(stream, "void (i8**, i8*)* @func%d, ", i);
@@ -2301,10 +2311,21 @@ bool ClangObject::emit(char *base)
     /*
      * compile .ll file to shared object
      */
-    sprintf(buffer, "clang -Os -fPIC -shared "
-# ifdef __APPLE__
-	    "-Wno-override-module -undefined dynamic_lookup "
+    sprintf(buffer,
+# ifndef WIN32
+	    "clang -fPIC"
+# else
+	    "C:\\progra~2\\micros~1\\2019\\Community\\VC\\Tools\\Llvm\\8.0.0\\bin\\clang.exe"
 # endif
-	    "-o %s.so %s.ll", base, base);
+	    " -Os -shared -Wno-override-module"
+# ifdef __APPLE__
+	    " -undefined dynamic_lookup"
+# endif
+# ifndef WIN32
+	    " -o %s.so"
+# else
+	    " -o %s.dll"
+# endif
+	    " %s.ll", base, base);
     return (system(buffer) == 0);
 }
