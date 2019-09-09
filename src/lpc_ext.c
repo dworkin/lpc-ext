@@ -281,7 +281,7 @@ int lpc_ext_spawn(const char *program)
     if (!CreatePipe(&in, &back, &sattr, 0)) {
 	return 0;
     }
-    if (!SetHandleInformation(in, HANDLE_FLAG_INHERIT, 0) &&
+    if (!SetHandleInformation(in, HANDLE_FLAG_INHERIT, 0) ||
 	!CreatePipe(&output, &out, &sattr, 0)) {
 	CloseHandle(in);
 	CloseHandle(back);

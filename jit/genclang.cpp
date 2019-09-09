@@ -24,202 +24,201 @@ extern "C" {
 # undef  LLVM3_6	/* generate IR for LLVM 3.6 and before */
 
 static const struct {
-    const char *name;			/* function name */
     const char *ret;			/* return value */
     const char *args;			/* function arguments */
 } functions[] = {
 # define VM_INT				0
-    { "vm_int", "void", "(i8*, " Int ")" },
+    { "void", "(i8*, " Int ")" },
 # define VM_FLOAT			1
-    { "vm_float", "void", "(i8*, " Double ")" },
+    { "void", "(i8*, " Double ")" },
 # define VM_STRING			2
-    { "vm_string", "void", "(i8*, i16, i16)" },
+    { "void", "(i8*, i16, i16)" },
 # define VM_PARAM			3
-    { "vm_param", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_PARAM_INT			4
-    { "vm_param_int", Int, "(i8*, i8)" },
+    { Int, "(i8*, i8)" },
 # define VM_PARAM_FLOAT			5
-    { "vm_param_float", Double, "(i8*, i8)" },
+    { Double, "(i8*, i8)" },
 # define VM_LOCAL			6
-    { "vm_local", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_LOCAL_INT			7
-    { "vm_local_int", Int, "(i8*, i8)" },
+    { Int, "(i8*, i8)" },
 # define VM_LOCAL_FLOAT			8
-    { "vm_local_float", Double, "(i8*, i8)" },
+    { Double, "(i8*, i8)" },
 # define VM_GLOBAL			9
-    { "vm_global", "void", "(i8*, i16, i8)" },
+    { "void", "(i8*, i16, i8)" },
 # define VM_GLOBAL_INT			10
-    { "vm_global_int", Int, "(i8*, i16, i8)" },
+    { Int, "(i8*, i16, i8)" },
 # define VM_GLOBAL_FLOAT		11
-    { "vm_global_float", Double, "(i8*, i16, i8)" },
+    { Double, "(i8*, i16, i8)" },
 # define VM_INDEX			12
-    { "vm_index", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_INDEX_INT			13
-    { "vm_index_int", Int, "(i8*)" },
+    { Int, "(i8*)" },
 # define VM_INDEX2			14
-    { "vm_index2", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_INDEX2_INT			15
-    { "vm_index2_int", Int, "(i8*)" },
+    { Int, "(i8*)" },
 # define VM_AGGREGATE			16
-    { "vm_aggregate", "void", "(i8*, i16)" },
+    { "void", "(i8*, i16)" },
 # define VM_MAP_AGGREGATE		17
-    { "vm_map_aggregate", "void", "(i8*, i16)" },
+    { "void", "(i8*, i16)" },
 # define VM_CAST			18
-    { "vm_cast", "void", "(i8*, i8, i16, i16)" },
+    { "void", "(i8*, i8, i16, i16)" },
 # define VM_CAST_INT			19
-    { "vm_cast_int", Int, "(i8*)" },
+    { Int, "(i8*)" },
 # define VM_CAST_FLOAT			20
-    { "vm_cast_float", Double, "(i8*)" },
+    { Double, "(i8*)" },
 # define VM_INSTANCEOF			21
-    { "vm_instanceof", Int, "(i8*, i16, i16)" },
+    { Int, "(i8*, i16, i16)" },
 # define VM_RANGE			22
-    { "vm_range", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_RANGE_FROM			23
-    { "vm_range_from", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_RANGE_TO			24
-    { "vm_range_to", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_STORE_PARAM			25
-    { "vm_store_param", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORE_PARAM_INT		26
-    { "vm_store_param_int", "void", "(i8*, i8, " Int ")" },
+    { "void", "(i8*, i8, " Int ")" },
 # define VM_STORE_PARAM_FLOAT		27
-    { "vm_store_param_float", "void", "(i8*, i8, " Double ")" },
+    { "void", "(i8*, i8, " Double ")" },
 # define VM_STORE_LOCAL			28
-    { "vm_store_local", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORE_LOCAL_INT		29
-    { "vm_store_local_int", "void", "(i8*, i8, " Int ")" },
+    { "void", "(i8*, i8, " Int ")" },
 # define VM_STORE_LOCAL_FLOAT		30
-    { "vm_store_local_float", "void", "(i8*, i8, " Double ")" },
+    { "void", "(i8*, i8, " Double ")" },
 # define VM_STORE_GLOBAL		31
-    { "vm_store_global", "void", "(i8*, i16, i8)" },
+    { "void", "(i8*, i16, i8)" },
 # define VM_STORE_GLOBAL_INT		32
-    { "vm_store_global_int", "void", "(i8*, i16, i8, " Int ")" },
+    { "void", "(i8*, i16, i8, " Int ")" },
 # define VM_STORE_GLOBAL_FLOAT		33
-    { "vm_store_global_float", "void", "(i8*, i16, i8, " Double ")" },
+    { "void", "(i8*, i16, i8, " Double ")" },
 # define VM_STORE_INDEX			34
-    { "vm_store_index", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_STORE_PARAM_INDEX		35
-    { "vm_store_param_index", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORE_LOCAL_INDEX		36
-    { "vm_store_local_index", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORE_GLOBAL_INDEX		37
-    { "vm_store_global_index", "void", "(i8*, i16, i8)" },
+    { "void", "(i8*, i16, i8)" },
 # define VM_STORE_INDEX_INDEX		38
-    { "vm_store_index_index", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_STORES			39
-    { "vm_stores", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORES_LVAL			40
-    { "vm_stores_lval", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORES_SPREAD		41
-    { "vm_stores_spread", "void", "(i8*, i8, i8, i8, i16, i16)" },
+    { "void", "(i8*, i8, i8, i8, i16, i16)" },
 # define VM_STORES_CAST			42
-    { "vm_stores_cast", "void", "(i8*, i8, i16, i16)" },
+    { "void", "(i8*, i8, i16, i16)" },
 # define VM_STORES_PARAM		43
-    { "vm_stores_param", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORES_PARAM_INT		44
-    { "vm_stores_param_int", Int, "(i8*, i8)" },
+    { Int, "(i8*, i8)" },
 # define VM_STORES_PARAM_FLOAT		45
-    { "vm_stores_param_float", Double, "(i8*, i8)" },
+    { Double, "(i8*, i8)" },
 # define VM_STORES_LOCAL		46
-    { "vm_stores_local", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORES_LOCAL_INT		47
-    { "vm_stores_local_int", Int, "(i8*, i8, " Int ")" },
+    { Int, "(i8*, i8, " Int ")" },
 # define VM_STORES_LOCAL_FLOAT		48
-    { "vm_stores_local_float", Double, "(i8*, i8, " Double ")" },
+    { Double, "(i8*, i8, " Double ")" },
 # define VM_STORES_GLOBAL		49
-    { "vm_stores_global", "void", "(i8*, i16, i8)" },
+    { "void", "(i8*, i16, i8)" },
 # define VM_STORES_INDEX		50
-    { "vm_stores_index", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_STORES_PARAM_INDEX		51
-    { "vm_stores_param_index", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORES_LOCAL_INDEX		52
-    { "vm_stores_local_index", "void", "(i8*, i8)" },
+    { "void", "(i8*, i8)" },
 # define VM_STORES_GLOBAL_INDEX		53
-    { "vm_stores_global_index", "void", "(i8*, i16, i8)" },
+    { "void", "(i8*, i16, i8)" },
 # define VM_STORES_INDEX_INDEX		54
-    { "vm_stores_index_index", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_DIV_INT			55
-    { "vm_div_int", Int, "(i8*, " Int ", " Int ")" },
+    { Int, "(i8*, " Int ", " Int ")" },
 # define VM_LSHIFT_INT			56
-    { "vm_lshift_int", Int, "(i8*, " Int ", " Int ")" },
+    { Int, "(i8*, " Int ", " Int ")" },
 # define VM_MOD_INT			57
-    { "vm_mod_int", Int, "(i8*, " Int ", " Int ")" },
+    { Int, "(i8*, " Int ", " Int ")" },
 # define VM_RSHIFT_INT			58
-    { "vm_rshift_int", Int, "(i8*, " Int ", " Int ")" },
+    { Int, "(i8*, " Int ", " Int ")" },
 # define VM_TOFLOAT			59
-    { "vm_tofloat", Double, "(i8*)" },
+    { Double, "(i8*)" },
 # define VM_TOINT			60
-    { "vm_toint", Int, "(i8*)" },
+    { Int, "(i8*)" },
 # define VM_TOINT_FLOAT			61
-    { "vm_toint_float", Int, "(i8*, " Double ")" },
+    { Int, "(i8*, " Double ")" },
 # define VM_NIL				62
-    { "vm_nil", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_ADD_FLOAT			63
-    { "vm_add_float", Double, "(i8*, " Double ", " Double ")" },
+    { Double, "(i8*, " Double ", " Double ")" },
 # define VM_DIV_FLOAT			64
-    { "vm_div_float", Double, "(i8*, " Double ", " Double ")" },
+    { Double, "(i8*, " Double ", " Double ")" },
 # define VM_MULT_FLOAT			65
-    { "vm_mult_float", Double, "(i8*, " Double ", " Double ")" },
+    { Double, "(i8*, " Double ", " Double ")" },
 # define VM_SUB_FLOAT			66
-    { "vm_sub_float", Double, "(i8*, " Double ", " Double ")" },
+    { Double, "(i8*, " Double ", " Double ")" },
 # define VM_KFUNC			67
-    { "vm_kfunc", "void", "(i8*, i16, i32)" },
+    { "void", "(i8*, i16, i32)" },
 # define VM_KFUNC_INT			68
-    { "vm_kfunc_int", Int, "(i8*, i16, i32)" },
+    { Int, "(i8*, i16, i32)" },
 # define VM_KFUNC_FLOAT			69
-    { "vm_kfunc_float", Double, "(i8*, i16, i32)" },
+    { Double, "(i8*, i16, i32)" },
 # define VM_KFUNC_SPREAD		70
-    { "vm_kfunc_spread", "void", "(i8*, i16, i32)" },
+    { "void", "(i8*, i16, i32)" },
 # define VM_KFUNC_SPREAD_INT		71
-    { "vm_kfunc_spread_int", Int, "(i8*, i16, i32)" },
+    { Int, "(i8*, i16, i32)" },
 # define VM_KFUNC_SPREAD_FLOAT		72
-    { "vm_kfunc_spread_float", Double, "(i8*, i16, i32)" },
+    { Double, "(i8*, i16, i32)" },
 # define VM_KFUNC_SPREAD_LVAL		73
-    { "vm_kfunc_spread_lval", "void", "(i8*, i16, i16, i32)" },
+    { "void", "(i8*, i16, i16, i32)" },
 # define VM_DFUNC			74
-    { "vm_dfunc", "void", "(i8*, i16, i8, i32)" },
+    { "void", "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_INT			75
-    { "vm_dfunc_int", Int, "(i8*, i16, i8, i32)" },
+    { Int, "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_FLOAT			76
-    { "vm_dfunc_float", Double, "(i8*, i16, i8, i32)" },
+    { Double, "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_SPREAD		77
-    { "vm_dfunc_spread", "void", "(i8*, i16, i8, i32)" },
+    { "void", "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_SPREAD_INT		78
-    { "vm_dfunc_spread_int", Int, "(i8*, i16, i8, i32)" },
+    { Int, "(i8*, i16, i8, i32)" },
 # define VM_DFUNC_SPREAD_FLOAT		79
-    { "vm_dfunc_spread_float", Double, "(i8*, i16, i8, i32)" },
+    { Double, "(i8*, i16, i8, i32)" },
 # define VM_FUNC			80
-    { "vm_func", "void", "(i8*, i16, i32)" },
+    { "void", "(i8*, i16, i32)" },
 # define VM_FUNC_SPREAD			81
-    { "vm_func_spread", "void", "(i8*, i16, i32)" },
+    { "void", "(i8*, i16, i32)" },
 # define VM_POP				82
-    { "vm_pop", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_POP_BOOL			83
-    { "vm_pop_bool", "i1", "(i8*)" },
+    { "i1", "(i8*)" },
 # define VM_POP_INT			84
-    { "vm_pop_int", Int, "(i8*)" },
+    { Int, "(i8*)" },
 # define VM_POP_FLOAT			85
-    { "vm_pop_float", Double, "(i8*)" },
+    { Double, "(i8*)" },
 # define VM_SWITCH_INT			86
-    { "vm_switch_int", "i1", "(i8*)" },
+    { "i1", "(i8*)" },
 # define VM_SWITCH_RANGE		87
-    { "vm_switch_range", "i32", "(" Int "*, i32, " Int ")" },
+    { "i32", "(" Int "*, i32, " Int ")" },
 # define VM_SWITCH_STRING		88
-    { "vm_switch_string", "i32", "(i8*, i16*, i32)" },
+    { "i32", "(i8*, i16*, i32)" },
 # define VM_RLIMITS			89
-    { "vm_rlimits", "void", "(i8*, i1)" },
+    { "void", "(i8*, i1)" },
 # define VM_RLIMITS_END			90
-    { "vm_rlimits_end", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_CATCH			91
-    { "vm_catch", "i8*", "(i8*)" },
+    { "i8*", "(i8*)" },
 # define VM_CAUGHT			92
-    { "vm_caught", "void", "(i8*, i1)" },
+    { "void", "(i8*, i1)" },
 # define VM_CATCH_END			93
-    { "vm_catch_end", "void", "(i8*, i1)" },
+    { "void", "(i8*, i1)" },
 # define VM_LINE			94
-    { "vm_line", "void", "(i8*, i16)" },
+    { "void", "(i8*, i16)" },
 # define VM_LOOP_TICKS			95
-    { "vm_loop_ticks", "void", "(i8*)" },
+    { "void", "(i8*)" },
 # define VM_FUNCTIONS			96
 };
 
@@ -281,16 +280,21 @@ public:
 	char *ref;
 
 	ref = genRef();
-	fprintf(stream, "\t%s = load "
+	fprintf(stream,
+		"\t%sg = getelementptr inbounds "
 # ifndef LLVM3_6
-				      "%s %s*, "
+						"i8*, "
 # endif
-						"%s %s** @%s, align %d\n", ref,
+						      "i8** %%vmtab, i32 %d\n",
+		ref, func);
+	fprintf(stream, "\t%sl = load "
 # ifndef LLVM3_6
-		functions[func].ret, functions[func].args,
+				      "i8*, "
 # endif
-		functions[func].ret, functions[func].args,
-		functions[func].name, (int) sizeof(void *));
+					    "i8** %sg, align %d\n",
+		ref, ref, (int) sizeof(void *));
+	fprintf(stream, "\t%s = bitcast i8*%sl to %s %s*\n",
+		ref, ref, functions[func].ret, functions[func].args);
 	return ref;
     }
 
@@ -737,7 +741,7 @@ void ClangCode::genTable(GenContext *context, const char *type)
 {
     fprintf(context->stream, "%s* getelementptr inbounds ("
 # ifndef LLVM3_6
-							   "[%d x %s], "
+							  "[%d x %s], "
 # endif
 	    "[%d x %s]* @func%d.%04x, i32 0, i32 0), i32 %u", type,
 # ifndef LLVM3_6
@@ -2215,50 +2219,12 @@ ClangObject::~ClangObject()
 }
 
 /*
- * test clang compiler and generate vm object
- */
-bool ClangObject::init(const char *base)
-{
-    char buffer[1000];
-    FILE *stream;
-    int i;
-
-    sprintf(buffer, "%s.c", base);
-    stream = fopen(buffer, "w");
-    if (stream == NULL) {
-	return false;
-    }
-    fprintf(stream, "/* automatically generated */\n");
-    for (i = 0; i < VM_FUNCTIONS; i++) {
-	fprintf(stream, "void *%s;\n", functions[i].name);
-    }
-    fprintf(stream, "\nvoid init(void **ftab)\n{\n");
-    for (i = 0; i < VM_FUNCTIONS; i++) {
-	fprintf(stream, "  %s = *ftab++;\n", functions[i].name);
-    }
-    fprintf(stream, "}\n");
-    fclose(stream);
-
-    sprintf(buffer, "%s.so", base);
-    unlink(buffer);
-    sprintf(buffer, "clang -Os -fPIC -shared -o %s.so %s.c", base, base);
-    return (system(buffer) == 0);
-}
-
-/*
  * generate jit header
  */
 void ClangObject::header(FILE *stream)
 {
-    int i;
-
     fprintf(stream, "target triple = \"%s\"\n\n", TARGET_TRIPLE);
-    for (i = 0; i < VM_FUNCTIONS; i++) {
-	fprintf(stream, "@%s = external constant %s %s*, align %d\n",
-		functions[i].name, functions[i].ret, functions[i].args,
-		(int) sizeof(void *));
-    }
-    fprintf(stream, "declare i32 @_setjmp(i8*) #1\n");
+    fprintf(stream, "declare i32 @_setjmp(i8*) #0\n");
 }
 
 /*
@@ -2268,12 +2234,13 @@ void ClangObject::table(FILE *stream, int nFunctions)
 {
     int i;
 
-    fprintf(stream, "@functions = constant [%d x void (i8*)*] [",
+    fprintf(stream, "@functions = constant [%d x void (i8**, i8*)*] [",
 	    nFunctions + 1);
     for (i = 1; i <= nFunctions; i++) {
-	fprintf(stream, "void (i8*)* @func%d, ", i);
+	fprintf(stream, "void (i8**, i8*)* @func%d, ", i);
     }
-    fprintf(stream, "void (i8*)* null], align %d\n", (int) sizeof(void *));
+    fprintf(stream, "void (i8**, i8*)* null], align %d\n",
+	    (int) sizeof(void *));
 }
 
 /*
@@ -2299,7 +2266,9 @@ bool ClangObject::emit(char *base)
 	CodeFunction func(object, prog);
 	Block *b = Block::function(&func);
 
-	fprintf(stream, "\ndefine internal void @func%d(i8* %%f) #0 {\n", i);
+	fprintf(stream,
+		"\ndefine internal void @func%d(i8** %%vmtab, i8* %%f) #1 {\n",
+		i);
 	if (b != NULL) {
 	    GenContext context(stream, &func, b->fragment(), i);
 	    ClangCode *code;
@@ -2321,8 +2290,11 @@ bool ClangObject::emit(char *base)
     }
 
     /* attributes */
-    fprintf(stream, "attributes #0 = { nounwind }\n"
-		    "attributes #1 = { nounwind returns_twice }\n");
+    fprintf(stream, "attributes #0 = { nounwind returns_twice }\n");
+    if (nFunctions != 0) {
+	fprintf(stream, "attributes #1 = { nounwind "
+			"\"no-frame-pointer-elim\"=\"false\" }\n");
+    }
 
     fclose(stream);
 

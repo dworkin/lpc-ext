@@ -17,7 +17,7 @@
 # include "jit.h"
 
 
-typedef void (*Function)(void*);
+typedef void (*Function)(void**, void*);
 
 typedef struct Program {
     uint8_t hash[16];		/* program hash */
@@ -154,6 +154,7 @@ static char configDir[1000];
 static int typechecking;
 static pthread_mutex_t lock;
 static pthread_t tid;
+static void **vm;
 
 /*
  * NAME:	filename()
@@ -267,11 +268,6 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
 {
     JitInfo info;
     bool result;
-# ifdef GENCLANG
-    char path[1000];
-    void *h;
-    void (*init)(void**);
-# endif
 
     /*
      * pass information to the JIT compiler backend
@@ -291,27 +287,7 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
 	result != true) {
 	return false;
     }
-
-# ifdef GENCLANG
-    /*
-     * dynamically load vm.so
-     */
-    sprintf(path, "%s/cache/vm.so", configDir);
-    h = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
-    if (h == (void *) NULL) {
-	return false;
-    }
-    init = (void *) dlsym(h, "init");
-    if (init == NULL) {
-	dlclose(h);
-	return false;
-    }
-
-    /*
-     * initialize vm object with function table
-     */
-    (*init)(vmtab);
-# endif
+    vm = vmtab;
 
     /*
      * create loader thread
@@ -425,7 +401,7 @@ static int jit_execute(uint64_t index, uint64_t instance, int version, int func,
 
     if (o != NULL) {
 	if (o->program != NULL && o->program->functions != NULL) {
-	    (o->program->functions[func])(arg);
+	    (o->program->functions[func])(vm, arg);
 	    return 1;
 	} else {
 	    return 0;
