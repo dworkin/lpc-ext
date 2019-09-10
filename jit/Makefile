@@ -25,7 +25,7 @@ all:	jitcomp
 jitcomp: $(OBJ)
 	$(CXX) $(DEBUG) -o jitcomp $(OBJ)
 
-jit.o:	jit.h ../src/lpc_ext.h
+jit.o:	jit.c jit.h ../src/lpc_ext.h
 	$(CC) -c $(CFLAGS) $(CODEGEN) -I../src jit.c
 
 clean:

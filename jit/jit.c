@@ -268,7 +268,6 @@ static void *jit_thread(void *arg)
 			if (p != NULL) {
 			    p->handle = handle;
 			    p->functions = functions;
-			    fprintf(stderr, "%s %p\n", module, functions);
 			} else {
 			    p = NULL;
 			}

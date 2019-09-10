@@ -1362,7 +1362,7 @@ void ClangCode::emit(GenContext *context)
 
 	case KF_DIV_INT:
 	    context->callArgs(VM_DIV_INT, tmpRef(sp));
-	    fprintf(context->stream, "i32 %s, i32 %s)\n",
+	    fprintf(context->stream, Int " %s, " Int " %s)\n",
 		    tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
 	    result(context);
 	    return;
