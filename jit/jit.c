@@ -159,7 +159,7 @@ static void *o_del(Object **r)
 
 static char configDir[1000];
 static int typechecking;
-static void** vm;
+static void **vm;
 
 # ifndef WIN32
 # define THREAD_START(func)	pthread_create(&tid, NULL, func, NULL)

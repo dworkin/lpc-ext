@@ -1,10 +1,11 @@
-# include <stdlib.h>
 # ifndef WIN32
 # include <unistd.h>
 # else
+# include <Windows.h>
 # include <io.h>
 # include <direct.h>
 # endif
+# include <stdlib.h>
 # include <stdint.h>
 # include <stdarg.h>
 # include <sys/types.h>
@@ -39,6 +40,8 @@ extern "C" {
 # define write			_write
 # define mkdir(path, mode)	_mkdir(path)
 # define chdir			_chdir
+# define dup			_dup
+# define dup2			_dup2
 # endif
 
 /*
@@ -110,6 +113,7 @@ int main(int argc, char *argv[])
     JitInfo info;
     uint8_t cmdhash[17];
     char reply;
+    int out;
     uint8_t protos[65536];
     CodeContext *cc;
 
@@ -126,16 +130,20 @@ int main(int argc, char *argv[])
 	return 2;
     }
 
+    /* force output to stderr */
+    out = dup(1);
+    dup2(2, 1);
+
     if (!CodeContext::validVM(info.major, info.minor)) {
 	reply = false;
-	write(1, &reply, 1);
+	write(out, &reply, 1);
 	return 3;
     }
 
     cc = new CodeContext(info.intSize, info.inheritSize, protos, info.nBuiltins,
 			 info.nKfuns, info.typechecking);
     reply = true;
-    write(1, &reply, 1);
+    write(out, &reply, 1);
 
     cmdhash[0] = '\0';
     while (read(0, cmdhash + 1, 16) == 16) {
@@ -157,7 +165,7 @@ int main(int argc, char *argv[])
 
 	CodeObject object(cc, comp.nInherits, ftypes, vtypes);
 	if (jitComp(&object, prog, comp.nFunctions, path)) {
-	    write(1, cmdhash, 17);
+	    write(out, cmdhash, 17);
 	}
 
 	delete[] vtypes;

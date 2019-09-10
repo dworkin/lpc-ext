@@ -5,8 +5,8 @@
 # include <stdint.h>
 
 
-# define LPC_EXT_VERSION_MAJOR	0
-# define LPC_EXT_VERSION_MINOR	13
+# define LPC_EXT_VERSION_MAJOR	1
+# define LPC_EXT_VERSION_MINOR	0
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1

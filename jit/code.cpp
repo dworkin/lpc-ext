@@ -2,7 +2,6 @@
 # include <stdint.h>
 # include <new>
 # include <string.h>
-# include <stdio.h>
 extern "C" {
 # include "lpc_ext.h"
 }
