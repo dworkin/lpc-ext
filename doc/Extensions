@@ -199,7 +199,23 @@ mapping.
     int		lpc_mapping_size(LPC_array map);
 
 
-5. Example
+5. Spawning a process
+
+A program may be executed from an extension module.  This can only be done
+once per module, and must be done from lpc_ext_init().  The process can be
+communicated with using pipes connected to standard input and output.
+
+    void	lpc_ext_spawn(const char *cmdline);
+    int		lpc_ext_read(void *buffer, int len);
+    int		lpc_ext_write(const void *buffer, int len);
+
+Data can also be put directly into the input pipe, to be read back with
+lpc_ext_read(), as if it came from the external process.
+
+    int		lpc_ext_writeback(const void *buffer, int len);
+
+
+6. Example
 
 The following code implements a lower_case() kfun.
 
