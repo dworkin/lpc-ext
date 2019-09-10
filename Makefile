@@ -28,10 +28,10 @@ lower_case.$(EXT):	kfun/lower_case.o $(OBJ)
 	$(LD) -o $@ $(LDFLAGS) $+
 
 jit/jitcomp::
-	make -C jit 'DEFINES=$(DEFINES)' 'DEBUG=$(DEBUG)'
+	$(MAKE) -C jit 'DEFINES=$(DEFINES)' 'DEBUG=$(DEBUG)'
 
 jit/jit.o::
-	make -C jit 'CFLAGS=$(CFLAGS)' jit.o
+	$(MAKE) -C jit 'CFLAGS=$(CFLAGS)' jit.o
 
 jit.$(EXT):	jit/jit.o $(OBJ) jit/jitcomp
 	$(LD) -o $@ $(LDFLAGS) jit/jit.o $(OBJ)
@@ -48,4 +48,4 @@ regexp.$(EXT):		kfun/rgx/regexp.o kfun/rgx/regex.o $(OBJ)
 clean:
 	rm -f lower_case.$(EXT) regexp.$(EXT) jit.$(EXT) src/*.o kfun/*.o \
 	      kfun/rgx/*.o
-	make -C jit clean
+	$(MAKE) -C jit clean
