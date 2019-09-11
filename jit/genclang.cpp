@@ -235,7 +235,6 @@ public:
 	block = NULL;
 	next = 0;
 	line = 0;
-	rtype = 0;
 	storeSkip = false;
 	switchList = NULL;
 	count = 0;
@@ -353,13 +352,13 @@ public:
     /*
      * clean up after STORES
      */
-    void popStores(char *ref) {
+    void popStores(char *ref, Type type) {
 	voidCall(VM_POP);
 	if (storePop() != NULL) {
 	    voidCall(VM_POP);
-	} else if (rtype == LPC_TYPE_INT) {
+	} else if (type == LPC_TYPE_INT) {
 	    call(VM_POP_INT, ref);
-	} else if (rtype == LPC_TYPE_FLOAT) {
+	} else if (type == LPC_TYPE_FLOAT) {
 	    call(VM_POP_FLOAT, ref);
 	}
     }
@@ -465,7 +464,6 @@ public:
     Block *block;		/* current block */
     CodeSize next;		/* address of next block */
     CodeLine line;		/* current line number */
-    Type rtype;			/* return value type of KFUNC_LVAL */
     bool storeSkip;		/* skipping stores? */
     ClangCode *switchList;	/* list of switch tables */
     int count;			/* reference counter */
@@ -1105,7 +1103,7 @@ void ClangCode::emit(GenContext *context)
 		fprintf(context->stream, "i8 %u)\n", size);
 	    }
 	} else {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	context->sp = sp;
 	return;
@@ -1119,7 +1117,7 @@ void ClangCode::emit(GenContext *context)
 		    type.type);
 	}
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	break;
 
@@ -1152,7 +1150,7 @@ void ClangCode::emit(GenContext *context)
 	    break;
 	}
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	break;
 
@@ -1176,7 +1174,7 @@ void ClangCode::emit(GenContext *context)
 	    break;
 	}
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	break;
 
@@ -1184,14 +1182,14 @@ void ClangCode::emit(GenContext *context)
 	context->voidCallArgs(VM_STORES_GLOBAL);
 	fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit, var.index);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	break;
 
     case STORES_INDEX:
 	context->voidCall(VM_STORES_INDEX);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	break;
 
@@ -1199,7 +1197,7 @@ void ClangCode::emit(GenContext *context)
 	context->voidCallArgs(VM_STORES_PARAM_INDEX);
 	fprintf(context->stream, "i8 %u)\n", param);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	break;
 
@@ -1207,7 +1205,7 @@ void ClangCode::emit(GenContext *context)
 	context->voidCallArgs(VM_STORES_LOCAL_INDEX);
 	fprintf(context->stream, "i8 %u)\n", local + 1);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	break;
 
@@ -1215,14 +1213,14 @@ void ClangCode::emit(GenContext *context)
 	context->voidCallArgs(VM_STORES_GLOBAL_INDEX);
 	fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit, var.index);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	break;
 
     case STORES_INDEX_INDEX:
 	context->voidCall(VM_STORES_INDEX_INDEX);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp));
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
 	break;
 
@@ -1694,7 +1692,6 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case KFUNC_LVAL:
-	context->rtype = kfun.type;
 	context->voidCallArgs(VM_KFUNC);
 	fprintf(context->stream, "i16 %u, i32 %d)\n", kfun.func, kfun.nargs);
 	break;
@@ -1721,7 +1718,6 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case KFUNC_SPREAD_LVAL:
-	context->rtype = kfun.type;
 	context->voidCallArgs(VM_KFUNC_SPREAD_LVAL);
 	fprintf(context->stream, "i16 %u, i16 %u, i32 %u)\n", kfun.lval,
 		kfun.func, kfun.nargs);
