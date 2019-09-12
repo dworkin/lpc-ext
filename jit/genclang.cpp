@@ -426,6 +426,32 @@ public:
     }
 
     /*
+     * store local variables
+     */
+    void saveLocals() {
+	LPCLocal n;
+	int ref;
+
+	for (n = 0; n < nLocals; n++) {
+	    if (block->localOut(n) != 0) {
+		switch (block->localType(n)) {
+		case LPC_TYPE_INT:
+		    voidCallArgs(VM_STORE_LOCAL_INT);
+		    fprintf(stream, "i8 %u, " Int " %s)\n", n + 1,
+			    ClangCode::localRef(n, block->localOut(n)));
+		    break;
+
+		case LPC_TYPE_FLOAT:
+		    voidCallArgs(VM_STORE_LOCAL_FLOAT);
+		    fprintf(stream, "i8 %u, " Double " %s)\n", n + 1,
+			    ClangCode::localRef(n, block->localOut(n)));
+		    break;
+		}
+	    }
+	}
+    }
+
+    /*
      * store local variables that are merged to LPC_TYPE_MIXED in a followup
      */
     void saveBeforeMerge(Block *b) {
@@ -433,28 +459,32 @@ public:
 	CodeSize i;
 
 	for (n = 0; n < nLocals; n++) {
-	    switch (b->localType(n)) {
-	    case LPC_TYPE_INT:
-		for (i = 0; i < b->nTo; i++) {
-		    if (ClangBlock::mergedLocalType(b->to[i], n) ==
+	    if (b->localOut(n) != 0) {
+		switch (b->localType(n)) {
+		case LPC_TYPE_INT:
+		    for (i = 0; i < b->nTo; i++) {
+			if (ClangBlock::mergedLocalType(b->to[i], n) ==
 							    LPC_TYPE_MIXED) {
-			voidCallArgs(VM_STORE_LOCAL_INT);
-			fprintf(stream, "i8 %u, " Int " %s)\n", n + 1,
-				ClangCode::localRef(n, b->localOut(n)));
+			    voidCallArgs(VM_STORE_LOCAL_INT);
+			    fprintf(stream, "i8 %u, " Int " %s)\n", n + 1,
+				    ClangCode::localRef(n, b->localOut(n)));
+			    break;
+			}
 		    }
-		}
-		break;
+		    break;
 
-	    case LPC_TYPE_FLOAT:
-		for (i = 0; i < b->nTo; i++) {
-		    if (ClangBlock::mergedLocalType(b->to[i], n) ==
+		case LPC_TYPE_FLOAT:
+		    for (i = 0; i < b->nTo; i++) {
+			if (ClangBlock::mergedLocalType(b->to[i], n) ==
 							    LPC_TYPE_MIXED) {
-			voidCallArgs(VM_STORE_LOCAL_FLOAT);
-			fprintf(stream, "i8 %u, " Double " %s)\n", n + 1,
-				ClangCode::localRef(n, b->localOut(n)));
+			    voidCallArgs(VM_STORE_LOCAL_FLOAT);
+			    fprintf(stream, "i8 %u, " Double " %s)\n", n + 1,
+				    ClangCode::localRef(n, b->localOut(n)));
+			    break;
+			}
 		    }
+		    break;
 		}
-		break;
 	    }
 	}
     }
@@ -1778,6 +1808,9 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case CATCH:
+	if (context->level == 0) {
+	    context->saveLocals();
+	}
 	ref = context->genRef();
 	context->call(VM_CATCH, ref);
 	ref2 = context->genRef();

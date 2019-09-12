@@ -66,6 +66,8 @@ FlowCode::~FlowCode()
  */
 void FlowCode::evaluateFlow(FlowContext *context)
 {
+    LPCParam n;
+
     switch (instruction) {
     case PARAM:
 	out = context->paramRef(param);
@@ -91,6 +93,17 @@ void FlowCode::evaluateFlow(FlowContext *context)
     case STORE_LOCAL:
     case STORE_LOCAL_INDEX:
 	context->outLocals[local] = out = addr + 1;
+	break;
+
+    case CAUGHT:
+	/* XXX only do this for variables that actually may have changed */
+	out = addr + 1;
+	for (n = 0; n < context->nParams; n++) {
+	    context->outParams[n] = out;
+	}
+	for (n = 0; n < context->nLocals; n++) {
+	    context->outLocals[n] = out;
+	}
 	break;
 
     default:
