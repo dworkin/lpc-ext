@@ -430,7 +430,6 @@ public:
      */
     void saveLocals() {
 	LPCLocal n;
-	int ref;
 
 	for (n = 0; n < nLocals; n++) {
 	    if (block->localOut(n) != 0) {
