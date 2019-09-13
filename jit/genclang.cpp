@@ -2186,7 +2186,27 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 
 	context->sp = b->sp;
 	context->level = b->level;
-	context->line = 0;
+	context->line = b->first->line;
+
+	/*
+	 * update line number at the start of the block
+	 */
+	if (b->nFrom == 0 && context->line != 0) {
+	    context->voidCallArgs(VM_LINE);
+	    fprintf(context->stream, "i16 %u)\n", context->line);
+	} else {
+	    for (i = 0; i < b->nFrom; i++) {
+		if (context->line != b->from[i]->last->line) {
+		    context->voidCallArgs(VM_LINE);
+		    fprintf(context->stream, "i16 %u)\n", context->line);
+		    break;
+		}
+	    }
+	}
+
+	/*
+	 * emit code for the block
+	 */
 	for (code = b->first; ; code = code->next) {
 	    if (code == b->last && context->level == 0) {
 		switch (code->instruction) {
