@@ -1932,7 +1932,7 @@ Type ClangBlock::mergedParamType(Block *b, LPCParam param, Type type)
 {
     CodeSize i;
 
-    if (!FlowBlock::paramMerged(b, param)) {
+    if (!b->paramMerged(param)) {
 	return LPC_TYPE_VOID;
     }
 
@@ -1963,7 +1963,7 @@ Type ClangBlock::mergedLocalType(Block *b, LPCLocal local)
     Type type;
     CodeSize i;
 
-    if (!FlowBlock::localMerged(b, local)) {
+    if (!b->localMerged(local)) {
 	return LPC_TYPE_VOID;
     }
 

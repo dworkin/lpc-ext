@@ -149,7 +149,7 @@ Block *Block::split(CodeSize addr)
 }
 
 /*
- * obtain single block for function
+ * create single block for function
  */
 Block *Block::function(CodeFunction *function)
 {
@@ -702,11 +702,6 @@ Type Block::paramType(LPCParam param)
     return LPC_TYPE_VOID;
 }
 
-Type Block::localType(LPCLocal local)
-{
-    return LPC_TYPE_VOID;
-}
-
 int Block::paramIn(LPCParam param)
 {
     return 0;
@@ -717,6 +712,16 @@ int Block::paramOut(LPCParam param)
     return 0;
 }
 
+bool Block::paramMerged(LPCParam param)
+{
+    return false;
+}
+
+Type Block::localType(LPCLocal local)
+{
+    return LPC_TYPE_VOID;
+}
+
 int Block::localIn(LPCLocal local)
 {
     return 0;
@@ -725,6 +730,11 @@ int Block::localIn(LPCLocal local)
 int Block::localOut(LPCLocal local)
 {
     return 0;
+}
+
+bool Block::localMerged(LPCLocal local)
+{
+    return false;
 }
 
 void Block::emit(class GenContext *context, CodeFunction *function)

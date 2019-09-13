@@ -7,7 +7,7 @@ The directory /home/user/lpc-ext/jit specifies where the jitcomp program can be
 found, and where the JIT compiler cache will be created.
 
 The jit module saves LPC bytecode programs in the cache.  The compiler then
-decompiles the bytecode into basic blocks, performs a flow analysis,
+decompiles the bytecode into basic blocks, performs flow analysis,
 determines the types of variables and expressions, and emits LLVM IR as a .ll
 file in the cache.  Clang is executed to compile the .ll file into a shared
 object, and if the compilation succeeds the jit module will load the shared
@@ -17,6 +17,6 @@ Running the jitcomp program independently ensures that any memory leaks and
 crashes will not affect the main program.  Storing the JIT-compiled objects in
 a cache makes them available for re-use.
 
-Decompiling to LLVM IR, and using clang to compile it to a shared object,
+Decompiling to LLVM IR, and using clang to compile that to a shared object,
 simplifies JIT compilation considerably.  Decompiling to LLVM bitcode, and
-compiling that using the LLVM tools, is left as an exercise to the reader.
+compiling that using the LLVM libraries, is left as an exercise to the reader.

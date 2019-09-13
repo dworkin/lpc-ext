@@ -151,6 +151,14 @@ int FlowBlock::paramOut(LPCParam param)
 }
 
 /*
+ * was a parameter merged?
+ */
+bool FlowBlock::paramMerged(LPCParam param)
+{
+    return (paramIn(param) == -(first->addr + 1));
+}
+
+/*
  * return input local var reference
  */
 int FlowBlock::localIn(LPCLocal local)
@@ -164,6 +172,14 @@ int FlowBlock::localIn(LPCLocal local)
 int FlowBlock::localOut(LPCLocal local)
 {
     return (outLocals[local] != 0) ? outLocals[local] : inLocals[local];
+}
+
+/*
+ * was a local var merged?
+ */
+bool FlowBlock::localMerged(LPCLocal local)
+{
+    return (localIn(local) == -(first->addr + 1));
 }
 
 /*
