@@ -2261,7 +2261,7 @@ Block *ClangBlock::create(Code *first, Code *last, CodeSize size)
 }
 
 
-ClangObject::ClangObject(CodeObject *object, uint8_t *prog, int nFunctions)
+ClangObject::ClangObject(CodeObject *object, CodeByte *prog, int nFunctions)
 {
     this->object = object;
     this->prog = prog;

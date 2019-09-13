@@ -171,7 +171,7 @@ Type CodeObject::funcType(LPCDFunCall *func)
 CodeFunction::CodeFunction(CodeObject *object, CodeByte *prog)
 {
     CodeContext *context;
-    uint16_t size;
+    CodeSize size;
     LPCType *proto;
 
     this->object = object;
@@ -238,7 +238,7 @@ void CodeFunction::setPC(CodeByte *pc)
  */
 CodeLine CodeFunction::getLine(CodeByte instr)
 {
-    uint16_t offset;
+    CodeSize offset;
     CodeByte *numbers;
 
     offset = instr >> I_LINE_SHIFT;

@@ -63,7 +63,7 @@ void fatal(const char *format, ...)
 /*
  * JIT compile a single object using a particular code generator
  */
-static bool jitComp(CodeObject *object, uint8_t *prog, int nFunctions,
+static bool jitComp(CodeObject *object, CodeByte *prog, int nFunctions,
 		    char *base)
 {
 # ifdef DISASM
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
     uint8_t cmdhash[17];
     char reply;
     int out;
-    uint8_t protos[65536];
+    CodeByte protos[65536];
     CodeContext *cc;
 
     if (argc != 2 || chdir(argv[1]) < 0) {
@@ -150,14 +150,14 @@ int main(int argc, char *argv[])
 	char path[1000];
 	JitCompile comp;
 	int fd;
-	uint8_t *prog, *ftypes, *vtypes;
+	CodeByte *prog, *ftypes, *vtypes;
 
 	filename(path, cmdhash + 1);
 	fd = open(path, O_RDONLY | O_BINARY);
 	read(fd, &comp, sizeof(JitCompile));
-	prog = new uint8_t[comp.progSize];
-	ftypes = new uint8_t[comp.fTypeSize];
-	vtypes = new uint8_t[comp.vTypeSize];
+	prog = new CodeByte[comp.progSize];
+	ftypes = new CodeByte[comp.fTypeSize];
+	vtypes = new CodeByte[comp.vTypeSize];
 	read(fd, prog, comp.progSize);
 	read(fd, ftypes, comp.fTypeSize);
 	read(fd, vtypes, comp.vTypeSize);

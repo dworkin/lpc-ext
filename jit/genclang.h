@@ -41,7 +41,7 @@ public:
 
 class ClangObject {
 public:
-    ClangObject(CodeObject *object, uint8_t *prog, int nFunctions);
+    ClangObject(CodeObject *object, CodeByte *prog, int nFunctions);
     virtual ~ClangObject();
 
     bool emit(char *base);
@@ -51,6 +51,6 @@ private:
     void table(FILE *stream, int nFunctions);
 
     CodeObject *object;		/* object being compiled */
-    uint8_t *prog;		/* LPC bytecode */
+    CodeByte *prog;		/* LPC bytecode */
     int nFunctions;		/* # functions in object */
 };
