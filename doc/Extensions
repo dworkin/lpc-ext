@@ -165,7 +165,7 @@ then be copied to some other value.
 
     LPC_string	lpc_string_getval(LPC_value val);
     void	lpc_string_putval(LPC_value val, LPC_string str);
-    LPC_string	lpc_string_new(LPC_dataspace data, char *text, int len);
+    LPC_string	lpc_string_new(LPC_dataspace data, const char *text, int len);
     char       *lpc_string_text(LPC_string str);
     int		lpc_string_length(LPC_string str);
 

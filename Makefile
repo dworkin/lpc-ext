@@ -13,10 +13,13 @@ LDFLAGS=-shared $(DEBUG)
 
 OBJ=	src/lpc_ext.o
 LIBLIB=	kfun/rgx/libiberty
+ZLIB=	1.2.11
 
 all:	lower_case.$(EXT) regexp.$(EXT)
 
 jit:	jit.$(EXT)
+
+zlib:	zlib.$(EXT)
 
 src/lpc_ext.o:	src/lpc_ext.c src/lpc_ext.h
 	$(CC) -o $@ -c $(CFLAGS) -Isrc src/lpc_ext.c
@@ -45,7 +48,14 @@ kfun/rgx/regex.o:	kfun/rgx/libiberty/regex.c
 regexp.$(EXT):		kfun/rgx/regexp.o kfun/rgx/regex.o $(OBJ)
 	$(LD) -o $@ $(LDFLAGS) $+
 
+kfun/zlib/zlib.o:	kfun/zlib/zlib.c src/lpc_ext.h
+	$(CC) -o $@ -c $(CFLAGS) -Isrc -Ikfun/zlib/$(ZLIB) -DVERSION=$(ZLIB) \
+	      kfun/zlib/zlib.c
+
+zlib.$(EXT):	kfun/zlib/zlib.o $(OBJ)
+	$(LD) -o $@ $(LDFLAGS) $+ -lz
+
 clean:
 	rm -f lower_case.$(EXT) regexp.$(EXT) jit.$(EXT) src/*.o kfun/*.o \
-	      kfun/rgx/*.o
+	      kfun/rgx/*.o kfun/zlib/*.o
 	$(MAKE) -C jit clean

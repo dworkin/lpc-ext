@@ -121,7 +121,8 @@ LPCEXT void			(*lpc_float_putval)(LPC_value, LPC_float);
 
 LPCEXT LPC_string		(*lpc_string_getval)(LPC_value);
 LPCEXT void			(*lpc_string_putval)(LPC_value, LPC_string);
-LPCEXT LPC_string		(*lpc_string_new)(LPC_dataspace, char*, int);
+LPCEXT LPC_string		(*lpc_string_new)(LPC_dataspace, const char*,
+						  int);
 LPCEXT char *			(*lpc_string_text)(LPC_string);
 LPCEXT int			(*lpc_string_length)(LPC_string);
 
