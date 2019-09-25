@@ -35,9 +35,15 @@ typedef struct Output {
 # define A_BYTES	2	/* extra bytes */
 # define A_ALLOCATED	3	/* first of allocated blocks */
 
-static const static_tree_desc *stat_l_desc;
-static const static_tree_desc *stat_d_desc;
-static const static_tree_desc *stat_bl_desc;
+# if ZLIB_VERNUM == 0x12b0
+# define const_0x12b0	const
+# else
+# define const_0x12b0	/* */
+# endif
+
+static const_0x12b0 static_tree_desc *stat_l_desc;
+static const_0x12b0 static_tree_desc *stat_d_desc;
+static const_0x12b0 static_tree_desc *stat_bl_desc;
 static const code *stat_lencode;
 static const code *stat_distcode;
 
@@ -240,7 +246,10 @@ static z_stream *restore_inflate(LPC_dataspace data, LPC_array arr)
 
     state = restore_new(data, arr, A_ALLOCATED);
     state->window = restore_new(data, arr, A_ALLOCATED + 1);
-    state->strm = stream = restore_new(data, arr, A_STREAM);
+# if ZLIB_VERNUM == 0x12b0
+    state->strm =
+# endif
+    stream = restore_new(data, arr, A_STREAM);
     stream->state = (void *) state;
     stream->zalloc = &alloc;
     stream->zfree = &dealloc;
@@ -659,7 +668,9 @@ int lpc_ext_init(int major, int minor, const char *config)
 
     /* inflation static data */
     stream.state = (void *) &inflateState;
+# if ZLIB_VERNUM == 0x12b0
     inflateState.strm = &stream;
+# endif
     inflateState.mode = TYPEDO;
     inflateState.hold = 2;
     inflateState.bits = 3;
