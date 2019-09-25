@@ -1,7 +1,7 @@
 #
 # Makefile for kfun shared objects
 #
-EXT=1.0
+EXT=1.1
 DEFINES=
 DEBUG=-ggdb
 CCFLAGS=$(DEFINES) $(DEBUG)
@@ -56,6 +56,6 @@ zlib.$(EXT):	kfun/zlib/zlib.o $(OBJ)
 	$(LD) -o $@ $(LDFLAGS) $+ -lz
 
 clean:
-	rm -f lower_case.$(EXT) regexp.$(EXT) jit.$(EXT) src/*.o kfun/*.o \
-	      kfun/rgx/*.o kfun/zlib/*.o
+	rm -f lower_case.$(EXT) regexp.$(EXT) zlib.$(EXT) jit.$(EXT) src/*.o \
+	      kfun/*.o kfun/rgx/*.o kfun/zlib/*.o
 	$(MAKE) -C jit clean
