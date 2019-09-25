@@ -11,7 +11,7 @@ DESCRIPTION
 	It can be called repeatedly to keep adding strings to the compressed
 	state, and returns an array of compressed strings.
 	The optional mode argument is interpreted as the compression level in
-	the first call (0 to 16, default is 15) and as a flag that specifies
+	the first call (0 to 9, default is 6) and as a flag that specifies
 	whether the internal buffer should be flushed in followup calls.
 	To finish compression, flush the internal buffer and discard the
 	internal compression state, call deflate() without arguments.
