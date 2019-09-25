@@ -1,0 +1,19 @@
+NAME
+	inflate - decompress a string
+
+SYNOPSIS
+	string *inflate(varargs string str, int flag)
+
+
+DESCRIPTION
+	Decompress a string compressed with deflate compression. This function
+	can only be called from a persistent object, and preserves state between
+	calls.  It can be called repeatedly to keep adding compressed strings
+	to the internal state, and returns an array of decompressed strings.
+	The optional flag specifies whether the internal buffer should be
+	flushed.
+	To finish decompression, flush the internal buffer and discard the
+	internal decompression state, call inflate() without arguments.
+
+SEE ALSO
+	kfun/deflate, kfun/gunzip, kfun/gzip

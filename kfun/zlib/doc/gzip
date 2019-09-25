@@ -1,0 +1,20 @@
+NAME
+	gzip - compress a string
+
+SYNOPSIS
+	string *gzip(varargs string str, int mode)
+
+
+DESCRIPTION
+	Compress a string using gzip compression. This function can only be
+	called from a persistent object, and preserves state between calls.
+	It can be called repeatedly to keep adding strings to the compressed
+	state, and returns an array of compressed strings.
+	The optional mode argument is interpreted as the compression level in
+	the first call (0 to 16, default is 15) and as a flag that specifies
+	whether the internal buffer should be flushed in followup calls.
+	To finish compression, flush the internal buffer and discard the
+	internal compression state, call gzip() without arguments.
+
+SEE ALSO
+	kfun/deflate, kfun/gunzip, kfun/inflate
