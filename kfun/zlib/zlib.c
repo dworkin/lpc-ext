@@ -38,6 +38,8 @@ typedef struct Output {
 static const static_tree_desc *stat_l_desc;
 static const static_tree_desc *stat_d_desc;
 static const static_tree_desc *stat_bl_desc;
+static const code *stat_lencode;
+static const code *stat_distcode;
 
 /*
  * save a chunk as a string in the state array
@@ -169,8 +171,6 @@ static void save_deflate(LPC_array arr, z_stream *stream)
  */
 static z_stream *restore_deflate(LPC_dataspace data, LPC_array arr)
 {
-    deflate_state resetState;
-    z_stream resetStream;
     deflate_state *state;
     z_stream *stream;
     char *tail;
@@ -214,15 +214,13 @@ static void save_inflate(LPC_array arr, z_stream *stream)
     state = (void *) stream->state;
     flags = restore(arr, A_BYTES);
 
-    if (state->lencode >= state->codes &&
-	state->lencode <= &state->codes[ENOUGH]) {
+    if (state->lencode != stat_lencode) {
 	state->lencode = PDIFF(state->lencode, state->codes);
 	flags[0] = 1;
     } else {
 	flags[0] = 0;
     }
-    if (state->distcode >= state->codes &&
-	state->distcode <= &state->codes[ENOUGH]) {
+    if (state->distcode != stat_distcode) {
 	state->distcode = PDIFF(state->distcode, state->codes);
 	flags[1] = 1;
     } else {
@@ -248,12 +246,10 @@ static z_stream *restore_inflate(LPC_dataspace data, LPC_array arr)
     stream->zfree = &dealloc;
 
     flags = restore_new(data, arr, A_BYTES);
-    if (flags[0]) {
-	state->lencode = PADD(state->lencode, state->codes);
-    }
-    if (flags[1]) {
-	state->distcode = PADD(state->distcode, state->codes);
-    }
+    state->lencode = (flags[0]) ?
+		      PADD(state->lencode, state->codes) : stat_lencode;
+    state->distcode = (flags[1]) ?
+		       PADD(state->distcode, state->codes) : stat_distcode;
     state->next = PADD(state->next, state->codes);
 
     return stream;
@@ -622,14 +618,25 @@ static LPC_ext_kfun kf[4] = {
     }
 };
 
+/*
+ * initialize
+ */
 int lpc_ext_init(int major, int minor, const char *config)
 {
-    z_stream stream;
     deflate_state deflateState;
+    struct inflate_state inflateState;
+    z_stream stream;
+    unsigned char buf;
 
-    /* deflation static data */
+    stream.next_in = &buf;
+    stream.avail_in = 0;
+    stream.next_out = &buf;
+    stream.avail_out = 1;
     stream.zalloc = &alloc;
     stream.zfree = &dealloc;
+    stream.opaque = NULL;
+
+    /* deflation static data */
     stream.state = (void *) &deflateState;
     deflateState.strm = &stream;
     deflateState.status = INIT_STATE;
@@ -638,6 +645,19 @@ int lpc_ext_init(int major, int minor, const char *config)
     stat_d_desc = deflateState.d_desc.stat_desc;
     stat_bl_desc = deflateState.bl_desc.stat_desc;
 
+    /* inflation static data */
+    stream.state = (void *) &inflateState;
+    inflateState.strm = &stream;
+    inflateState.mode = TYPEDO;
+    inflateState.hold = 2;
+    inflateState.bits = 3;
+    inflateState.last = 0;
+    inflate(&stream, Z_TREES);
+    stat_lencode = inflateState.lencode;
+    stat_distcode = inflateState.distcode;
+
+    /* register compression & decompression kfuns */
     lpc_ext_kfun(kf, 4);
+
     return 1;
 }
