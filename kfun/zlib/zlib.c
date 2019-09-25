@@ -367,17 +367,25 @@ static LPC_array process(z_stream *stream, int (*func)(z_stream*, int),
     }
     buf->size = 65535 - stream->avail_out;
 
-    array = lpc_array_new(data, n);
-    val = lpc_value_temp(data);
-    for (;;) {
-	lpc_string_putval(val, lpc_string_new(data, buf->buffer, buf->size));
-	lpc_array_assign(data, array, --n, val);
-	if (n == 0) {
-	    break;
-	}
+    if (buf->size == 0 && --n != 0) {
 	next = buf->next;
 	free(buf);
 	buf = next;
+    }
+    array = lpc_array_new(data, n);
+    if (n != 0) {
+	val = lpc_value_temp(data);
+	for (;;) {
+	    lpc_string_putval(val,
+			      lpc_string_new(data, buf->buffer, buf->size));
+	    lpc_array_assign(data, array, --n, val);
+	    if (n == 0) {
+		break;
+	    }
+	    next = buf->next;
+	    free(buf);
+	    buf = next;
+	}
     }
 
     return array;
