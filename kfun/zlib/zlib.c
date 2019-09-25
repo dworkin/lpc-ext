@@ -432,6 +432,7 @@ static void kf_gzip(LPC_frame f, int nargs, LPC_value retval)
 
     if (nargs > 0) {
 	str = lpc_string_getval(lpc_frame_arg(f, nargs, 0));
+	lpc_runtime_ticks(f, lpc_string_length(str) * 20);
 	stream->next_in = (Bytef *) lpc_string_text(str);
 	stream->avail_in = lpc_string_length(str);
 	array = process(stream, &deflate, context.data, flush);
@@ -481,6 +482,7 @@ static void kf_gunzip(LPC_frame f, int nargs, LPC_value retval)
 	     Z_PARTIAL_FLUSH : Z_NO_FLUSH;
     if (nargs > 0) {
 	str = lpc_string_getval(lpc_frame_arg(f, nargs, 0));
+	lpc_runtime_ticks(f, lpc_string_length(str) * 2);
 	stream->next_in = (Bytef *) lpc_string_text(str);
 	stream->avail_in = lpc_string_length(str);
 	array = process(stream, &inflate, context.data, flush);
@@ -536,6 +538,7 @@ static void kf_deflate(LPC_frame f, int nargs, LPC_value retval)
 
     if (nargs > 0) {
 	str = lpc_string_getval(lpc_frame_arg(f, nargs, 0));
+	lpc_runtime_ticks(f, lpc_string_length(str) * 20);
 	stream->next_in = (Bytef *) lpc_string_text(str);
 	stream->avail_in = lpc_string_length(str);
 	array = process(stream, &deflate, context.data, flush);
@@ -585,6 +588,7 @@ static void kf_inflate(LPC_frame f, int nargs, LPC_value retval)
 	     Z_PARTIAL_FLUSH : Z_NO_FLUSH;
     if (nargs > 0) {
 	str = lpc_string_getval(lpc_frame_arg(f, nargs, 0));
+	lpc_runtime_ticks(f, lpc_string_length(str) * 2);
 	stream->next_in = (Bytef *) lpc_string_text(str);
 	stream->avail_in = lpc_string_length(str);
 	array = process(stream, &inflate, context.data, flush);
