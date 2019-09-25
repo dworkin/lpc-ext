@@ -69,6 +69,7 @@ typedef struct {
     int (*save_snapshot)	(LPC_db*, LPC_db_request*);
     int (*restore_snapshot)	(LPC_db*, LPC_db_request*);
 } LPC_ext_dbase;
+typedef void (*LPC_function)	(void**, LPC_frame);
 typedef int		      (*LPC_jit_init)(int, int, size_t, size_t, int,
 					      int, int, uint8_t*, size_t,
 					      void**);
@@ -80,6 +81,8 @@ typedef void		      (*LPC_jit_compile)(uint64_t, uint64_t, int,
 typedef int		      (*LPC_jit_execute)(uint64_t, uint64_t, int, int,
 						 void*);
 typedef void		      (*LPC_jit_release)(uint64_t, uint64_t);
+typedef int		      (*LPC_jit_functions)(uint64_t, uint64_t, int,
+						   LPC_function**);
 
 
 extern int			lpc_ext_init(int, int, const char*);
@@ -96,7 +99,8 @@ LPCEXT void			(*lpc_ext_kfun)(const LPC_ext_kfun*, int);
 LPCEXT void			(*lpc_ext_dbase)(LPC_ext_dbase*);
 LPCEXT int			(*lpc_ext_jit)(LPC_jit_init, LPC_jit_finish,
 					       LPC_jit_compile, LPC_jit_execute,
-					       LPC_jit_release);
+					       LPC_jit_release,
+					       LPC_jit_functions);
 
 LPCEXT LPC_object		(*lpc_frame_object)(LPC_frame);
 LPCEXT LPC_dataspace		(*lpc_frame_dataspace)(LPC_frame);
@@ -159,4 +163,5 @@ LPCEXT void			(*lpc_md5_block)(uint32_t*,
 LPCEXT void			(*lpc_md5_end)(unsigned char*, uint32_t*,
 					       unsigned char*, uint16_t,
 					       uint32_t);
+LPCEXT void			(*lpc_runtime_ticks)(LPC_frame, int);
 # endif	/* LPC_EXT_H */

@@ -24,12 +24,10 @@
 # include "jit.h"
 
 
-typedef void (*Function)(void**, void*);
-
 typedef struct Program {
     uint8_t hash[16];		/* program hash */
     void *handle;		/* dll handle */
-    Function *functions;	/* function table */
+    LPC_function *functions;	/* function table */
     uint64_t refCount;		/* reference count */
     struct Program *next;	/* next in linked list */
 } Program;
@@ -252,7 +250,7 @@ static void *jit_thread(void *arg)
 	    char fname[33];
 	    char module[1000];
 	    Program *p;
-	    Function *functions;
+	    LPC_function *functions;
 
 	    /* compiled */
 	    filename(fname, hash + 8);
@@ -261,7 +259,7 @@ static void *jit_thread(void *arg)
 	    p = NULL;
 	    handle = DLL_OPEN(module);
 	    if (handle != NULL) {
-		functions = (Function *) DLL_SYM(handle, "functions");
+		functions = (LPC_function *) DLL_SYM(handle, "functions");
 		if (functions != NULL) {
 		    MUTEX_LOCK(&lock); {
 			p = *p_find(hash + 8);
@@ -456,6 +454,35 @@ static int jit_execute(uint64_t index, uint64_t instance, int version, int func,
 }
 
 /*
+ * NAME:	JIT->functions()
+ * DESCRIPTION:	attempt to get the JIT-compiled function table
+ */
+static int jit_functions(uint64_t index, uint64_t instance, int version,
+			 LPC_function **functions)
+{
+    Object **r, *o;
+
+    MUTEX_LOCK(&lock); {
+	r = o_find(index, instance);
+	o = *r;
+	if (o == NULL) {
+	    o_new(r, index, instance);
+	}
+    } MUTEX_UNLOCK(&lock);
+
+    if (o != NULL) {
+	if (o->program != NULL && o->program->functions != NULL) {
+	    *functions = o->program->functions;
+	    return 1;
+	} else {
+	    return 0;
+	}
+    } else {
+	return -1;
+    }
+}
+
+/*
  * NAME:	JIT->release()
  * DESCRIPTION:	release JIT-compiled program
  */
@@ -485,7 +512,7 @@ int lpc_ext_init(int major, int minor, const char *config)
 # endif
     if (lpc_ext_spawn(jitcomp)) {
 	(*lpc_ext_jit)(&jit_init, &jit_finish, &jit_compile, &jit_execute,
-		       &jit_release);
+		       &jit_release, &jit_functions);
 	return 1;
     }
 
