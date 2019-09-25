@@ -35,6 +35,10 @@ typedef struct Output {
 # define A_BYTES	2	/* extra bytes */
 # define A_ALLOCATED	3	/* first of allocated blocks */
 
+static const static_tree_desc *stat_l_desc;
+static const static_tree_desc *stat_d_desc;
+static const static_tree_desc *stat_bl_desc;
+
 /*
  * save a chunk as a string in the state array
  */
@@ -180,8 +184,11 @@ static z_stream *restore_deflate(LPC_dataspace data, LPC_array arr)
     state->l_buf = PADD(state->l_buf, state->pending_buf);
     state->d_buf = PADD(state->d_buf, state->pending_buf);
     state->l_desc.dyn_tree = state->dyn_ltree;
+    state->l_desc.stat_desc = stat_l_desc;
     state->d_desc.dyn_tree = state->dyn_dtree;
+    state->d_desc.stat_desc = stat_d_desc;
     state->bl_desc.dyn_tree = state->bl_tree;
+    state->bl_desc.stat_desc = stat_bl_desc;
     state->strm = stream = restore_new(data, arr, A_STREAM);
     stream->state = (void *) state;
     stream->zalloc = &alloc;
@@ -192,16 +199,6 @@ static z_stream *restore_deflate(LPC_dataspace data, LPC_array arr)
     restore_tail(tail, arr, 2);
     restore_tail(tail, arr, 3);
     restore_tail(tail, arr, 4);
-
-    resetState.strm = &resetStream;
-    resetState.status = INIT_STATE;
-    resetStream.zalloc = &alloc;
-    resetStream.zfree = &dealloc;
-    resetStream.state = (void *) &resetState;
-    deflateResetKeep(&resetStream);
-    state->l_desc.stat_desc = resetState.l_desc.stat_desc;
-    state->d_desc.stat_desc = resetState.d_desc.stat_desc;
-    state->bl_desc.stat_desc = resetState.bl_desc.stat_desc;
 
     return stream;
 }
@@ -627,6 +624,20 @@ static LPC_ext_kfun kf[4] = {
 
 int lpc_ext_init(int major, int minor, const char *config)
 {
+    z_stream stream;
+    deflate_state deflateState;
+
+    /* deflation static data */
+    stream.zalloc = &alloc;
+    stream.zfree = &dealloc;
+    stream.state = (void *) &deflateState;
+    deflateState.strm = &stream;
+    deflateState.status = INIT_STATE;
+    deflateResetKeep(&stream);
+    stat_l_desc = deflateState.l_desc.stat_desc;
+    stat_d_desc = deflateState.d_desc.stat_desc;
+    stat_bl_desc = deflateState.bl_desc.stat_desc;
+
     lpc_ext_kfun(kf, 4);
     return 1;
 }
