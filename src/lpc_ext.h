@@ -6,7 +6,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	1
-# define LPC_EXT_VERSION_MINOR	1
+# define LPC_EXT_VERSION_MINOR	2
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -164,4 +164,5 @@ LPCEXT void			(*lpc_md5_end)(unsigned char*, uint32_t*,
 					       unsigned char*, uint16_t,
 					       uint32_t);
 LPCEXT void			(*lpc_runtime_ticks)(LPC_frame, int);
+LPCEXT void			(*lpc_runtime_check)(LPC_frame, int);
 # endif	/* LPC_EXT_H */

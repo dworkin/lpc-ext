@@ -38,10 +38,10 @@ static void md5(LPC_frame f, int nargs, LPC_value retval)
     int i;
     LPC_string str;
 
-    lpc_runtime_ticks(f, 3 * nargs + 64);
+    lpc_check_ticks(f, 3 * nargs + 64);
     for (i = 0; i < nargs; i++) {
 	str = lpc_string_getval(lpc_frame_arg(f, nargs, i));
-	lpc_runtime_ticks(f, lpc_string_length(str));
+	lpc_check_ticks(f, lpc_string_length(str));
     }
     hash(md_md5, f, nargs, retval);
 }
@@ -51,10 +51,10 @@ static void sha1(LPC_frame f, int nargs, LPC_value retval)
     int i;
     LPC_string str;
 
-    lpc_runtime_ticks(f, 3 * nargs + 64);
+    lpc_check_ticks(f, 3 * nargs + 64);
     for (i = 0; i < nargs; i++) {
 	str = lpc_string_getval(lpc_frame_arg(f, nargs, i));
-	lpc_runtime_ticks(f, lpc_string_length(str));
+	lpc_check_ticks(f, lpc_string_length(str));
     }
     hash(md_sha1, f, nargs, retval);
 }
@@ -64,10 +64,10 @@ static void sha256(LPC_frame f, int nargs, LPC_value retval)
     int i;
     LPC_string str;
 
-    lpc_runtime_ticks(f, 3 * nargs + 64);
+    lpc_check_ticks(f, 3 * nargs + 64);
     for (i = 0; i < nargs; i++) {
 	str = lpc_string_getval(lpc_frame_arg(f, nargs, i));
-	lpc_runtime_ticks(f, lpc_string_length(str));
+	lpc_check_ticks(f, lpc_string_length(str));
     }
     hash(md_sha256, f, nargs, retval);
 }
@@ -77,10 +77,10 @@ static void sha512(LPC_frame f, int nargs, LPC_value retval)
     int i;
     LPC_string str;
 
-    lpc_runtime_ticks(f, 3 * nargs + 64);
+    lpc_check_ticks(f, 3 * nargs + 64);
     for (i = 0; i < nargs; i++) {
 	str = lpc_string_getval(lpc_frame_arg(f, nargs, i));
-	lpc_runtime_ticks(f, lpc_string_length(str));
+	lpc_check_ticks(f, lpc_string_length(str));
     }
     hash(md_sha512, f, nargs, retval);
 }
