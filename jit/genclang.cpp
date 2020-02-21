@@ -27,6 +27,7 @@ extern "C" {
 # define Int		"i32"
 # define Double		"double"
 # define INT_SIZE	4
+# define DOUBLE_SIZE	8
 # undef  LLVM3_6	/* generate IR for LLVM 3.6 and before */
 
 static const struct {
@@ -265,6 +266,47 @@ public:
     }
 
     /*
+     *generate floating point constant
+     */
+    char *genFloat(long double d) {
+	static char buf[24];
+	int sign, e;
+# if DOUBLE_SIZE == 10
+	uint32_t l1, l2;
+
+	if (d == 0.0) {
+	    sign = 0;
+	    e = 0;
+	    l1 = l2 = 0;
+	} else {
+	    sign = (d < 0.0);
+	    d = frexpl(fabsl(d), &e);
+	    e += 0x3ffe;
+	    d = ldexpl(d, 32);
+	    l1 = (uint32_t) d;
+	    l2 = (uint32_t) ldexpl(modfl(d, &d), 32);
+	}
+	sprintf(buf, "0xK%04x%08lx%08lx", (sign << 15) + e, (unsigned long) l1,
+		(unsigned long) l2);
+# else
+	unsigned long long l;
+
+	if (d == 0.0) {
+	    sign = 0;
+	    e = 0;
+	    l = 0;
+	} else {
+	    sign = (d < 0.0);
+	    d = frexpl(fabsl(d), &e);
+	    e += 0x3fe;
+	    l = ((unsigned long long) ldexpl(d, 53)) & 0x000fffffffffffffLL;
+	}
+	sprintf(buf, "0x%03x%013llx", (sign << 11) + e, l);
+# endif
+	return buf;
+    }
+
+    /*
      * copy integer value
      */
     void copyInt(char *to, char *from) {
@@ -275,7 +317,8 @@ public:
      * copy float value
      */
     void copyFloat(char *to, char *from) {
-	fprintf(stream, "\t%s = fadd fast " Double " %s, 0.0\n", to, from);
+	fprintf(stream, "\t%s = fadd fast " Double " %s, %s\n", to, from,
+		genFloat(0.0L));
     }
 
     /*
@@ -821,8 +864,9 @@ void ClangCode::emit(GenContext *context)
 		d = -d;
 	    }
 	}
-	fprintf(context->stream, "\t%s = fadd fast " Double " %.26Le, 0.0\n",
-		tmpRef(sp), d);
+	fprintf(context->stream, "\t%s = fadd fast " Double " %s, ", tmpRef(sp),
+		context->genFloat(d));
+	fprintf(context->stream, "%s\n", context->genFloat(0.0L));
 	result(context);
 	return;
 
@@ -1194,7 +1238,8 @@ void ClangCode::emit(GenContext *context)
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_STORES_LOCAL_FLOAT, localRef(context, local));
 	    fprintf(context->stream, "i8 %u, " Double " %s)\n", local + 1,
-		    (context->skipping()) ? localPre(context, local) : "0.0");
+		    (context->skipping()) ?
+		     localPre(context, local) : context->genFloat(0.0L));
 	    break;
 
 	default:
@@ -1316,7 +1361,7 @@ void ClangCode::emit(GenContext *context)
 	    fprintf(context->stream, "\t%s = call %s %s(", ref,
 		    functions[VM_SWITCH_RANGE].ret,
 		    context->load(VM_SWITCH_RANGE));
-	    genTable(context, "i32");
+	    genTable(context, Int);
 	    fprintf(context->stream,
 		    ", " Int " %s)\n\tswitch i32 %s, label %%%s [\n",
 		    tmpRef(context->sp), ref,
@@ -1661,8 +1706,8 @@ void ClangCode::emit(GenContext *context)
 
 	case KF_NOT_FLT:
 	    ref = context->genRef();
-	    fprintf(context->stream, "\t%s = fcmp oeq " Double " %s, 0.0\n",
-		    ref, tmpRef(context->sp));
+	    fprintf(context->stream, "\t%s = fcmp oeq " Double " %s, %s\n",
+		    ref, tmpRef(context->sp), context->genFloat(0.0L));
 	    fprintf(context->stream, "\t%s = zext i1 %s to " Int "\n",
 		    tmpRef(sp), ref);
 	    result(context);
@@ -1683,16 +1728,16 @@ void ClangCode::emit(GenContext *context)
 
 	case KF_TST_FLT:
 	    ref = context->genRef();
-	    fprintf(context->stream, "\t%s = fcmp one " Double " %s, 0.0\n",
-		    ref, tmpRef(context->sp));
+	    fprintf(context->stream, "\t%s = fcmp one " Double " %s, %s\n",
+		    ref, tmpRef(context->sp), context->genFloat(0.0L));
 	    fprintf(context->stream, "\t%s = zext i1 %s to " Int "\n",
 		    tmpRef(sp), ref);
 	    result(context);
 	    return;
 
 	case KF_UMIN_FLT:
-	    fprintf(context->stream, "\t%s = fsub " Double " 0.0, %s\n",
-		    tmpRef(sp), tmpRef(context->sp));
+	    fprintf(context->stream, "\t%s = fsub " Double " %s, %s\n",
+		    tmpRef(sp), context->genFloat(0.0L), tmpRef(context->sp));
 	    result(context);
 	    return;
 
