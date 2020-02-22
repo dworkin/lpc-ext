@@ -10,7 +10,8 @@ typedef struct {
 } JitInfo;
 
 typedef struct {
-    uint16_t typechecking;	/* typechecking mode (affects checksum) */
+    uint8_t typechecking;	/* typechecking mode (affects checksum) */
+    uint8_t intInheritSize;	/* integer & inherit size */
     uint16_t nInherits;		/* # inherited objects */
     int nFunctions;		/* # functions */
     size_t progSize;		/* program size */

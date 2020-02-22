@@ -158,6 +158,7 @@ static void *o_del(Object **r)
 static char configDir[1000];
 static int typechecking;
 static void **vm;
+static uint8_t intInheritSize;
 
 # ifndef WIN32
 # define THREAD_START(func)	pthread_create(&tid, NULL, func, NULL)
@@ -330,6 +331,7 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
 	return false;
     }
     vm = vmtab;
+    intInheritSize = (inheritSize << 4) + intSize;
 
     /*
      * create loader thread
@@ -376,6 +378,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
     comp = (JitCompile *) p;
     memset(comp, '\0', sizeof(JitCompile));
     comp->typechecking = typechecking;
+    comp->intInheritSize = intInheritSize;
     comp->nInherits = nInherits;
     comp->nFunctions = nFunctions;
     comp->progSize = progSize;
