@@ -249,7 +249,7 @@ static void *jit_thread(void *arg)
     while (lpc_ext_read(hash + 7, 17) == 17) {
 	if (hash[7] == '\0') {
 	    char fname[33];
-	    char module[1000];
+	    char module[2000];
 	    Program *p;
 	    LPC_function *functions;
 
@@ -367,7 +367,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
     unsigned char buffer[131072], *p;
     uint8_t hash[24];
     Object *c;
-    char file[33], path[1000];
+    char file[33], path[2000];
     int fd;
 
     /*
