@@ -2408,7 +2408,7 @@ bool ClangObject::emit(char *base)
 # ifndef WIN32
 	    "clang -fPIC"
 # else
-	    "C:\\progra~2\\micros~1\\2019\\Community\\VC\\Tools\\Llvm\\8.0.0\\bin\\clang.exe"
+	    "\"\"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\Llvm\\bin\\clang.exe\"\""
 # endif
 	    " -Os -shared"
 # if defined(__APPLE__) || defined(WIN32)
