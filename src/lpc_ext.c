@@ -12,11 +12,10 @@
 # include <unistd.h>
 # include <sys/types.h>
 # include <sys/wait.h>
-# include <fcntl.h>
 # else
 # include <process.h>
-# include <io.h>
 # endif
+# include <fcntl.h>
 
 
 /*
