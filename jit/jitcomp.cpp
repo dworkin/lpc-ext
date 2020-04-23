@@ -134,6 +134,10 @@ int main(int argc, char *argv[])
     out = dup(1);
     dup2(2, 1);
 
+# ifdef WIN32
+    _setmode(out, O_BINARY);
+# endif
+
     if (!CodeContext::validVM(info.major, info.minor)) {
 	reply = false;
 	write(out, &reply, 1);
