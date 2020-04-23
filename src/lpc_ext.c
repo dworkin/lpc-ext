@@ -12,10 +12,10 @@
 # include <unistd.h>
 # include <sys/types.h>
 # include <sys/wait.h>
+# include <fcntl.h>
 # else
 # include <process.h>
 # endif
-# include <fcntl.h>
 
 
 /*
@@ -317,9 +317,6 @@ int lpc_ext_spawn(const char *program)
     CloseHandle(pinfo.hProcess);
     CloseHandle(pinfo.hThread);
     CloseHandle(output);
-
-    _setmode(out, O_BINARY);
-    _setmode(back, O_BINARY);
     return 1;
 # endif
 }
