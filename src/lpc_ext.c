@@ -15,6 +15,7 @@
 # include <fcntl.h>
 # else
 # include <process.h>
+# include <io.h>
 # endif
 
 
