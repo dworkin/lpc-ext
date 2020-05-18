@@ -1630,8 +1630,8 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_ADD1_FLT:
-	    fprintf(context->stream, "\t%s = fadd " Double " %s, 1.0\n",
-		    tmpRef(sp), tmpRef(context->sp));
+	    fprintf(context->stream, "\t%s = fadd " Double " %s, %s\n",
+		    tmpRef(sp), tmpRef(context->sp), context->genFloat(1.0L));
 	    result(context);
 	    return;
 
@@ -1721,8 +1721,8 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_SUB1_FLT:
-	    fprintf(context->stream, "\t%s = fsub " Double " %s, 1.0\n",
-		    tmpRef(sp), tmpRef(context->sp));
+	    fprintf(context->stream, "\t%s = fsub " Double " %s, %s\n",
+		    tmpRef(sp), tmpRef(context->sp), context->genFloat(1.0L));
 	    result(context);
 	    return;
 
