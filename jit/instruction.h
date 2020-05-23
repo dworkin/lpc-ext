@@ -62,15 +62,15 @@
 # define FETCH1S(pc)	((int8_t) *(pc)++)
 # define GET2(pc)	(((uint16_t) (pc)[-2] << 8) + (pc)[-1])
 # define FETCH2U(pc)	((pc) += 2, GET2(pc))
-# define FETCH2S(pc)	((pc) += 2, ((int16_t) (int8_t) (pc)[-2] << 8) + \
+# define FETCH2S(pc)	((pc) += 2, ((int64_t) (int8_t) (pc)[-2] << 8) + \
 				    (pc)[-1])
 # define GET3(pc)	(((uint32_t) (pc)[-3] << 16) + GET2(pc))
 # define FETCH3U(pc)	((pc) += 3, GET3(pc))
-# define FETCH3S(pc)	((pc) += 3, ((int32_t) (int8_t) (pc)[-3] << 16) + \
+# define FETCH3S(pc)	((pc) += 3, ((int64_t) (int8_t) (pc)[-3] << 16) + \
 				    GET2(pc))
 # define GET4(pc)	(((uint32_t) (pc)[-4] << 24) + GET3(pc))
 # define FETCH4U(pc)	((pc) += 4, GET4(pc))
-# define FETCH4S(pc)	((pc) += 4, ((int32_t) (int8_t) (pc)[-4] << 24) + \
+# define FETCH4S(pc)	((pc) += 4, ((int64_t) (int8_t) (pc)[-4] << 24) + \
 				    GET3(pc))
 # define GET5(pc)	(((uint64_t) (pc)[-5] << 32) + GET4(pc))
 # define FETCH5U(pc)	((pc) += 5, GET5(pc))
