@@ -47,7 +47,7 @@ static void (*ext_fdclose)(int*, int);
 
 # ifndef WIN32
 # define INVALID_HANDLE_VALUE	-1
-static int in, out, back;
+static int in, out, back, pid;
 # else
 static HANDLE in, out, back;
 
@@ -196,6 +196,9 @@ static void ext_finish(void)
     close(in);
     close(out);
     close(back);
+# ifndef WIN32
+    waitpid(pid, &out, 0);
+# endif
 }
 
 /*
@@ -206,13 +209,7 @@ int lpc_ext_spawn(const char *program)
 {
 # ifndef WIN32
     int input[2], output[2];
-    int pid;
-    int status;
 
-    /*
-     * Fork a child and let it exit after forking a grandchild, so that
-     * DGD never has to deal with any zombie processes.
-     */
     pipe(input);
     pipe(output);
     pid = fork();
@@ -224,13 +221,12 @@ int lpc_ext_spawn(const char *program)
 	fcntl(out, F_SETFD, FD_CLOEXEC);
 	fcntl(back, F_SETFD, FD_CLOEXEC);
 	close(output[0]);
-	do {
-	    wait(&status);
-	} while (!WIFEXITED(status));
 
 	(*ext_spawn)(&ext_fdlist, &ext_finish);
 	return 1;
     } else if (pid == 0) {
+	int fds[FD_CHUNK], num;
+
 	dup2(output[0], 0);
 	dup2(input[1], 1);
 	close(input[0]);
@@ -238,29 +234,25 @@ int lpc_ext_spawn(const char *program)
 	close(output[0]);
 	close(output[1]);
 
-	if (fork() == 0) {
-	    int fds[FD_CHUNK], num;
-
-	    /*
-	     * receive file descriptors to close, until there are none left
-	     */
-	    for (;;) {
-		if (read(0, &num, sizeof(num)) != sizeof(num)) {
-		    break;
-		}
-		if (num == 0) {
-		    /* execute the program */
-		    execl("/bin/sh", "sh", "-c", program, (char *) NULL);
-		    break;
-		}
-		if (read(0, fds, num * sizeof(int)) != num * sizeof(int)) {
-		    break;
-		}
-		(*ext_fdclose)(fds, num);
+	/*
+	 * receive file descriptors to close, until there are none left
+	 */
+	for (;;) {
+	    if (read(0, &num, sizeof(num)) != sizeof(num)) {
+		break;
 	    }
+	    if (num == 0) {
+		/* execute the program */
+		execl("/bin/sh", "sh", "-c", program, (char *) NULL);
+		break;
+	    }
+	    if (read(0, fds, num * sizeof(int)) != num * sizeof(int)) {
+		break;
+	    }
+	    (*ext_fdclose)(fds, num);
 	}
 
-	/* child, grandchild if exec fails */
+	/* exec failed */
 	_exit(0);
     } else {
 	close(input[0]);
