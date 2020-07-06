@@ -339,7 +339,7 @@ void FlowBlock::evaluate(FlowContext *context)
     /*
      * determine inputs and outputs for each block
      */
-    startVisits(&list);
+    startAllVisits(&list);
     for (b = this; b != NULL; b = b->next) {
 	b->evaluateFlow(context, &list);
     }
@@ -373,7 +373,7 @@ void FlowBlock::evaluate(FlowContext *context)
     /*
      * flow forward outputs
      */
-    startVisits(&list);
+    startAllVisits(&list);
     for (b = this; b != NULL; b = b->next) {
 	b->prepareFlow(context);
 	for (i = 0; i < b->nTo; i++) {

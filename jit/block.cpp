@@ -434,7 +434,7 @@ Block *Block::pass1()
 }
 
 /*
- * prepare a round of visits
+ * prepare to visit blocks, excluding the first one
  */
 void Block::startVisits(Block **list)
 {
@@ -444,6 +444,15 @@ void Block::startVisits(Block **list)
     for (b = next; b != NULL; b = b->next) {
 	b->visit = b;
     }
+}
+
+/*
+ * prepare to visit blocks, including the first one
+ */
+void Block::startAllVisits(Block **list)
+{
+    startVisits(list);
+    visit = this;
 }
 
 /*

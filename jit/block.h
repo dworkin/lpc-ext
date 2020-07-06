@@ -4,6 +4,7 @@ public:
     virtual ~Block();
 
     void startVisits(Block **list);
+    void startAllVisits(Block **list);
     void toVisit(Block **list);
 
     CodeSize fragment();
