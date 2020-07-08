@@ -172,6 +172,8 @@ TVC BlockContext::pop(Code *code)
     TVC val = stack->get(sp);
     val.code = code;
     stack->set(sp, val);
+    val.code = NULL;
+    val.ref = STACK_EMPTY;
     sp = stack->pop(sp);
     return val;
 }
