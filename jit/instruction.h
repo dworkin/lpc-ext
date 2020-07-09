@@ -59,7 +59,7 @@
 # define VERSION_VM_MINOR		1
 
 # define FETCH1U(pc)	(*(pc)++)
-# define FETCH1S(pc)	((int8_t) *(pc)++)
+# define FETCH1S(pc)	((int64_t) (int8_t) *(pc)++)
 # define GET2(pc)	(((uint16_t) (pc)[-2] << 8) + (pc)[-1])
 # define FETCH2U(pc)	((pc) += 2, GET2(pc))
 # define FETCH2S(pc)	((pc) += 2, ((int64_t) (int8_t) (pc)[-2] << 8) + \
