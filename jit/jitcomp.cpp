@@ -122,6 +122,10 @@ int main(int argc, char *argv[])
     }
     mkdir("cache", 0750);
 
+# ifdef WIN32
+    _setmode(0, O_BINARY);
+# endif
+
     /* read init params from 0 */
     if (read(0, &info, sizeof(JitInfo)) != sizeof(JitInfo)) {
 	return 2;
