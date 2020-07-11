@@ -1,7 +1,7 @@
 src	API glue to compile with your kfun source code
 doc	documentation
 kfun	kfun source code
-jit	JIT compiler module (beta), requires clang
+jit	JIT compiler module, requires clang
 
 To build modules for most kfuns, just type 'make' (or whatever your GNU make
 command is).  On Windows, use Visual Studio 2010 with the solution file
