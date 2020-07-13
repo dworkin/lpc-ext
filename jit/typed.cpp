@@ -656,14 +656,15 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	break;
 
     case CATCH:
-	context->push(LPC_TYPE_STRING);
 	break;
 
     case CAUGHT:
 	context->caught();
+	context->push(LPC_TYPE_STRING);
 	break;
 
     case END_CATCH:
+	context->push(LPC_TYPE_NIL);
 	break;
 
     case RLIMITS:
