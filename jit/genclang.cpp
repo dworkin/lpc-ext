@@ -412,24 +412,19 @@ public:
     char *label(Block *from, Block *to) {
 	static char buf[12];
 
-	switch (from->last->instruction) {
-	case Code::SWITCH_INT:
-	case Code::SWITCH_RANGE:
-	    if (to == from->to[0]) {
-		/* default */
-		sprintf(buf, "L%04xS%04x", from->first->addr, to->first->addr);
-	    } else {
+	if (to != NULL && from->first->addr >= to->first->addr) {
+	    sprintf(buf, "L%04xT%04x", from->first->addr, to->first->addr);
+	} else {
+	    switch (from->last->instruction) {
+	    case Code::SWITCH_INT:
+	    case Code::SWITCH_RANGE:
 		sprintf(buf, "L%04xS", from->first->addr);
-	    }
-	    break;
+		break;
 
-	default:
-	    if (to != NULL && from->first->addr >= to->first->addr) {
-		sprintf(buf, "L%04xT%04x", from->first->addr, to->first->addr);
-	    } else {
+	    default:
 		sprintf(buf, "L%04x", from->first->addr);
+		break;
 	    }
-	    break;
 	}
 
 	return buf;
@@ -448,7 +443,7 @@ public:
     char *target(Block *to) {
 	static char buf[12];
 
-	if (to != NULL && block->first->addr >= to->first->addr) {
+	if (block->first->addr >= to->first->addr) {
 	    sprintf(buf, "L%04xT%04x", block->first->addr, to->first->addr);
 	} else {
 	    sprintf(buf, "L%04x", to->first->addr);
@@ -462,7 +457,7 @@ public:
      */
     void jumpTicks(Block *to) {
 	if (block->first->addr >= to->first->addr) {
-	    fprintf(stream, "%s:\n", label(to));
+	    fprintf(stream, "%s:\n", target(to));
 	    voidCall(VM_LOOP_TICKS);
 	    fprintf(stream, "\tbr label %%L%04x\n", to->first->addr);
 	}
@@ -798,10 +793,9 @@ void ClangCode::switchInt(GenContext *context)
     if (context->get(context->sp).type != LPC_TYPE_INT) {
 	ref = context->genRef();
 	context->call(VM_SWITCH_INT, ref);
-	fprintf(context->stream, "\tbr i1 %s, label %%%s, ", ref,
-		context->label(NULL));
-	fprintf(context->stream, "label %%%s\n",
-		context->label(context->block->to[0]));
+	fprintf(context->stream, "\tbr i1 %s, label %%%s, label %%%s\n", ref,
+		context->label(NULL),
+		context->target(context->block->to[0]));
 	fprintf(context->stream, "%s:\n", context->label(NULL));
 	context->call(VM_POP_INT, tmpRef(context->sp));
     } else {
@@ -1331,24 +1325,21 @@ void ClangCode::emit(GenContext *context)
 
     case SWITCH_INT:
 	switchInt(context);
-	fprintf(context->stream, "\tswitch " Int " %s, label %%%s",
-		tmpRef(context->sp), context->label(context->block->to[0]));
 	if (size > 1) {
-	    fprintf(context->stream, " [\n");
+	    fprintf(context->stream, "\tswitch " Int " %s, label %%%s [\n",
+		    tmpRef(context->sp),
+		    context->target(context->block->to[0]));
 	    for (i = 1; i < size; i++) {
 		fprintf(context->stream, "\t\t" Int " %lld, label %%%s\n",
 			(long long) caseInt[i].num,
 			context->target(context->block->to[i]));
 	    }
-	    fprintf(context->stream, "\t]");
+	    fprintf(context->stream, "\t]\n");
+	} else {
+	    fprintf(context->stream, "\tbr label %%%s\n",
+		    context->target(context->block->to[0]));
 	}
-	fprintf(context->stream, "\n%s:\n",
-		context->label(context->block->to[0]));
-	if (context->block->first->addr >= context->block->to[0]->first->addr) {
-	    context->voidCall(VM_LOOP_TICKS);
-	}
-	fprintf(context->stream, "\tbr label %%L%04x\n", caseInt[0].addr);
-	for (i = 1; i < size; i++) {
+	for (i = 0; i < size; i++) {
 	    context->jumpTicks(context->block->to[i]);
 	}
 	context->sp = sp;
@@ -1358,30 +1349,23 @@ void ClangCode::emit(GenContext *context)
 	switchInt(context);
 	if (size > 1) {
 	    ref = context->genRef();
-	    fprintf(context->stream, "\t%s = call %s %s(", ref,
-		    functions[VM_SWITCH_RANGE].ret,
+	    fprintf(context->stream, "\t%s = call i32 %s(", ref,
 		    context->load(VM_SWITCH_RANGE));
 	    genTable(context, Int);
 	    fprintf(context->stream,
 		    ", " Int " %s)\n\tswitch i32 %s, label %%%s [\n",
 		    tmpRef(context->sp), ref,
-		    context->label(context->block->to[0]));
+		    context->target(context->block->to[0]));
 	    for (i = 1; i < size; i++) {
 		fprintf(context->stream, "\t\ti32 %d, label %%%s\n", i - 1,
 			context->target(context->block->to[i]));
 	    }
-	    fprintf(context->stream, "\t]");
+	    fprintf(context->stream, "\t]\n");
 	} else {
 	    fprintf(context->stream, "\tbr label %%%s\n",
-		    context->label(context->block->to[0]));
+		    context->target(context->block->to[0]));
 	}
-	fprintf(context->stream, "\n%s:\n",
-		context->label(context->block->to[0]));
-	if (context->block->first->addr >= context->block->to[0]->first->addr) {
-	    context->voidCall(VM_LOOP_TICKS);
-	}
-	fprintf(context->stream, "\tbr label %%L%04x\n", caseRange[0].addr);
-	for (i = 1; i < size; i++) {
+	for (i = 0; i < size; i++) {
 	    context->jumpTicks(context->block->to[i]);
 	}
 	context->sp = sp;
