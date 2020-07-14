@@ -599,7 +599,7 @@ void Block::pass3(Block *b)
 {
     Block *list, *f;
     Code *code;
-    CodeSize i;
+    CodeSize i, j;
 
     nFrom++;
     startVisits(&list);
@@ -619,9 +619,15 @@ void Block::pass3(Block *b)
 	case Code::SWITCH_RANGE:
 	case Code::SWITCH_STRING:
 	    for (i = 0; i < f->nTo; i++) {
-		if (f->to[i]->nFrom++ == 0) {
-		    f->to[i]->toVisit(&list);
-		}
+		j = 0;
+		do {
+		    if (j == i) {
+			if (f->to[i]->nFrom++ == 0) {
+			    f->to[i]->toVisit(&list);
+			}
+			break;
+		    }
+		} while (f->to[j++] != f->to[i]);
 	    }
 	    break;
 
@@ -631,9 +637,15 @@ void Block::pass3(Block *b)
 		f->to[1] = b = b->find(code->target);
 	    }
 	    for (i = 0; i < f->nTo; i++) {
-		if (f->to[i]->nFrom++ == 0) {
-		    f->to[i]->toVisit(&list);
-		}
+		j = 0;
+		do {
+		    if (j == i) {
+			if (f->to[i]->nFrom++ == 0) {
+			    f->to[i]->toVisit(&list);
+			}
+			break;
+		    }
+		} while (f->to[j++] != f->to[i]);
 	    }
 	    break;
 
@@ -664,20 +676,26 @@ void Block::pass3(Block *b)
 void Block::pass4()
 {
     Block *list, *f, *b;
-    CodeSize i;
+    CodeSize i, j;
 
     startVisits(&list);
     for (f = this; f != NULL; f = nextVisit(&list)) {
 	for (i = 0; i < f->nTo; i++) {
 	    b = f->to[i];
-	    if (b->from == NULL) {
-		b->from = new Block*[b->nFrom];
-		b->fromVisit = new bool[b->nFrom];
-		memset(b->fromVisit, '\0', b->nFrom);
-		b->nFrom = 0;
-		b->toVisit(&list);
-	    }
-	    b->from[b->nFrom++] = f;
+	    j = 0;
+	    do {
+		if (j == i) {
+		    if (b->from == NULL) {
+			b->from = new Block*[b->nFrom];
+			b->fromVisit = new bool[b->nFrom];
+			memset(b->fromVisit, '\0', b->nFrom);
+			b->nFrom = 0;
+			b->toVisit(&list);
+		    }
+		    b->from[b->nFrom++] = f;
+		    break;
+		}
+	    } while (f->to[j++] != b);
 	}
     }
 }
