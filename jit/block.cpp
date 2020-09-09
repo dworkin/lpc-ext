@@ -18,6 +18,7 @@ Block::Block(Code *first, Code *last, CodeSize size) :
     from = to = NULL;
     fromVisit = NULL;
     nFrom = nTo = 0;
+    flags = 0;
     endSp = STACK_INVALID;
     level = 0;
 }
@@ -368,6 +369,7 @@ Block *Block::pass1()
 	    }
 
 	    /* set followups */
+	    follow[0]->flags |= BLOCK_DEFAULT;
 	    b = b->find(code->addr);
 	    b->to = follow;
 	    b->nTo = code->size;
@@ -394,6 +396,7 @@ Block *Block::pass1()
 	    }
 
 	    /* set followups */
+	    follow[0]->flags |= BLOCK_DEFAULT;
 	    b = b->find(code->addr);
 	    b->to = follow;
 	    b->nTo = code->size;
@@ -420,6 +423,7 @@ Block *Block::pass1()
 	    }
 
 	    /* set followups */
+	    follow[0]->flags |= BLOCK_DEFAULT;
 	    b = b->find(code->addr);
 	    b->to = follow;
 	    b->nTo = code->size;

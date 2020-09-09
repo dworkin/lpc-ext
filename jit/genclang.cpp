@@ -407,24 +407,24 @@ public:
     }
 
     /*
+     * relay needed between two blocks?
+     */
+    static bool relay(Block *from, Block *to) {
+	return (from->first->addr >= to->first->addr ||
+	        ((from->flags & BLOCK_SWITCHINT) &&
+		 (to->flags & BLOCK_DEFAULT)));
+    }
+
+    /*
      * block exit label
      */
-    char *label(Block *from, Block *to) {
+    static char *label(Block *from, Block *to) {
 	static char buf[12];
 
-	if (to != NULL && from->first->addr >= to->first->addr) {
+	if (to != NULL && relay(from, to)) {
 	    sprintf(buf, "L%04xT%04x", from->first->addr, to->first->addr);
 	} else {
-	    switch (from->last->instruction) {
-	    case Code::SWITCH_INT:
-	    case Code::SWITCH_RANGE:
-		sprintf(buf, "L%04xS", from->first->addr);
-		break;
-
-	    default:
-		sprintf(buf, "L%04x", from->first->addr);
-		break;
-	    }
+	    sprintf(buf, "L%04x", from->first->addr);
 	}
 
 	return buf;
@@ -443,7 +443,7 @@ public:
     char *target(Block *to) {
 	static char buf[12];
 
-	if (block->first->addr >= to->first->addr) {
+	if (relay(block, to)) {
 	    sprintf(buf, "L%04xT%04x", block->first->addr, to->first->addr);
 	} else {
 	    sprintf(buf, "L%04x", to->first->addr);
@@ -453,12 +453,14 @@ public:
     }
 
     /*
-     * account for loop ticks
+     * jump relay
      */
-    void jumpTicks(Block *to) {
-	if (block->first->addr >= to->first->addr) {
+    void jumpRelay(Block *to) {
+	if (relay(block, to)) {
 	    fprintf(stream, "%s:\n", target(to));
-	    voidCall(VM_LOOP_TICKS);
+	    if (block->first->addr >= to->first->addr) {
+		voidCall(VM_LOOP_TICKS);
+	    }
 	    fprintf(stream, "\tbr label %%L%04x\n", to->first->addr);
 	}
     }
@@ -791,16 +793,14 @@ void ClangCode::switchInt(GenContext *context)
     char *ref;
 
     if (context->get(context->sp).type != LPC_TYPE_INT) {
+	context->block->flags |= BLOCK_SWITCHINT;
 	ref = context->genRef();
 	context->call(VM_SWITCH_INT, ref);
-	fprintf(context->stream, "\tbr i1 %s, label %%%s, label %%%s\n", ref,
+	fprintf(context->stream, "\tbr i1 %s, label %%%sS, label %%%s\n", ref,
 		context->label(NULL),
 		context->target(context->block->to[0]));
-	fprintf(context->stream, "%s:\n", context->label(NULL));
+	fprintf(context->stream, "%sS:\n", context->label(NULL));
 	context->call(VM_POP_INT, tmpRef(context->sp));
-    } else {
-	ref = context->label(NULL);
-	fprintf(context->stream, "\tbr label %%%s\n%s:\n", ref, ref);
     }
 }
 
@@ -1305,7 +1305,7 @@ void ClangCode::emit(GenContext *context)
 	}
 	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%%s\n",
 		ref, context->next, context->target(context->block->to[1]));
-	context->jumpTicks(context->block->to[1]);
+	context->jumpRelay(context->block->to[1]);
 	context->sp = sp;
 	return;
 
@@ -1319,7 +1319,7 @@ void ClangCode::emit(GenContext *context)
 	}
 	fprintf(context->stream, "\tbr i1 %s, label %%%s, label %%L%04x\n",
 		ref, context->target(context->block->to[1]), context->next);
-	context->jumpTicks(context->block->to[1]);
+	context->jumpRelay(context->block->to[1]);
 	context->sp = sp;
 	return;
 
@@ -1340,7 +1340,7 @@ void ClangCode::emit(GenContext *context)
 		    context->target(context->block->to[0]));
 	}
 	for (i = 0; i < size; i++) {
-	    context->jumpTicks(context->block->to[i]);
+	    context->jumpRelay(context->block->to[i]);
 	}
 	context->sp = sp;
 	return;
@@ -1366,7 +1366,7 @@ void ClangCode::emit(GenContext *context)
 		    context->target(context->block->to[0]));
 	}
 	for (i = 0; i < size; i++) {
-	    context->jumpTicks(context->block->to[i]);
+	    context->jumpRelay(context->block->to[i]);
 	}
 	context->sp = sp;
 	return;
@@ -1389,7 +1389,7 @@ void ClangCode::emit(GenContext *context)
 		    context->target(context->block->to[0]));
 	}
 	for (i = 0; i < size; i++) {
-	    context->jumpTicks(context->block->to[i]);
+	    context->jumpRelay(context->block->to[i]);
 	}
 	context->sp = sp;
 	return;
@@ -1848,7 +1848,7 @@ void ClangCode::emit(GenContext *context)
 	fprintf(context->stream, "\t%s = icmp ne i32 %s, 0\n", ref, ref2);
 	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%%s\n",
 		ref, context->next, context->target(context->block->to[1]));
-	context->jumpTicks(context->block->to[1]);
+	context->jumpRelay(context->block->to[1]);
 	break;
 
     case CAUGHT:
@@ -2091,7 +2091,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    fprintf(context->stream, " [%s, %%%s]",
 			    ClangCode::tmpRef(context->nextSp(b->from[i]->endSp,
 							      n)),
-			    context->label(b->from[i], b));
+			    GenContext::label(b->from[i], b));
 		}
 		fprintf(context->stream, "\n");
 	    }
@@ -2124,7 +2124,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    phi = false;
 		    fprintf(context->stream, " [%s, %%%s]",
 			    ClangCode::localRef(n, b->from[i]->localOut(n)),
-			    context->label(b->from[i], b));
+			    GenContext::label(b->from[i], b));
 		}
 		fprintf(context->stream, "\n");
 	    }
@@ -2166,7 +2166,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    phi = false;
 		    fprintf(context->stream, " [%s, %%%s]",
 			    ClangCode::paramRef(n, b->from[i]->paramOut(n)),
-			    context->label(b->from[i], b));
+			    GenContext::label(b->from[i], b));
 		}
 		fprintf(context->stream, "\n");
 	    }
@@ -2272,7 +2272,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    }
 		    fprintf(context->stream, "\tbr label %%%s\n",
 			    context->target(b->to[0]));
-		    context->jumpTicks(b->to[0]);
+		    context->jumpRelay(b->to[0]);
 		    break;
 		}
 		break;

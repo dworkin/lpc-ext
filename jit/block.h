@@ -40,6 +40,7 @@ public:
     CodeSize nFrom;			/* # entrance blocks */
     CodeSize nTo;			/* # following blocks */
     CodeSize size;			/* size of block */
+    uint16_t flags;			/* flag bits */
     StackSize sp;			/* stack pointer */
     StackSize endSp;			/* final stack pointer */
     StackSize level;			/* catch level */
@@ -65,3 +66,6 @@ private:
 
     static Block *(*factory)(Code*, Code*, CodeSize);
 };
+
+# define BLOCK_DEFAULT			0x0001
+# define BLOCK_SWITCHINT		0x0002
