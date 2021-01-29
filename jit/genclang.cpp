@@ -2394,7 +2394,10 @@ bool ClangObject::emit(char *base)
 # else
 	    "\"\"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\Llvm\\bin\\clang.exe\"\""
 # endif
-	    " -march=native -Os -shared"
+# ifndef LLVM3_6
+	    " -march=native"
+# endif
+	    " -Os -shared"
 # if defined(__APPLE__) || defined(WIN32)
 	    " -Wno-override-module"
 # endif
