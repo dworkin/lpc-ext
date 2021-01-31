@@ -28,7 +28,7 @@ extern "C" {
 # define Double		"double"
 # define INT_SIZE	4
 # define DOUBLE_SIZE	8
-# undef  LLVM3_6	/* generate IR for LLVM 3.6 and before */
+# undef  LLVM3_6	/* generate IR for LLVM 3.5 and 3.6 */
 
 static const struct {
     const char *ret;			/* return value */
