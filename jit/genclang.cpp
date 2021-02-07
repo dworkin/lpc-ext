@@ -226,7 +226,47 @@ static const struct {
     { "void", "(i8*, i16)" },
 # define VM_LOOP_TICKS			95
     { "void", "(i8*)" },
-# define VM_FUNCTIONS			96
+# define VM_FABS			96
+    { Double, "(i8*, " Double ")" },
+# define VM_FLOOR			97
+    { Double, "(i8*, " Double ")" },
+# define VM_CEIL			98
+    { Double, "(i8*, " Double ")" },
+# define VM_FMOD			99
+    { Double, "(i8*, " Double ", " Double ")" },
+# define VM_LDEXP			100
+    { Double, "(i8*, " Double ", " Int ")" },
+# define VM_EXP				101
+    { Double, "(i8*, " Double ")" },
+# define VM_LOG				102
+    { Double, "(i8*, " Double ")" },
+# define VM_LOG10			103
+    { Double, "(i8*, " Double ")" },
+# define VM_POW				104
+    { Double, "(i8*, " Double ", " Double ")" },
+# define VM_SQRT			105
+    { Double, "(i8*, " Double ")" },
+# define VM_COS				106
+    { Double, "(i8*, " Double ")" },
+# define VM_SIN				107
+    { Double, "(i8*, " Double ")" },
+# define VM_TAN				108
+    { Double, "(i8*, " Double ")" },
+# define VM_ACOS			109
+    { Double, "(i8*, " Double ")" },
+# define VM_ASIN			110
+    { Double, "(i8*, " Double ")" },
+# define VM_ATAN			111
+    { Double, "(i8*, " Double ")" },
+# define VM_ATAN2			112
+    { Double, "(i8*, " Double ", " Double ")" },
+# define VM_COSH			113
+    { Double, "(i8*, " Double ")" },
+# define VM_SINH			114
+    { Double, "(i8*, " Double ")" },
+# define VM_TANH			115
+    { Double, "(i8*, " Double ")" },
+# define VM_FUNCTIONS			116
 };
 
 class GenContext : public FlowContext {
@@ -567,14 +607,19 @@ Type ClangCode::offStack(GenContext *context, StackSize sp)
     case STORE_PARAM:
     case STORE_LOCAL:
     case STORE_GLOBAL:
-	return (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) ?
-		type : LPC_TYPE_NIL;
+	if (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) {
+	    return type;
+	}
+	break;
 
     case JUMP_ZERO:
     case JUMP_NONZERO:
     case SWITCH_INT:
     case SWITCH_RANGE:
-	return (type == LPC_TYPE_INT) ? type : LPC_TYPE_NIL;
+	if (type == LPC_TYPE_INT) {
+	    return type;
+	}
+	break;
 
     case KFUNC:
 	switch (code->kfun.func) {
@@ -617,20 +662,39 @@ Type ClangCode::offStack(GenContext *context, StackSize sp)
 	case KF_SUB1_FLT:
 	case KF_TST_FLT:
 	case KF_UMIN_FLT:
+	case KF_FABS:
+	case KF_FLOOR:
+	case KF_CEIL:
+	case KF_FMOD:
+	case KF_EXP:
+	case KF_LOG:
+	case KF_LOG10:
+	case KF_POW:
+	case KF_SQRT:
+	case KF_COS:
+	case KF_SIN:
+	case KF_TAN:
+	case KF_ACOS:
+	case KF_ASIN:
+	case KF_ATAN:
+	case KF_ATAN2:
+	case KF_COSH:
+	case KF_SINH:
+	case KF_TANH:
 	    return LPC_TYPE_FLOAT;
 
 	case KF_TOFLOAT:
 	case KF_TOINT:
-	    return (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) ?
-		    type : LPC_TYPE_NIL;
-
-	default:
-	    return LPC_TYPE_NIL;
+	case KF_LDEXP:
+	    if (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) {
+		return type;
+	    }
+	    break;
 	}
-
-    default:
-	return LPC_TYPE_NIL;
+	break;
     }
+
+    return LPC_TYPE_NIL;
 }
 
 /*
@@ -1722,6 +1786,134 @@ void ClangCode::emit(GenContext *context)
 	case KF_UMIN_FLT:
 	    fprintf(context->stream, "\t%s = fsub " Double " %s, %s\n",
 		    tmpRef(sp), context->genFloat(0.0L), tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_FABS:
+	    context->callArgs(VM_FABS, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_FLOOR:
+	    context->callArgs(VM_FLOOR, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_CEIL:
+	    context->callArgs(VM_CEIL, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_FMOD:
+	    context->callArgs(VM_FMOD, tmpRef(sp));
+	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+		    tmpRef(context->nextSp(context->sp)),
+		    tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_LDEXP:
+	    context->callArgs(VM_LDEXP, tmpRef(sp));
+	    fprintf(context->stream, Double " %s, " Int " %s)\n",
+		    tmpRef(context->nextSp(context->sp)),
+		    tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_EXP:
+	    context->callArgs(VM_EXP, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_LOG:
+	    context->callArgs(VM_LOG, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_LOG10:
+	    context->callArgs(VM_LOG10, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_POW:
+	    context->callArgs(VM_POW, tmpRef(sp));
+	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+		    tmpRef(context->nextSp(context->sp)),
+		    tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_SQRT:
+	    context->callArgs(VM_SQRT, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_COS:
+	    context->callArgs(VM_COS, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_SIN:
+	    context->callArgs(VM_SIN, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_TAN:
+	    context->callArgs(VM_TAN, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_ACOS:
+	    context->callArgs(VM_ACOS, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_ASIN:
+	    context->callArgs(VM_ASIN, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_ATAN:
+	    context->callArgs(VM_ATAN, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_ATAN2:
+	    context->callArgs(VM_ATAN2, tmpRef(sp));
+	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+		    tmpRef(context->nextSp(context->sp)),
+		    tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_COSH:
+	    context->callArgs(VM_COSH, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_SINH:
+	    context->callArgs(VM_SINH, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    result(context);
+	    return;
+
+	case KF_TANH:
+	    context->callArgs(VM_TANH, tmpRef(sp));
+	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    result(context);
 	    return;
 
