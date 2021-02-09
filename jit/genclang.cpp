@@ -698,6 +698,26 @@ Type ClangCode::offStack(GenContext *context, StackSize sp)
 }
 
 /*
+ * obtain an argument which the LPC compiler knew to be an integer
+ */
+void ClangCode::intArg(GenContext *context, StackSize sp)
+{
+    if (context->get(sp).type != LPC_TYPE_INT) {
+	context->call(VM_POP_INT, tmpRef(sp));
+    }
+}
+
+/*
+ * obtain an argument which the LPC compiler knew to be a float
+ */
+void ClangCode::floatArg(GenContext *context, StackSize sp)
+{
+    if (context->get(sp).type != LPC_TYPE_FLOAT) {
+	context->call(VM_POP_FLOAT, tmpRef(sp));
+    }
+}
+
+/*
  * return a name for a reference to a temporary value
  */
 char *ClangCode::tmpRef(StackSize sp)
@@ -1816,6 +1836,8 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_LDEXP:
+	    intArg(context, context->sp);
+	    floatArg(context, context->nextSp(context->sp));
 	    context->callArgs(VM_LDEXP, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, " Int " %s)\n",
 		    tmpRef(context->nextSp(context->sp)),

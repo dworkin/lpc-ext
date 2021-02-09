@@ -8,6 +8,8 @@ public:
     void emitStringTable(class GenContext *context);
 
     static Type offStack(class GenContext *context, StackSize sp);
+    static void intArg(class GenContext *context, StackSize sp);
+    static void floatArg(class GenContext *context, StackSize sp);
     static char *tmpRef(StackSize sp);
     static char *paramRef(LPCParam param, int ref);
     static char *paramPhi(LPCParam param, int ref);
