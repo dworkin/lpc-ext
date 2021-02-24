@@ -690,6 +690,9 @@ Type ClangCode::offStack(GenContext *context, StackSize sp)
 		return type;
 	    }
 	    break;
+
+	default:
+	    break;
 	}
 	break;
     }
