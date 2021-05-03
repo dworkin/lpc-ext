@@ -39,7 +39,7 @@ typedef struct Object {
     struct Object *next;	/* next in linked list */
 } Object;
 
-# define NOBJECTS	1024
+# define NOBJECTS	10243
 
 static Program *programs[NOBJECTS];
 static Object *objects[NOBJECTS];
@@ -155,7 +155,9 @@ static void *o_del(Object **r)
 }
 
 
-static char configDir[1000];
+# define CONFIG_SIZE	1000
+
+static char configDir[CONFIG_SIZE];
 static int typechecking;
 static void **vm;
 static uint8_t intInheritSize;
@@ -249,7 +251,7 @@ static void *jit_thread(void *arg)
     while (lpc_ext_read(hash + 7, 17) == 17) {
 	if (hash[7] == '\0') {
 	    char fname[33];
-	    char module[2000];
+	    char module[2 * CONFIG_SIZE];
 	    Program *p;
 	    LPC_function *functions;
 
@@ -367,7 +369,7 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
     unsigned char buffer[131072], *p;
     uint8_t hash[24];
     Object *c;
-    char file[33], path[2000];
+    char file[33], path[2 * CONFIG_SIZE];
     int fd;
 
     /*
@@ -416,13 +418,15 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
 	     * write to file
 	     */
 	    fd = open(path, O_CREAT | O_TRUNC | O_WRONLY | O_BINARY, 0640);
-	    write(fd, buffer, size);
-	    close(fd);
-
-	    /*
-	     * inform backend
-	     */
-	    lpc_ext_write(hash + 8, 16);
+	    if (fd >= 0) {
+		if (write(fd, buffer, size) == size) {
+		    /*
+		     * inform backend
+		     */
+		    lpc_ext_write(hash + 8, 16);
+		}
+		close(fd);
+	    }
 	}
     }
 }
@@ -505,7 +509,11 @@ static void jit_release(uint64_t index, uint64_t instance)
  */
 int lpc_ext_init(int major, int minor, const char *config)
 {
-    char jitcomp[2000];
+    char jitcomp[3 * CONFIG_SIZE];
+
+    if (strlen(config) >= CONFIG_SIZE) {
+	return 0;
+    }
 
     strcpy(configDir, config);
 # ifndef WIN32

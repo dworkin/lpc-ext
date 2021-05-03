@@ -177,14 +177,14 @@ static void ext_fdlist(int *fdlist, int size)
 
     while (size != 0) {
 	num = (size > FD_CHUNK) ? FD_CHUNK : size;
-	write(out, &num, sizeof(num));
-	write(out, fdlist, num * sizeof(int));
+	(void) write(out, &num, sizeof(num));
+	(void) write(out, fdlist, num * sizeof(int));
 	fdlist += num;
 	size -= num;
     }
 
     num = 0;
-    write(out, &num, sizeof(num));
+    (void) write(out, &num, sizeof(num));
 }
 
 /*
@@ -210,8 +210,14 @@ int lpc_ext_spawn(const char *program)
 # ifndef WIN32
     int input[2], output[2];
 
-    pipe(input);
-    pipe(output);
+    if (pipe(input) != 0) {
+	return 0;
+    }
+    if (pipe(output) != 0) {
+	close(input[0]);
+	close(input[1]);
+	return 0;
+    }
     pid = fork();
     if (pid > 0) {
 	in = input[0];
