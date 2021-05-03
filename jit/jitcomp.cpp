@@ -144,14 +144,14 @@ int main(int argc, char *argv[])
 
     if (!CodeContext::validVM(info.major, info.minor)) {
 	reply = false;
-	write(out, &reply, 1);
+	(void) write(out, &reply, 1);
 	return 3;
     }
 
     cc = new CodeContext(info.intSize, info.inheritSize, protos, info.nBuiltins,
 			 info.nKfuns, info.typechecking);
     reply = true;
-    write(out, &reply, 1);
+    (void) write(out, &reply, 1);
 
     cmdhash[0] = '\0';
     while (read(0, cmdhash + 1, 16) == 16) {
@@ -162,23 +162,25 @@ int main(int argc, char *argv[])
 
 	filename(path, cmdhash + 1);
 	fd = open(path, O_RDONLY | O_BINARY);
-	read(fd, &comp, sizeof(JitCompile));
-	prog = new CodeByte[comp.progSize];
-	ftypes = new CodeByte[comp.fTypeSize];
-	vtypes = new CodeByte[comp.vTypeSize];
-	read(fd, prog, comp.progSize);
-	read(fd, ftypes, comp.fTypeSize);
-	read(fd, vtypes, comp.vTypeSize);
-	close(fd);
+	if (fd >= 0) {
+	    (void) read(fd, &comp, sizeof(JitCompile));
+	    prog = new CodeByte[comp.progSize];
+	    ftypes = new CodeByte[comp.fTypeSize];
+	    vtypes = new CodeByte[comp.vTypeSize];
+	    (void) read(fd, prog, comp.progSize);
+	    (void) read(fd, ftypes, comp.fTypeSize);
+	    (void) read(fd, vtypes, comp.vTypeSize);
+	    close(fd);
 
-	CodeObject object(cc, comp.nInherits, ftypes, vtypes);
-	if (jitComp(&object, prog, comp.nFunctions, path)) {
-	    write(out, cmdhash, 17);
+	    CodeObject object(cc, comp.nInherits, ftypes, vtypes);
+	    if (jitComp(&object, prog, comp.nFunctions, path)) {
+		(void) write(out, cmdhash, 17);
+	    }
+
+	    delete[] vtypes;
+	    delete[] ftypes;
+	    delete[] prog;
 	}
-
-	delete[] vtypes;
-	delete[] ftypes;
-	delete[] prog;
     }
 
     return 0;
