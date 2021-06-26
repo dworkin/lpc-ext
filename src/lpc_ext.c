@@ -42,8 +42,9 @@ static int ext_cb(void *ftab[], int size, int n, ...)
     return 1;
 }
 
-static void (*ext_spawn)(void (*)(int*, int), void (*)(void));
+static void (*ext_spawn)(void (*)(int*, int), void (*)(int));
 static void (*ext_fdclose)(int*, int);
+static void (*ext_cleanup)(void);
 
 # ifndef WIN32
 # define INVALID_HANDLE_VALUE	-1
@@ -99,12 +100,13 @@ DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[],
     in = out = back = INVALID_HANDLE_VALUE;
 
     return (major == LPC_EXT_VERSION_MAJOR && minor >= LPC_EXT_VERSION_MINOR &&
-           ext_cb(ftabs[0], sizes[0], 5,
+           ext_cb(ftabs[0], sizes[0], 6,
 		   &lpc_ext_kfun,
 		   &lpc_ext_dbase,
 		   &ext_spawn,
 		   &ext_fdclose,
-		   &lpc_ext_jit) &&
+		   &lpc_ext_jit,
+		   &ext_cleanup) &&
 	    ext_cb(ftabs[1], sizes[1], 4,
 		   &lpc_frame_object,
 		   &lpc_frame_dataspace,
@@ -191,13 +193,15 @@ static void ext_fdlist(int *fdlist, int size)
  * NAME:	ext->finish()
  * DESCRIPTION:	clean up before exiting
  */
-static void ext_finish(void)
+static void ext_finish(int wait)
 {
     close(in);
     close(out);
     close(back);
 # ifndef WIN32
-    waitpid(pid, &out, 0);
+    if (wait) {
+	waitpid(pid, &out, 0);
+    }
 # endif
 }
 
@@ -239,6 +243,8 @@ int lpc_ext_spawn(const char *program)
 	close(input[1]);
 	close(output[0]);
 	close(output[1]);
+
+	(*ext_cleanup)();
 
 	/*
 	 * receive file descriptors to close, until there are none left
