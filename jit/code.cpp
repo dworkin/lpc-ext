@@ -668,7 +668,7 @@ Code::Code(CodeFunction *function)
 	pop = true;
 	/* fall through */
     case I_STORES:
-	size = FETCH1U(pc);
+	size = FETCH2U(pc);
 	instruction = STORES;
 	break;
 
