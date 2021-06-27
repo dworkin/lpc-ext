@@ -23,7 +23,8 @@ private:
     char *paramRef(class GenContext *context, LPCParam param);
     char *localRef(class GenContext *context, LPCLocal local);
     char *localPre(class GenContext *context, LPCLocal local);
-    void result(class GenContext *context);
+    void pushResult(class GenContext *context);
+    void popResult(class GenContext *context);
     void switchInt(GenContext *context);
     void genTable(class GenContext *context, const char *type);
 };
