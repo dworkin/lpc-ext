@@ -113,11 +113,11 @@ static const struct {
 # define VM_STORE_INDEX_INDEX		38
     { "void", "(i8*)" },
 # define VM_STORES			39
-    { "void", "(i8*, i8)" },
+    { "void", "(i8*, i16)" },
 # define VM_STORES_LVAL			40
-    { "void", "(i8*, i8)" },
+    { "void", "(i8*, i16)" },
 # define VM_STORES_SPREAD		41
-    { "void", "(i8*, i8, i8, i8, i16, i16)" },
+    { "void", "(i8*, i16, i8, i8, i16, i16)" },
 # define VM_STORES_CAST			42
     { "void", "(i8*, i8, i16, i16)" },
 # define VM_STORES_PARAM		43
@@ -1240,7 +1240,7 @@ void ClangCode::emit(GenContext *context)
 	if (context->stores(size, NULL)) {
 	    context->skip(false);
 	    context->voidCallArgs(VM_STORES);
-	    fprintf(context->stream, "i8 %u)\n", size);
+	    fprintf(context->stream, "i16 %u)\n", size);
 	} else {
 	    context->voidCall(VM_POP);
 	}
@@ -1251,10 +1251,10 @@ void ClangCode::emit(GenContext *context)
 	    context->skip(true);
 	    if (next->instruction == STORES_SPREAD) {
 		context->voidCallArgs(VM_STORES_SPREAD);
-		fprintf(context->stream, "i8 %u, ", size);
+		fprintf(context->stream, "i16 %u, ", size);
 	    } else {
 		context->voidCallArgs(VM_STORES_LVAL);
-		fprintf(context->stream, "i8 %u)\n", size);
+		fprintf(context->stream, "i16 %u)\n", size);
 	    }
 	} else {
 	    context->popStores(tmpRef(sp), offStack(context, sp));
