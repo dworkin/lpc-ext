@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 
     cmdhash[0] = '\0';
     while (read(0, cmdhash + 1, 16) == 16) {
-	char path[26];
+	char path[42];
 	JitCompile comp;
 	int fd;
 	CodeByte *prog, *ftypes, *vtypes;
