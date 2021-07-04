@@ -161,6 +161,7 @@ static char configDir[CONFIG_SIZE];
 static int typechecking;
 static void **vm;
 static uint8_t intInheritSize;
+static bool active;
 
 # ifndef WIN32
 # define THREAD_START(func)	pthread_create(&tid, NULL, func, NULL)
@@ -300,6 +301,7 @@ static void *jit_thread(void *arg)
 	}
     }
 
+    active = false;
     return NULL;
 }
 
@@ -339,6 +341,7 @@ static int jit_init(int major, int minor, size_t intSize, size_t inheritSize,
      * create loader thread
      */
     MUTEX_INIT(&lock);
+    active = true;
     THREAD_START(&jit_thread);
 
     return true;
@@ -372,60 +375,62 @@ static void jit_compile(uint64_t index, uint64_t instance, int nInherits,
     char file[33], path[2 * CONFIG_SIZE];
     int fd;
 
-    /*
-     * fill buffer with data for compiler backend
-     */
-    size = sizeof(JitCompile) + progSize + fTypeSize + vTypeSize;
-    p = buffer;
-    comp = (JitCompile *) p;
-    memset(comp, '\0', sizeof(JitCompile));
-    comp->typechecking = typechecking;
-    comp->intInheritSize = intInheritSize;
-    comp->nInherits = nInherits;
-    comp->nFunctions = nFunctions;
-    comp->progSize = progSize;
-    comp->fTypeSize = fTypeSize;
-    comp->vTypeSize = vTypeSize;
-    p += sizeof(JitCompile);
-    memcpy(p, prog, progSize);
-    p += progSize;
-    memcpy(p, funcTypes, fTypeSize);
-    p += fTypeSize;
-    memcpy(p, varTypes, vTypeSize);
+    if (active) {
+	/*
+	 * fill buffer with data for compiler backend
+	 */
+	size = sizeof(JitCompile) + progSize + fTypeSize + vTypeSize;
+	p = buffer;
+	comp = (JitCompile *) p;
+	memset(comp, '\0', sizeof(JitCompile));
+	comp->typechecking = typechecking;
+	comp->intInheritSize = intInheritSize;
+	comp->nInherits = nInherits;
+	comp->nFunctions = nFunctions;
+	comp->progSize = progSize;
+	comp->fTypeSize = fTypeSize;
+	comp->vTypeSize = vTypeSize;
+	p += sizeof(JitCompile);
+	memcpy(p, prog, progSize);
+	p += progSize;
+	memcpy(p, funcTypes, fTypeSize);
+	p += fTypeSize;
+	memcpy(p, varTypes, vTypeSize);
 
-    /*
-     * compute MD5 hash
-     */
-    md5hash(hash + 8, buffer, size);
-    MUTEX_LOCK(&lock); {
-	c = *o_find(index, instance);
-	c->program = p_new(hash + 8);
-    } MUTEX_UNLOCK(&lock);
+	/*
+	 * compute MD5 hash
+	 */
+	md5hash(hash + 8, buffer, size);
+	MUTEX_LOCK(&lock); {
+	    c = *o_find(index, instance);
+	    c->program = p_new(hash + 8);
+	} MUTEX_UNLOCK(&lock);
 
-    if (c->program->functions == NULL) {
-	filename(file, hash + 8);
-	sprintf(path, "%s/cache/%c%c", configDir, file[0], file[1]);
-	mkdir(path, 0750);
-	sprintf(path + strlen(path), "/%s", file);
-	if (access(path, 0) == 0) {
-	    /*
-	     * reuse compiled object XXX may not be compiled yet?
-	     */
-	    hash[7] = '\0';
-	    lpc_ext_writeback(hash + 7, 17);
-	} else {
-	    /*
-	     * write to file
-	     */
-	    fd = open(path, O_CREAT | O_TRUNC | O_WRONLY | O_BINARY, 0640);
-	    if (fd >= 0) {
-		if (write(fd, buffer, size) == size) {
-		    /*
-		     * inform backend
-		     */
-		    lpc_ext_write(hash + 8, 16);
+	if (c->program->functions == NULL) {
+	    filename(file, hash + 8);
+	    sprintf(path, "%s/cache/%c%c", configDir, file[0], file[1]);
+	    mkdir(path, 0750);
+	    sprintf(path + strlen(path), "/%s", file);
+	    if (access(path, 0) == 0) {
+		/*
+		 * reuse existing data
+		 */
+		hash[7] = '\0';
+		lpc_ext_writeback(hash + 7, 17);
+	    } else {
+		/*
+		 * write to file
+		 */
+		fd = open(path, O_CREAT | O_TRUNC | O_WRONLY | O_BINARY, 0640);
+		if (fd >= 0) {
+		    if (write(fd, buffer, size) == size) {
+			/*
+			 * inform backend
+			 */
+			lpc_ext_write(hash + 8, 16);
+		    }
+		    close(fd);
 		}
-		close(fd);
 	    }
 	}
     }
