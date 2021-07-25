@@ -153,7 +153,7 @@ LPCEXT LPC_value		(*lpc_mapping_index)(LPC_mapping, LPC_value);
 LPCEXT void			(*lpc_mapping_assign)(LPC_dataspace,
 						      LPC_mapping, LPC_value,
 						      LPC_value);
-LPCEXT LPC_value		(*lpc_mapping_enum)(LPC_mapping, int);
+LPCEXT LPC_value		(*lpc_mapping_enum)(LPC_mapping, unsigned int);
 LPCEXT int			(*lpc_mapping_size)(LPC_mapping);
 
 LPCEXT void			(*lpc_runtime_error)(LPC_frame, char*);

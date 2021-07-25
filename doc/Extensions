@@ -195,8 +195,8 @@ mapping.
     LPC_value	lpc_mapping_index(LPC_mapping map, LPC_value index);
     void	lpc_mapping_assign(LPC_dataspace data, LPC_mapping map,
 				   LPC_value index, LPC_value val);
-    LPC_value	lpc_mapping_enum(LPC_mapping map, int i);
-    int		lpc_mapping_size(LPC_array map);
+    LPC_value	lpc_mapping_enum(LPC_mapping map, unsigned int i);
+    int		lpc_mapping_size(LPC_mapping map);
 
 
 5. Spawning a process
