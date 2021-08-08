@@ -31,6 +31,7 @@ public:
     Code *storePop() {
 	return storeCode;
     }
+    void endStores();
     void spread() {
 	spreadArgs = true;
     }

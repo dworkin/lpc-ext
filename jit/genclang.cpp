@@ -418,22 +418,6 @@ public:
     }
 
     /*
-     * clean up after STORES
-     */
-    void popStores(char *ref, Type type) {
-	if (lval()) {
-	    voidCall(VM_POP);
-	}
-	if (storePop() != NULL) {
-	    voidCall(VM_POP);
-	} else if (type == LPC_TYPE_INT) {
-	    call(VM_POP_INT, ref);
-	} else if (type == LPC_TYPE_FLOAT) {
-	    call(VM_POP_FLOAT, ref);
-	}
-    }
-
-    /*
      * relay needed between two blocks?
      */
     static bool relay(Block *from, Block *to) {
@@ -882,6 +866,29 @@ void ClangCode::popResult(GenContext *context)
 }
 
 /*
+ * clean up after STORES
+ */
+void ClangCode::popStores(GenContext *context, StackSize sp)
+{
+    if (context->lval()) {
+	context->voidCall(VM_POP);
+    }
+    if (context->storePop() != NULL) {
+	context->voidCall(VM_POP);
+    } else if (context->lval()) {
+	switch (offStack(context, sp)) {
+	case LPC_TYPE_INT:
+	    context->call(VM_POP_INT, tmpRef(sp));
+	    break;
+
+	case LPC_TYPE_FLOAT:
+	    context->call(VM_POP_FLOAT, tmpRef(sp));
+	    break;
+	}
+    }
+}
+
+/*
  * obtain the argument to an int/range switch, and branch to default when
  * it isn't an int
  */
@@ -1256,7 +1263,7 @@ void ClangCode::emit(GenContext *context)
 	    context->voidCallArgs(VM_STORES);
 	    fprintf(context->stream, "i16 %u)\n", size);
 	} else {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	context->sp = sp;
 	return;
@@ -1271,7 +1278,7 @@ void ClangCode::emit(GenContext *context)
 		fprintf(context->stream, "i16 %u)\n", size);
 	    }
 	} else {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	context->sp = sp;
 	return;
@@ -1285,7 +1292,7 @@ void ClangCode::emit(GenContext *context)
 		    type.type);
 	}
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	break;
 
@@ -1318,7 +1325,7 @@ void ClangCode::emit(GenContext *context)
 	    break;
 	}
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	break;
 
@@ -1343,7 +1350,7 @@ void ClangCode::emit(GenContext *context)
 	    break;
 	}
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	break;
 
@@ -1351,14 +1358,14 @@ void ClangCode::emit(GenContext *context)
 	context->voidCallArgs(VM_STORES_GLOBAL);
 	fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit, var.index);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	break;
 
     case STORES_INDEX:
 	context->voidCall(VM_STORES_INDEX);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	break;
 
@@ -1366,7 +1373,7 @@ void ClangCode::emit(GenContext *context)
 	context->voidCallArgs(VM_STORES_PARAM_INDEX);
 	fprintf(context->stream, "i8 %u)\n", param);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	break;
 
@@ -1374,7 +1381,7 @@ void ClangCode::emit(GenContext *context)
 	context->voidCallArgs(VM_STORES_LOCAL_INDEX);
 	fprintf(context->stream, "i8 %u)\n", local + 1);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	break;
 
@@ -1382,14 +1389,14 @@ void ClangCode::emit(GenContext *context)
 	context->voidCallArgs(VM_STORES_GLOBAL_INDEX);
 	fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit, var.index);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	break;
 
     case STORES_INDEX_INDEX:
 	context->voidCall(VM_STORES_INDEX_INDEX);
 	if (!context->storeN()) {
-	    context->popStores(tmpRef(sp), offStack(context, sp));
+	    popStores(context, sp);
 	}
 	break;
 

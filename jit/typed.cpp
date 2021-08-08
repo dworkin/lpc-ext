@@ -200,6 +200,22 @@ bool BlockContext::storeN()
 }
 
 /*
+ * clean up after stores
+ */
+void BlockContext::endStores()
+{
+    if (!storeN()) {
+	if (storePop() != NULL) {
+	    if (lval()) {
+		pop(storePop());
+	    }
+	} else if (!lval()) {
+	    push(LPC_TYPE_ARRAY);
+	}
+    }
+}
+
+/*
  * return indexed type on the stack, skipping index
  */
 TVC BlockContext::indexed()
@@ -563,7 +579,9 @@ void TypedCode::evaluateTypes(BlockContext *context)
     case STORES:
 	context->pop(this);
 	sp = context->merge(sp);
-	context->stores(size, (pop) ? this : NULL, false);
+	if (!context->stores(size, (pop) ? this : NULL, false) && !pop) {
+	    context->push(LPC_TYPE_ARRAY);
+	}
 	return;
 
     case STORES_LVAL:
@@ -576,10 +594,7 @@ void TypedCode::evaluateTypes(BlockContext *context)
 
     case STORES_SPREAD:
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL &&
-	    context->lval()) {
-	    context->pop(context->storePop());
-	}
+	context->endStores();
 	return;
 
     case STORES_CAST:
@@ -589,27 +604,18 @@ void TypedCode::evaluateTypes(BlockContext *context)
     case STORES_PARAM:
 	context->params[param] = context->castType;
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL &&
-	    context->lval()) {
-	    context->pop(context->storePop());
-	}
+	context->endStores();
 	return;
 
     case STORES_LOCAL:
 	context->locals[local] = context->castType;
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL &&
-	    context->lval()) {
-	    context->pop(context->storePop());
-	}
+	context->endStores();
 	return;
 
     case STORES_GLOBAL:
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL &&
-	    context->lval()) {
-	    context->pop(context->storePop());
-	}
+	context->endStores();
 	return;
 
     case STORES_PARAM_INDEX:
@@ -619,10 +625,7 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	context->pop(this);
 	context->pop(this);
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL &&
-	    context->lval()) {
-	    context->pop(context->storePop());
-	}
+	context->endStores();
 	return;
 
     case STORES_INDEX_INDEX:
@@ -631,10 +634,7 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	context->pop(this);
 	context->pop(this);
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL &&
-	    context->lval()) {
-	    context->pop(context->storePop());
-	}
+	context->endStores();
 	return;
 
     case JUMP:
