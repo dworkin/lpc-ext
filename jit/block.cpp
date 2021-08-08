@@ -262,6 +262,7 @@ Block *Block::function(CodeFunction *function)
 		last->line = code->line;
 		last->target = code->target;
 		last->pop = code->pop;
+		code->pop = false;
 		code->target = code->addr + 3;
 		code = last;
 		break;
@@ -527,10 +528,7 @@ Block *Block::pass2(Block *tree, StackSize size)
 	for (code = b->first; ; code = code->next) {
 	    switch (code->instruction) {
 	    case Code::CATCH:
-		stackPointer = context.push(stackPointer,
-					    (code->pop) ?
-					     Block::CATCH_POP : Block::CATCH);
-		code->pop = false;
+		stackPointer = context.push(stackPointer, Block::CATCH);
 		catchLevel++;
 		break;
 
@@ -542,9 +540,6 @@ Block *Block::pass2(Block *tree, StackSize size)
 	    case Code::RETURN:
 		if (stackPointer != STACK_EMPTY) {
 		    switch (context.get(stackPointer)) {
-		    case Block::CATCH_POP:
-			code->pop = true;
-			/* fall through */
 		    case Block::CATCH:
 			code->instruction = Code::END_CATCH;
 			--catchLevel;

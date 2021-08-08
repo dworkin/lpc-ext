@@ -221,7 +221,7 @@ static const struct {
 # define VM_CAUGHT			92
     { "void", "(i8*, i1)" },
 # define VM_CATCH_END			93
-    { "void", "(i8*, i1)" },
+    { "void", "(i8*)" },
 # define VM_LINE			94
     { "void", "(i8*, i16)" },
 # define VM_LOOP_TICKS			95
@@ -276,7 +276,6 @@ public:
 	block = NULL;
 	next = 0;
 	line = 0;
-	storeSkip = false;
 	switchList = NULL;
 	count = 0;
     }
@@ -419,24 +418,12 @@ public:
     }
 
     /*
-     * possibly skip stores
-     */
-    void skip(bool flag) {
-	storeSkip = flag;
-    }
-
-    /*
-     * skipping stores?
-     */
-    bool skipping() {
-	return storeSkip;
-    }
-
-    /*
      * clean up after STORES
      */
     void popStores(char *ref, Type type) {
-	voidCall(VM_POP);
+	if (lval()) {
+	    voidCall(VM_POP);
+	}
 	if (storePop() != NULL) {
 	    voidCall(VM_POP);
 	} else if (type == LPC_TYPE_INT) {
@@ -573,7 +560,6 @@ public:
     Block *block;		/* current block */
     CodeSize next;		/* address of next block */
     CodeLine line;		/* current line number */
-    bool storeSkip;		/* skipping stores? */
     ClangCode *switchList;	/* list of switch tables */
     int count;			/* reference counter */
 };
@@ -1266,18 +1252,17 @@ void ClangCode::emit(GenContext *context)
 	return;
 
     case STORES:
-	if (context->stores(size, NULL)) {
-	    context->skip(false);
+	if (context->stores(size, (pop) ? this : NULL, false)) {
 	    context->voidCallArgs(VM_STORES);
 	    fprintf(context->stream, "i16 %u)\n", size);
 	} else {
-	    context->voidCall(VM_POP);
+	    context->popStores(tmpRef(sp), offStack(context, sp));
 	}
-	break;
+	context->sp = sp;
+	return;
 
     case STORES_LVAL:
-	if (context->stores(size, (pop) ? this : NULL)) {
-	    context->skip(true);
+	if (context->stores(size, (pop) ? this : NULL, true)) {
 	    if (next->instruction == STORES_SPREAD) {
 		context->voidCallArgs(VM_STORES_SPREAD);
 		fprintf(context->stream, "i16 %u, ", size);
@@ -1342,13 +1327,13 @@ void ClangCode::emit(GenContext *context)
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_STORES_LOCAL_INT, localRef(context, local));
 	    fprintf(context->stream, "i8 %u, " Int " %s)\n", local + 1,
-		    (context->skipping()) ? localPre(context, local) : "0");
+		    (context->lval()) ? localPre(context, local) : "0");
 	    break;
 
 	case LPC_TYPE_FLOAT:
 	    context->callArgs(VM_STORES_LOCAL_FLOAT, localRef(context, local));
 	    fprintf(context->stream, "i8 %u, " Double " %s)\n", local + 1,
-		    (context->skipping()) ?
+		    (context->lval()) ?
 		     localPre(context, local) : context->genFloat(0.0L));
 	    break;
 
@@ -2108,14 +2093,8 @@ void ClangCode::emit(GenContext *context)
 	return;
 
     case END_CATCH:
-	context->voidCallArgs(VM_CATCH_END);
-	if (pop) {
-	    fprintf(context->stream, "i1 false)\n");
-	} else {
-	    fprintf(context->stream, "i1 true)\n");
-	}
-	context->sp = sp;
-	return;
+	context->voidCall(VM_CATCH_END);
+	break;
 
     case RLIMITS:
 	context->voidCallArgs(VM_RLIMITS);

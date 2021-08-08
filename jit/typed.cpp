@@ -51,6 +51,7 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
     storeCount = 0;
     storeCode = NULL;
     castType = LPC_TYPE_MIXED;
+    lvalue = false;
     spreadArgs = false;
     merging = false;
 }
@@ -181,10 +182,11 @@ TVC BlockContext::pop(Code *code)
 /*
  * prepare for N stores
  */
-bool BlockContext::stores(int count, Code *popCode)
+bool BlockContext::stores(int count, Code *popCode, bool flag)
 {
     storeCount = count;
     storeCode = popCode;
+    lvalue = flag;
     return (count != 0);
 }
 
@@ -559,17 +561,23 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	break;
 
     case STORES:
+	context->pop(this);
+	sp = context->merge(sp);
+	context->stores(size, (pop) ? this : NULL, false);
+	return;
+
     case STORES_LVAL:
 	context->pop(this);
 	sp = context->merge(sp);
-	if (!context->stores(size, (pop) ? this : NULL) && pop) {
+	if (!context->stores(size, (pop) ? this : NULL, true) && pop) {
 	    context->pop(this);
 	}
 	return;
 
     case STORES_SPREAD:
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL) {
+	if (!context->storeN() && context->storePop() != NULL &&
+	    context->lval()) {
 	    context->pop(context->storePop());
 	}
 	return;
@@ -581,7 +589,8 @@ void TypedCode::evaluateTypes(BlockContext *context)
     case STORES_PARAM:
 	context->params[param] = context->castType;
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL) {
+	if (!context->storeN() && context->storePop() != NULL &&
+	    context->lval()) {
 	    context->pop(context->storePop());
 	}
 	return;
@@ -589,14 +598,16 @@ void TypedCode::evaluateTypes(BlockContext *context)
     case STORES_LOCAL:
 	context->locals[local] = context->castType;
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL) {
+	if (!context->storeN() && context->storePop() != NULL &&
+	    context->lval()) {
 	    context->pop(context->storePop());
 	}
 	return;
 
     case STORES_GLOBAL:
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL) {
+	if (!context->storeN() && context->storePop() != NULL &&
+	    context->lval()) {
 	    context->pop(context->storePop());
 	}
 	return;
@@ -608,7 +619,8 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	context->pop(this);
 	context->pop(this);
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL) {
+	if (!context->storeN() && context->storePop() != NULL &&
+	    context->lval()) {
 	    context->pop(context->storePop());
 	}
 	return;
@@ -619,7 +631,8 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	context->pop(this);
 	context->pop(this);
 	sp = context->merge(sp);
-	if (!context->storeN() && context->storePop() != NULL) {
+	if (!context->storeN() && context->storePop() != NULL &&
+	    context->lval()) {
 	    context->pop(context->storePop());
 	}
 	return;
@@ -664,7 +677,6 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	break;
 
     case END_CATCH:
-	context->push(LPC_TYPE_NIL);
 	break;
 
     case RLIMITS:

@@ -23,7 +23,10 @@ public:
     }
     TVC pop(Code *code);
     TVC indexed();
-    bool stores(int count, Code *popCode);
+    bool stores(int count, Code *popCode, bool flag);
+    bool lval() {
+	return lvalue;
+    }
     bool storeN();
     Code *storePop() {
 	return storeCode;
@@ -58,6 +61,7 @@ private:
     StackSize altSp;		/* alternative stack pointer */
     int storeCount;		/* number of STOREX instructions left */
     Code *storeCode;		/* pop at end of STORES? */
+    bool lvalue;		/* lvalue stores? */
     bool spreadArgs;		/* SPREAD before call? */
     bool merging;		/* merging stack values? */
 };
