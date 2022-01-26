@@ -418,6 +418,17 @@ public:
     }
 
     /*
+     * update the current line number if needed
+     */
+    void updateLine(CodeLine line) {
+	if (this->line != line) {
+	    voidCallArgs(VM_LINE);
+	    fprintf(stream, "i16 %u)\n", line);
+	    this->line = line;
+	}
+    }
+
+    /*
      * relay needed between two blocks?
      */
     static bool relay(Block *from, Block *to) {
@@ -466,10 +477,11 @@ public:
     /*
      * jump relay
      */
-    void jumpRelay(Block *to) {
+    void jumpRelay(CodeLine line, Block *to) {
 	if (relay(block, to)) {
 	    fprintf(stream, "%s:\n", target(to));
 	    if (block->first->addr >= to->first->addr) {
+		updateLine(line);
 		voidCall(VM_LOOP_TICKS);
 	    }
 	    fprintf(stream, "\tbr label %%L%04x\n", to->first->addr);
@@ -543,8 +555,10 @@ public:
     int num;			/* function number */
     Block *block;		/* current block */
     CodeSize next;		/* address of next block */
-    CodeLine line;		/* current line number */
     ClangCode *switchList;	/* list of switch tables */
+
+private:
+    CodeLine line;		/* current line number */
     int count;			/* reference counter */
 };
 
@@ -938,12 +952,6 @@ void ClangCode::emit(GenContext *context)
     char *ref, *ref2;
     int i;
 
-    if (line != context->line) {
-	context->voidCallArgs(VM_LINE);
-	fprintf(context->stream, "i16 %u)\n", line);
-	context->line = line;
-    }
-
     sp = stackPointer();
     switch (instruction) {
     case INT:
@@ -1064,6 +1072,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case INDEX:
+	context->updateLine(line);
 	if (offStack(context, sp) == LPC_TYPE_INT) {
 	    context->call(VM_INDEX_INT, tmpRef(sp));
 	    pushResult(context);
@@ -1073,6 +1082,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case INDEX2:
+	context->updateLine(line);
 	if (offStack(context, sp) == LPC_TYPE_INT) {
 	    context->call(VM_INDEX2_INT, tmpRef(sp));
 	    pushResult(context);
@@ -1087,11 +1097,13 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case MAP_AGGREGATE:
+	context->updateLine(line);
 	context->voidCallArgs(VM_MAP_AGGREGATE);
 	fprintf(context->stream, "i16 %u)\n", size);
 	break;
 
     case CAST:
+	context->updateLine(line);
 	switch (type.type) {
 	case LPC_TYPE_INT:
 	    context->call(VM_CAST_INT, tmpRef(sp));
@@ -1117,20 +1129,24 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case INSTANCEOF:
+	context->updateLine(line);
 	context->callArgs(VM_INSTANCEOF, tmpRef(sp));
 	fprintf(context->stream, "i16 %u, i16 %u)\n", str.inherit, str.index);
 	pushResult(context);
 	return;
 
     case CHECK_RANGE:
+	context->updateLine(line);
 	context->voidCall(VM_RANGE);
 	break;
 
     case CHECK_RANGE_FROM:
+	context->updateLine(line);
 	context->voidCall(VM_RANGE_FROM);
 	break;
 
     case CHECK_RANGE_TO:
+	context->updateLine(line);
 	context->voidCall(VM_RANGE_TO);
 	break;
 
@@ -1231,35 +1247,41 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case STORE_INDEX:
+	context->updateLine(line);
 	context->voidCall(VM_STORE_INDEX);
 	popResult(context);
 	return;
 
     case STORE_PARAM_INDEX:
+	context->updateLine(line);
 	context->voidCallArgs(VM_STORE_PARAM_INDEX);
 	fprintf(context->stream, "i8 %u)\n", param);
 	popResult(context);
 	return;
 
     case STORE_LOCAL_INDEX:
+	context->updateLine(line);
 	context->voidCallArgs(VM_STORE_LOCAL_INDEX);
 	fprintf(context->stream, "i8 %u)\n", local + 1);
 	popResult(context);
 	return;
 
     case STORE_GLOBAL_INDEX:
+	context->updateLine(line);
 	context->voidCallArgs(VM_STORE_GLOBAL_INDEX);
 	fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit, var.index);
 	popResult(context);
 	return;
 
     case STORE_INDEX_INDEX:
+	context->updateLine(line);
 	context->voidCall(VM_STORE_INDEX_INDEX);
 	popResult(context);
 	return;
 
     case STORES:
 	if (context->stores(size, (pop) ? this : NULL, false)) {
+	    context->updateLine(line);
 	    context->voidCallArgs(VM_STORES);
 	    fprintf(context->stream, "i16 %u)\n", size);
 	} else {
@@ -1270,6 +1292,7 @@ void ClangCode::emit(GenContext *context)
 
     case STORES_LVAL:
 	if (context->stores(size, (pop) ? this : NULL, true)) {
+	    context->updateLine(line);
 	    if (next->instruction == STORES_SPREAD) {
 		context->voidCallArgs(VM_STORES_SPREAD);
 		fprintf(context->stream, "i16 %u, ", size);
@@ -1297,6 +1320,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case STORES_CAST:
+	context->updateLine(line);
 	context->voidCallArgs(VM_STORES_CAST);
 	if (type.type == LPC_TYPE_CLASS) {
 	    fprintf(context->stream, "i8 %u, i16 %u, i16 %u)\n", type.type,
@@ -1363,6 +1387,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case STORES_INDEX:
+	context->updateLine(line);
 	context->voidCall(VM_STORES_INDEX);
 	if (!context->storeN()) {
 	    popStores(context, sp);
@@ -1370,6 +1395,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case STORES_PARAM_INDEX:
+	context->updateLine(line);
 	context->voidCallArgs(VM_STORES_PARAM_INDEX);
 	fprintf(context->stream, "i8 %u)\n", param);
 	if (!context->storeN()) {
@@ -1378,6 +1404,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case STORES_LOCAL_INDEX:
+	context->updateLine(line);
 	context->voidCallArgs(VM_STORES_LOCAL_INDEX);
 	fprintf(context->stream, "i8 %u)\n", local + 1);
 	if (!context->storeN()) {
@@ -1386,6 +1413,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case STORES_GLOBAL_INDEX:
+	context->updateLine(line);
 	context->voidCallArgs(VM_STORES_GLOBAL_INDEX);
 	fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit, var.index);
 	if (!context->storeN()) {
@@ -1394,6 +1422,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case STORES_INDEX_INDEX:
+	context->updateLine(line);
 	context->voidCall(VM_STORES_INDEX_INDEX);
 	if (!context->storeN()) {
 	    popStores(context, sp);
@@ -1413,7 +1442,7 @@ void ClangCode::emit(GenContext *context)
 	}
 	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%%s\n",
 		ref, context->next, context->target(context->block->to[1]));
-	context->jumpRelay(context->block->to[1]);
+	context->jumpRelay(line, context->block->to[1]);
 	context->sp = sp;
 	return;
 
@@ -1427,7 +1456,7 @@ void ClangCode::emit(GenContext *context)
 	}
 	fprintf(context->stream, "\tbr i1 %s, label %%%s, label %%L%04x\n",
 		ref, context->target(context->block->to[1]), context->next);
-	context->jumpRelay(context->block->to[1]);
+	context->jumpRelay(line, context->block->to[1]);
 	context->sp = sp;
 	return;
 
@@ -1448,7 +1477,7 @@ void ClangCode::emit(GenContext *context)
 		    context->target(context->block->to[0]));
 	}
 	for (i = 0; i < size; i++) {
-	    context->jumpRelay(context->block->to[i]);
+	    context->jumpRelay(line, context->block->to[i]);
 	}
 	context->sp = sp;
 	return;
@@ -1474,7 +1503,7 @@ void ClangCode::emit(GenContext *context)
 		    context->target(context->block->to[0]));
 	}
 	for (i = 0; i < size; i++) {
-	    context->jumpRelay(context->block->to[i]);
+	    context->jumpRelay(line, context->block->to[i]);
 	}
 	context->sp = sp;
 	return;
@@ -1497,7 +1526,7 @@ void ClangCode::emit(GenContext *context)
 		    context->target(context->block->to[0]));
 	}
 	for (i = 0; i < size; i++) {
-	    context->jumpRelay(context->block->to[i]);
+	    context->jumpRelay(line, context->block->to[i]);
 	}
 	context->sp = sp;
 	return;
@@ -1525,6 +1554,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_DIV_INT:
+	    context->updateLine(line);
 	    context->callArgs(VM_DIV_INT, tmpRef(sp));
 	    fprintf(context->stream, Int " %s, " Int " %s)\n",
 		    tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
@@ -1568,6 +1598,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_LSHIFT_INT:
+	    context->updateLine(line);
 	    context->callArgs(VM_LSHIFT_INT, tmpRef(sp));
 	    fprintf(context->stream, Int " %s, " Int " %s)\n",
 		    tmpRef(context->nextSp(context->sp)),
@@ -1585,6 +1616,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_MOD_INT:
+	    context->updateLine(line);
 	    context->callArgs(VM_MOD_INT, tmpRef(sp));
 	    fprintf(context->stream, Int " %s, " Int " %s)\n",
 		    tmpRef(context->nextSp(context->sp)),
@@ -1631,6 +1663,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_RSHIFT_INT:
+	    context->updateLine(line);
 	    context->callArgs(VM_RSHIFT_INT, tmpRef(sp));
 	    fprintf(context->stream, Int " %s, " Int " %s)\n",
 		    tmpRef(context->nextSp(context->sp)),
@@ -1664,6 +1697,7 @@ void ClangCode::emit(GenContext *context)
 		break;
 
 	    default:
+		context->updateLine(line);
 		context->call(VM_TOFLOAT, tmpRef(sp));
 		break;
 	    }
@@ -1677,11 +1711,13 @@ void ClangCode::emit(GenContext *context)
 		break;
 
 	    case LPC_TYPE_FLOAT:
+		context->updateLine(line);
 		context->callArgs(VM_TOINT_FLOAT, tmpRef(sp));
 		fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 		break;
 
 	    default:
+		context->updateLine(line);
 		context->call(VM_TOINT, tmpRef(sp));
 		break;
 	    }
@@ -1715,6 +1751,7 @@ void ClangCode::emit(GenContext *context)
 	    break;
 
 	case KF_ADD_FLT:
+	    context->updateLine(line);
 	    context->callArgs(VM_ADD_FLOAT, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, " Double " %s)\n",
 		    tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
@@ -1722,6 +1759,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_ADD1_FLT:
+	    context->updateLine(line);
 	    context->callArgs(VM_ADD_FLOAT, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, %s\n", tmpRef(context->sp),
 		    context->genFloat(1.0L));
@@ -1729,6 +1767,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_DIV_FLT:
+	    context->updateLine(line);
 	    context->callArgs(VM_DIV_FLOAT, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, " Double " %s)\n",
 		    tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
@@ -1781,6 +1820,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_MULT_FLT:
+	    context->updateLine(line);
 	    context->callArgs(VM_MULT_FLOAT, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, " Double " %s)\n",
 		    tmpRef(context->nextSp(context->sp)),
@@ -1807,6 +1847,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_SUB_FLT:
+	    context->updateLine(line);
 	    context->callArgs(VM_SUB_FLOAT, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, " Double " %s)\n",
 		    tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
@@ -1814,6 +1855,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_SUB1_FLT:
+	    context->updateLine(line);
 	    context->callArgs(VM_SUB_FLOAT, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, %s\n", tmpRef(context->sp),
 		    context->genFloat(1.0L));
@@ -1854,6 +1896,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_FMOD:
+	    context->updateLine(line);
 	    context->callArgs(VM_FMOD, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, " Double " %s)\n",
 		    tmpRef(context->nextSp(context->sp)),
@@ -1862,6 +1905,7 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_LDEXP:
+	    context->updateLine(line);
 	    intArg(context, context->sp);
 	    floatArg(context, context->nextSp(context->sp));
 	    context->callArgs(VM_LDEXP, tmpRef(sp));
@@ -1872,24 +1916,28 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_EXP:
+	    context->updateLine(line);
 	    context->callArgs(VM_EXP, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_LOG:
+	    context->updateLine(line);
 	    context->callArgs(VM_LOG, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_LOG10:
+	    context->updateLine(line);
 	    context->callArgs(VM_LOG10, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_POW:
+	    context->updateLine(line);
 	    context->callArgs(VM_POW, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, " Double " %s)\n",
 		    tmpRef(context->nextSp(context->sp)),
@@ -1898,48 +1946,56 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_SQRT:
+	    context->updateLine(line);
 	    context->callArgs(VM_SQRT, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_COS:
+	    context->updateLine(line);
 	    context->callArgs(VM_COS, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_SIN:
+	    context->updateLine(line);
 	    context->callArgs(VM_SIN, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_TAN:
+	    context->updateLine(line);
 	    context->callArgs(VM_TAN, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_ACOS:
+	    context->updateLine(line);
 	    context->callArgs(VM_ACOS, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_ASIN:
+	    context->updateLine(line);
 	    context->callArgs(VM_ASIN, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_ATAN:
+	    context->updateLine(line);
 	    context->callArgs(VM_ATAN, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_ATAN2:
+	    context->updateLine(line);
 	    context->callArgs(VM_ATAN2, tmpRef(sp));
 	    fprintf(context->stream, Double " %s, " Double " %s)\n",
 		    tmpRef(context->nextSp(context->sp)),
@@ -1948,24 +2004,28 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_COSH:
+	    context->updateLine(line);
 	    context->callArgs(VM_COSH, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_SINH:
+	    context->updateLine(line);
 	    context->callArgs(VM_SINH, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_TANH:
+	    context->updateLine(line);
 	    context->callArgs(VM_TANH, tmpRef(sp));
 	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	default:
+	    context->updateLine(line);
 	    switch (offStack(context, sp)) {
 	    case LPC_TYPE_INT:
 		context->callArgs(VM_KFUNC_INT, tmpRef(sp));
@@ -1990,11 +2050,13 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case KFUNC_LVAL:
+	context->updateLine(line);
 	context->voidCallArgs(VM_KFUNC);
 	fprintf(context->stream, "i16 %u, i32 %d)\n", kfun.func, kfun.nargs);
 	break;
 
     case KFUNC_SPREAD:
+	context->updateLine(line);
 	switch (offStack(context, sp)) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_KFUNC_SPREAD_INT, tmpRef(sp));
@@ -2016,12 +2078,14 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case KFUNC_SPREAD_LVAL:
+	context->updateLine(line);
 	context->voidCallArgs(VM_KFUNC_SPREAD_LVAL);
 	fprintf(context->stream, "i16 %u, i16 %u, i32 %u)\n", kfun.lval,
 		kfun.func, kfun.nargs);
 	break;
 
     case DFUNC:
+	context->updateLine(line);
 	switch (offStack(context, sp)) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_DFUNC_INT, tmpRef(sp));
@@ -2044,6 +2108,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case DFUNC_SPREAD:
+	context->updateLine(line);
 	switch (offStack(context, sp)) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_DFUNC_SPREAD_INT, tmpRef(sp));
@@ -2066,11 +2131,13 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case FUNC:
+	context->updateLine(line);
 	context->voidCallArgs(VM_FUNC);
 	fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
 	break;
 
     case FUNC_SPREAD:
+	context->updateLine(line);
 	context->voidCallArgs(VM_FUNC_SPREAD);
 	fprintf(context->stream, "i16 %u, i32 %u)\n", fun.call, fun.nargs);
 	break;
@@ -2088,7 +2155,7 @@ void ClangCode::emit(GenContext *context)
 	fprintf(context->stream, "\t%s = icmp ne i32 %s, 0\n", ref, ref2);
 	fprintf(context->stream, "\tbr i1 %s, label %%L%04x, label %%%s\n",
 		ref, context->next, context->target(context->block->to[1]));
-	context->jumpRelay(context->block->to[1]);
+	context->jumpRelay(line, context->block->to[1]);
 	break;
 
     case CAUGHT:
@@ -2106,11 +2173,13 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case RLIMITS:
+	context->updateLine(line);
 	context->voidCallArgs(VM_RLIMITS);
 	fprintf(context->stream, "i1 true)\n");
 	break;
 
     case RLIMITS_CHECK:
+	context->updateLine(line);
 	context->voidCallArgs(VM_RLIMITS);
 	fprintf(context->stream, "i1 false)\n");
 	break;
@@ -2448,23 +2517,6 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 
 	context->sp = b->sp;
 	context->level = b->level;
-	context->line = b->first->line;
-
-	/*
-	 * update line number at the start of the block
-	 */
-	if (b->nFrom == 0 && context->line != 0) {
-	    context->voidCallArgs(VM_LINE);
-	    fprintf(context->stream, "i16 %u)\n", context->line);
-	} else {
-	    for (i = 0; i < b->nFrom; i++) {
-		if (context->line != b->from[i]->last->line) {
-		    context->voidCallArgs(VM_LINE);
-		    fprintf(context->stream, "i16 %u)\n", context->line);
-		    break;
-		}
-	    }
-	}
 
 	/*
 	 * emit code for the block
@@ -2506,7 +2558,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    }
 		    fprintf(context->stream, "\tbr label %%%s\n",
 			    context->target(b->to[0]));
-		    context->jumpRelay(b->to[0]);
+		    context->jumpRelay(code->line, b->to[0]);
 		    break;
 		}
 		break;

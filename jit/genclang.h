@@ -26,7 +26,7 @@ private:
     void pushResult(class GenContext *context);
     void popResult(class GenContext *context);
     void popStores(class GenContext *context, StackSize sp);
-    void switchInt(GenContext *context);
+    void switchInt(class GenContext *context);
     void genTable(class GenContext *context, const char *type);
 };
 
