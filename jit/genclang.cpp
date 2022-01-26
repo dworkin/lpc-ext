@@ -1505,15 +1505,15 @@ void ClangCode::emit(GenContext *context)
     case KFUNC:
 	switch (kfun.func) {
 	case KF_ADD_INT:
-	    fprintf(context->stream, "\t%s = add nsw " Int " %s, %s\n",
-		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
+	    fprintf(context->stream, "\t%s = add " Int " %s, %s\n", tmpRef(sp),
+		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_ADD1_INT:
-	    fprintf(context->stream, "\t%s = add nsw " Int " %s, 1\n",
-		    tmpRef(sp), tmpRef(context->sp));
+	    fprintf(context->stream, "\t%s = add " Int " %s, 1\n", tmpRef(sp),
+		    tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
@@ -1593,8 +1593,8 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_MULT_INT:
-	    fprintf(context->stream, "\t%s = mul nsw " Int " %s, %s\n",
-		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
+	    fprintf(context->stream, "\t%s = mul " Int " %s, %s\n", tmpRef(sp),
+		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
 	    return;
@@ -1639,15 +1639,15 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_SUB_INT:
-	    fprintf(context->stream, "\t%s = sub nsw " Int " %s, %s\n",
-		    tmpRef(sp), tmpRef(context->nextSp(context->sp)),
+	    fprintf(context->stream, "\t%s = sub " Int " %s, %s\n", tmpRef(sp),
+		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_SUB1_INT:
-	    fprintf(context->stream, "\t%s = sub nsw " Int " %s, 1\n",
-		    tmpRef(sp), tmpRef(context->sp));
+	    fprintf(context->stream, "\t%s = sub " Int " %s, 1\n", tmpRef(sp),
+		    tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
@@ -1698,8 +1698,8 @@ void ClangCode::emit(GenContext *context)
 	    return;
 
 	case KF_UMIN_INT:
-	    fprintf(context->stream, "\t%s = sub nsw " Int " 0, %s\n",
-		    tmpRef(sp), tmpRef(context->sp));
+	    fprintf(context->stream, "\t%s = sub " Int " 0, %s\n", tmpRef(sp),
+		    tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
