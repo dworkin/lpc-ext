@@ -2555,6 +2555,8 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    if (context->level == 0) {
 			context->saveBeforeMerge(b);
 		    }
+		    /* fall through */
+		case Code::END_CATCH:
 		    fprintf(context->stream, "\tbr label %%%s\n",
 			    context->target(b->to[0]));
 		    context->jumpRelay(code->line, b->to[0]);
