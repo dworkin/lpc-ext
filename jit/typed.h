@@ -79,6 +79,8 @@ public:
 
     static Code *create(CodeFunction *function);
 
+    Type varType;		/* STORES param/local type */
+
 private:
     StackSize sp;		/* stack pointer */
 };

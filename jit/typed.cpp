@@ -602,13 +602,19 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	break;
 
     case STORES_PARAM:
-	context->params[param] = context->castType;
+	varType = (context->lval() &&
+				context->params[param] != context->castType) ?
+		   LPC_TYPE_MIXED : context->castType;
+	context->params[param] = varType;
 	sp = context->merge(sp);
 	context->endStores();
 	return;
 
     case STORES_LOCAL:
-	context->locals[local] = context->castType;
+	varType = (context->lval() &&
+				context->locals[local] != context->castType) ?
+		   LPC_TYPE_MIXED : context->castType;
+	context->locals[local] = varType;
 	sp = context->merge(sp);
 	context->endStores();
 	return;

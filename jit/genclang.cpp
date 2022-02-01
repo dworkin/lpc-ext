@@ -1328,11 +1328,10 @@ void ClangCode::emit(GenContext *context)
 	} else {
 	    fprintf(context->stream, "i8 %u, i16 0, i16 0)\n", type.type);
 	}
-	context->castType = simplifiedType(type.type);
 	break;
 
     case STORES_PARAM:
-	switch (context->castType) {
+	switch (varType) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_STORES_PARAM_INT, paramRef(context, param));
 	    fprintf(context->stream, "i8 %u)\n", param);
@@ -1354,7 +1353,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case STORES_LOCAL:
-	switch (context->castType) {
+	switch (varType) {
 	case LPC_TYPE_INT:
 	    context->callArgs(VM_STORES_LOCAL_INT, localRef(context, local));
 	    fprintf(context->stream, "i8 %u, " Int " %s)\n", local + 1,
