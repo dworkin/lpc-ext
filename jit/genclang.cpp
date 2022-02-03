@@ -445,6 +445,8 @@ public:
 
 	if (to != NULL && relay(from, to)) {
 	    sprintf(buf, "L%04xT%04x", from->first->addr, to->first->addr);
+	} else if (from->flags & BLOCK_SWITCHINT) {
+	    sprintf(buf, "L%04xS", from->first->addr);
 	} else {
 	    sprintf(buf, "L%04x", from->first->addr);
 	}
@@ -914,10 +916,10 @@ void ClangCode::switchInt(GenContext *context)
 	context->block->flags |= BLOCK_SWITCHINT;
 	ref = context->genRef();
 	context->call(VM_SWITCH_INT, ref);
-	fprintf(context->stream, "\tbr i1 %s, label %%%sS, label %%%s\n", ref,
+	fprintf(context->stream, "\tbr i1 %s, label %%%s, label %%%s\n", ref,
 		context->label(NULL),
 		context->target(context->block->to[0]));
-	fprintf(context->stream, "%sS:\n", context->label(NULL));
+	fprintf(context->stream, "%s:\n", context->label(NULL));
 	context->call(VM_POP_INT, tmpRef(context->sp));
     }
 }
