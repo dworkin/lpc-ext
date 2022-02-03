@@ -1177,9 +1177,9 @@ void ClangCode::emit(GenContext *context)
 	default:
 	    context->voidCallArgs(VM_STORE_PARAM);
 	    fprintf(context->stream, "i8 %u)\n", param);
-	    break;
+	    popResult(context);
+	    return;
 	}
-	break;
 
     case STORE_LOCAL:
 	switch (context->get(context->sp).type) {
@@ -1212,9 +1212,9 @@ void ClangCode::emit(GenContext *context)
 	default:
 	    context->voidCallArgs(VM_STORE_LOCAL);
 	    fprintf(context->stream, "i8 %u)\n", local + 1);
-	    break;
+	    popResult(context);
+	    return;
 	}
-	break;
 
     case STORE_GLOBAL:
 	switch (context->get(context->sp).type) {
@@ -1242,9 +1242,9 @@ void ClangCode::emit(GenContext *context)
 	    context->voidCallArgs(VM_STORE_GLOBAL);
 	    fprintf(context->stream, "i16 %u, i8 %u)\n", var.inherit,
 		    var.index);
-	    break;
+	    popResult(context);
+	    return;
 	}
-	break;
 
     case STORE_INDEX:
 	context->updateLine(line);
