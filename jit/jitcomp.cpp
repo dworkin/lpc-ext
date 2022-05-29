@@ -64,7 +64,7 @@ void fatal(const char *format, ...)
  * JIT compile a single object using a particular code generator
  */
 static bool jitComp(CodeObject *object, CodeByte *prog, int nFunctions,
-		    char *base)
+		    char *base, int flags)
 {
 # ifdef DISASM
     Code::producer(&DisCode::create);
@@ -84,7 +84,7 @@ static bool jitComp(CodeObject *object, CodeByte *prog, int nFunctions,
     Block::producer(&ClangBlock::create);
 
     ClangObject clang(object, prog, nFunctions);
-    return clang.emit(base);
+    return clang.emit(base, flags);
 # endif
 }
 
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
     }
 
     cc = new CodeContext(info.intSize, info.inheritSize, protos, info.nBuiltins,
-			 info.nKfuns, info.typechecking);
+			 info.nKfuns, info.flags & JIT_TYPECHECKING);
     reply = true;
     (void) write(out, &reply, 1);
 
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 	    close(fd);
 
 	    CodeObject object(cc, comp.nInherits, ftypes, vtypes);
-	    if (jitComp(&object, prog, comp.nFunctions, path)) {
+	    if (jitComp(&object, prog, comp.nFunctions, path, info.flags)) {
 		(void) write(out, cmdhash, 17);
 	    }
 

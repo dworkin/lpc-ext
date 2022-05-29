@@ -48,7 +48,7 @@ public:
     ClangObject(CodeObject *object, CodeByte *prog, int nFunctions);
     virtual ~ClangObject();
 
-    bool emit(char *base);
+    bool emit(char *base, int flags);
 
 private:
     void header(FILE *stream);

@@ -271,8 +271,9 @@ static const struct {
 
 class GenContext : public FlowContext {
 public:
-    GenContext(FILE *stream, CodeFunction *func, StackSize size, int num) :
-	FlowContext(func, size), stream(stream), num(num) {
+    GenContext(FILE *stream, CodeFunction *func, StackSize size, int num,
+	       int flags) :
+	FlowContext(func, size), stream(stream), num(num), flags(flags) {
 	block = NULL;
 	next = 0;
 	line = 0;
@@ -558,6 +559,7 @@ public:
     Block *block;		/* current block */
     CodeSize next;		/* address of next block */
     ClangCode *switchList;	/* list of switch tables */
+    int flags;			/* jitcomp flags */
 
 private:
     CodeLine line;		/* current line number */
@@ -2622,7 +2624,7 @@ void ClangObject::table(FILE *stream, int nFunctions)
 /*
  * create a dynamically loadable object
  */
-bool ClangObject::emit(char *base)
+bool ClangObject::emit(char *base, int flags)
 {
     char buffer[1000];
     FILE *stream;
@@ -2646,7 +2648,7 @@ bool ClangObject::emit(char *base)
 		"\ndefine internal void @func%d(i8** %%vmtab, i8* %%f) #1 {\n",
 		i);
 	if (b != NULL) {
-	    GenContext context(stream, &func, b->fragment(), i);
+	    GenContext context(stream, &func, b->fragment(), i, flags);
 	    ClangCode *code;
 
 	    b->emit(&context, &func);
