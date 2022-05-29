@@ -6,7 +6,7 @@
 # include <openssl/evp.h>
 # include "lpc_ext.h"
 
-static const EVP_MD *md_md5, *md_sha1, *md_sha256, *md_sha512;
+static const EVP_MD *md_md5, *md_sha1, *md_sha256, *md_sha384, *md_sha512;
 
 static void hash(const EVP_MD *md, LPC_frame f, int nargs, LPC_value retval)
 {
@@ -72,6 +72,19 @@ static void sha256(LPC_frame f, int nargs, LPC_value retval)
     hash(md_sha256, f, nargs, retval);
 }
 
+static void sha384(LPC_frame f, int nargs, LPC_value retval)
+{
+    int i;
+    LPC_string str;
+
+    lpc_runtime_check(f, 3 * nargs + 64);
+    for (i = 0; i < nargs; i++) {
+	str = lpc_string_getval(lpc_frame_arg(f, nargs, i));
+	lpc_runtime_check(f, lpc_string_length(str));
+    }
+    hash(md_sha384, f, nargs, retval);
+}
+
 static void sha512(LPC_frame f, int nargs, LPC_value retval)
 {
     int i;
@@ -85,19 +98,14 @@ static void sha512(LPC_frame f, int nargs, LPC_value retval)
     hash(md_sha512, f, nargs, retval);
 }
 
-static char md5_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_ELLIPSIS,
-			    0 };
-static char sha1_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
+static char hash_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
 			     LPC_TYPE_ELLIPSIS, 0 };
-static char sha256_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
-			       LPC_TYPE_ELLIPSIS, 0 };
-static char sha512_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
-			       LPC_TYPE_ELLIPSIS, 0 };
 static LPC_ext_kfun kf[] = {
-    { "hash MD5", md5_proto, &md5 },
-    { "hash SHA1", sha1_proto, &sha1 },
-    { "hash SHA256", sha256_proto, &sha256 },
-    { "hash SHA512", sha512_proto, &sha512 }
+    { "hash MD5", hash_proto, &md5 },
+    { "hash SHA1", hash_proto, &sha1 },
+    { "hash SHA256", hash_proto, &sha256 },
+    { "hash SHA384", hash_proto, &sha384 },
+    { "hash SHA512", hash_proto, &sha512 }
 };
 
 int lpc_ext_init(int major, int minor, const char *config)
@@ -105,8 +113,9 @@ int lpc_ext_init(int major, int minor, const char *config)
     md_md5 = EVP_get_digestbyname("MD5");
     md_sha1 = EVP_get_digestbyname("SHA1");
     md_sha256 = EVP_get_digestbyname("SHA256");
+    md_sha384 = EVP_get_digestbyname("SHA384");
     md_sha512 = EVP_get_digestbyname("SHA512");
 
-    lpc_ext_kfun(kf, 4);
+    lpc_ext_kfun(kf, 5);
     return 1;
 }
