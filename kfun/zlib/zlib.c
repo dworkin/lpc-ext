@@ -299,6 +299,8 @@ static LPC_array check(LPC_frame f, const char *signature)
 	}
 
 	return array;
+    } else if (lpc_object_isspecial(obj)) {
+	lpc_runtime_error(f, "Object is already special");
     } else {
 	lpc_object_mark(obj);
 	return NULL;

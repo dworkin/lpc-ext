@@ -23,6 +23,8 @@ zlib:	zlib.$(EXT)
 
 crypto:	crypto.$(EXT)
 
+tls:	tls.$(EXT)
+
 src/lpc_ext.o:	src/lpc_ext.c src/lpc_ext.h
 	$(CC) -o $@ -c $(CFLAGS) -Isrc src/lpc_ext.c
 
@@ -63,8 +65,14 @@ kfun/crypto.o:	kfun/crypto.c src/lpc_ext.h
 crypto.$(EXT):	kfun/crypto.o $(OBJ)
 	$(LD) -o $@ $(LDFLAGS) $+ -lcrypto
 
+kfun/tls/tls.o:	kfun/tls/tls.c src/lpc_ext.h
+	$(CC) -o $@ -c $(CFLAGS) -Isrc kfun/tls/tls.c
+
+tls.$(EXT):	kfun/tls/tls.o $(OBJ)
+	$(LD) -o $@ $(LDFLAGS) $+ -lssl
+
 clean:
 	rm -f lower_case.$(EXT) regexp.$(EXT) zlib.$(EXT) jit.$(EXT) \
-	      crypto.$(EXT) src/*.o kfun/*.o kfun/rgx/*.o kfun/zlib/*.o \
-	      kfun/crypto/*.o
+	      crypto.$(EXT) tls.$(EXT) src/*.o kfun/*.o kfun/rgx/*.o \
+	      kfun/zlib/*.o kfun/tls/*.o
 	$(MAKE) -C jit clean
