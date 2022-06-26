@@ -1,0 +1,20 @@
+NAME
+	tls_send - send a string in a TLS session
+
+SYNOPSIS
+	string *tls_send(string str)
+
+
+DESCRIPTION
+	Process a message to be sent in a TLS session.  The returned value is
+	an array of 2 strings:
+
+	    0:	output which could not be processed at this time
+	    1:	encrypted output to send to the other side
+
+ERRORS
+	Any errors that may occur are unrecoverable, requiring the TLS session
+	to be closed.
+
+SEE ALSO
+	kfun/tls_client, kfun/tls_close, kfun/tls_receive, kfun/tls_server

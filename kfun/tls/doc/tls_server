@@ -1,0 +1,17 @@
+NAME
+	tls_server - start a server TLS session
+
+SYNOPSIS
+	void tls_server(string certificate, string key)
+
+
+DESCRIPTION
+	Start a server TLS session.  The arguments certificate and key are
+	the paths of files, in PEM format, with the certificate chain and
+	private key to use.  These path are relative to the configured
+	directory of the TLS module.
+	The current object will be associated with the TLS session, and should
+	not be destructed before tls_close() is called, or memory will leak.
+
+SEE ALSO
+	kfun/tls_client, kfun/tls_close, kfun/tls_receive, kfun/tls_send

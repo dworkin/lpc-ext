@@ -13,7 +13,7 @@
 # define TRUE	1
 # define FALSE	0
 
-static char dir[1024];
+static char dir[1024];	/* directory containing certificate and key */
 
 /*
  * check that a TLS session can be started or continued
@@ -259,12 +259,9 @@ static void kf_tls_send(LPC_frame f, int nargs, LPC_value retval)
 	/* send bytes through TLS */
 	size = 0;
 	ret = SSL_write_ex(tls, text, len, &size);
-	if (ret <= 0) {
-	    if (SSL_get_error(tls, ret) == SSL_ERROR_WANT_READ) {
-		break;
-	    } else if (SSL_get_error(tls, ret) != SSL_ERROR_WANT_WRITE) {
-		lpc_runtime_error(f, "Unrecoverable TLS error");
-	    }
+	if (ret <= 0 && SSL_get_error(tls, ret) != SSL_ERROR_WANT_READ &&
+	    SSL_get_error(tls, ret) != SSL_ERROR_WANT_WRITE) {
+	    lpc_runtime_error(f, "Unrecoverable TLS error");
 	}
 	text += size;
 	len -= size;
@@ -429,6 +426,9 @@ static LPC_ext_kfun kf[] = {
     { "tls_close", tls_close_proto, &kf_tls_close }
 };
 
+/*
+ * initialize TLS extension module
+ */
 int lpc_ext_init(int major, int minor, const char *config)
 {
     strcpy(dir, config);

@@ -1,0 +1,18 @@
+NAME
+	tls_client - start a client TLS session
+
+SYNOPSIS
+	string tls_client(varargs string certificate, string key)
+
+
+DESCRIPTION
+	Start a client TLS session.  The optional arguments certificate and key
+	are the paths of files, in PEM format, with the certificate chain and
+	private key to use.  These path are relative to the configured
+	directory of the TLS module.  The return value is the initial string
+	to send to the server.
+	The current object will be associated with the TLS session, and should
+	not be destructed before tls_close() is called, or memory will leak.
+
+SEE ALSO
+	kfun/tls_close, kfun/tls_receive, kfun/tls_send, kfun/tls_server
