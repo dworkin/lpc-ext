@@ -210,7 +210,6 @@
 # define KF_RANGEFT_STR		114
 # define KF_RANGEF_STR		115
 # define KF_RANGET_STR		116
-# define KF_RANGE_STR		117
 
 # define KF_BUILTINS		128
 
