@@ -500,6 +500,30 @@ void Block::toVisitOnce(Block **list, StackSize stackPointer,
 }
 
 /*
+ * mark as in need of relaying
+ */
+void Block::setRelay()
+{
+    flags |= BLOCK_RELAY;
+}
+
+/*
+ * needs relaying?
+ */
+bool Block::relay()
+{
+    return (flags & BLOCK_RELAY);
+}
+
+/*
+ * relay to default block?
+ */
+bool Block::relayToDefault(Block *to)
+{
+    return (flags & BLOCK_RELAY) && (to->flags & BLOCK_DEFAULT);
+}
+
+/*
  * transform RETURN into END_CATCH or END_RLIMITS, as required
  */
 Block *Block::pass2(Block *tree, StackSize size)
@@ -743,6 +767,16 @@ int Block::localOut(LPCLocal local)
 bool Block::localMerged(LPCLocal local)
 {
     return false;
+}
+
+Type Block::mergedParamType(LPCParam param, Type type)
+{
+    return LPC_TYPE_VOID;
+}
+
+Type Block::mergedLocalType(LPCLocal local)
+{
+    return LPC_TYPE_VOID;
 }
 
 void Block::emit(class GenContext *context, CodeFunction *function)

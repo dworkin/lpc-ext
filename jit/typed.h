@@ -76,6 +76,7 @@ public:
     StackSize stackPointer() { return sp; }
 
     static Type simplifiedType(Type type);
+    static Type offStack(BlockContext *context, StackSize stackPointer);
 
     static Code *create(CodeFunction *function);
 

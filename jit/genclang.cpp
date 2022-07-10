@@ -434,8 +434,7 @@ public:
      */
     static bool relay(Block *from, Block *to) {
 	return (from->first->addr >= to->first->addr ||
-	        ((from->flags & BLOCK_SWITCHINT) &&
-		 (to->flags & BLOCK_DEFAULT)));
+		from->relayToDefault(to));
     }
 
     /*
@@ -446,7 +445,7 @@ public:
 
 	if (to != NULL && relay(from, to)) {
 	    sprintf(buf, "L%04xT%04x", from->first->addr, to->first->addr);
-	} else if (from->flags & BLOCK_SWITCHINT) {
+	} else if (from->relay()) {
 	    sprintf(buf, "L%04xS", from->first->addr);
 	} else {
 	    sprintf(buf, "L%04x", from->first->addr);
@@ -528,8 +527,7 @@ public:
 		switch (b->localType(n)) {
 		case LPC_TYPE_INT:
 		    for (i = 0; i < b->nTo; i++) {
-			if (ClangBlock::mergedLocalType(b->to[i], n) ==
-							    LPC_TYPE_MIXED) {
+			if (b->to[i]->mergedLocalType(n) == LPC_TYPE_MIXED) {
 			    voidCallArgs(VM_STORE_LOCAL_INT);
 			    fprintf(stream, "i8 %u, " Int " %s)\n", n + 1,
 				    ClangCode::localRef(n, b->localOut(n)));
@@ -540,8 +538,7 @@ public:
 
 		case LPC_TYPE_FLOAT:
 		    for (i = 0; i < b->nTo; i++) {
-			if (ClangBlock::mergedLocalType(b->to[i], n) ==
-							    LPC_TYPE_MIXED) {
+			if (b->to[i]->mergedLocalType(n) == LPC_TYPE_MIXED) {
 			    voidCallArgs(VM_STORE_LOCAL_FLOAT);
 			    fprintf(stream, "i8 %u, " Double " %s)\n", n + 1,
 				    ClangCode::localRef(n, b->localOut(n)));
@@ -575,117 +572,6 @@ ClangCode::ClangCode(CodeFunction *function) :
 
 ClangCode::~ClangCode()
 {
-}
-
-/*
- * return a type if a value should be kept off the stack, LPC_TYPE_NIL otherwise
- */
-Type ClangCode::offStack(GenContext *context, StackSize sp)
-{
-    Type type;
-    Code *code;
-
-    type = context->get(sp).type;
-    code = context->consumer(sp, type);
-    if (code == NULL) {
-	return LPC_TYPE_NIL;
-    }
-
-    switch (code->instruction) {
-    case STORE_PARAM:
-    case STORE_LOCAL:
-    case STORE_GLOBAL:
-	if (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) {
-	    return type;
-	}
-	break;
-
-    case JUMP_ZERO:
-    case JUMP_NONZERO:
-    case SWITCH_INT:
-    case SWITCH_RANGE:
-	if (type == LPC_TYPE_INT) {
-	    return type;
-	}
-	break;
-
-    case KFUNC:
-	switch (code->kfun.func) {
-	case KF_ADD_INT:
-	case KF_ADD1_INT:
-	case KF_AND_INT:
-	case KF_DIV_INT:
-	case KF_EQ_INT:
-	case KF_GE_INT:
-	case KF_GT_INT:
-	case KF_LE_INT:
-	case KF_LSHIFT_INT:
-	case KF_LT_INT:
-	case KF_MOD_INT:
-	case KF_MULT_INT:
-	case KF_NE_INT:
-	case KF_NEG_INT:
-	case KF_NOT_INT:
-	case KF_OR_INT:
-	case KF_RSHIFT_INT:
-	case KF_SUB_INT:
-	case KF_SUB1_INT:
-	case KF_TST_INT:
-	case KF_UMIN_INT:
-	case KF_XOR_INT:
-	    return LPC_TYPE_INT;
-
-	case KF_ADD_FLT:
-	case KF_ADD1_FLT:
-	case KF_DIV_FLT:
-	case KF_EQ_FLT:
-	case KF_GE_FLT:
-	case KF_GT_FLT:
-	case KF_LE_FLT:
-	case KF_LT_FLT:
-	case KF_MULT_FLT:
-	case KF_NE_FLT:
-	case KF_NOT_FLT:
-	case KF_SUB_FLT:
-	case KF_SUB1_FLT:
-	case KF_TST_FLT:
-	case KF_UMIN_FLT:
-	case KF_FABS:
-	case KF_FLOOR:
-	case KF_CEIL:
-	case KF_FMOD:
-	case KF_EXP:
-	case KF_LOG:
-	case KF_LOG10:
-	case KF_POW:
-	case KF_SQRT:
-	case KF_COS:
-	case KF_SIN:
-	case KF_TAN:
-	case KF_ACOS:
-	case KF_ASIN:
-	case KF_ATAN:
-	case KF_ATAN2:
-	case KF_COSH:
-	case KF_SINH:
-	case KF_TANH:
-	    return LPC_TYPE_FLOAT;
-
-	case KF_TOFLOAT:
-	case KF_TOINT:
-	case KF_LDEXP:
-	    if (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) {
-		return type;
-	    }
-	    break;
-	}
-	break;
-
-    default:
-	break;
-    }
-
-    return LPC_TYPE_NIL;
 }
 
 /*
@@ -915,7 +801,7 @@ void ClangCode::switchInt(GenContext *context)
     char *ref;
 
     if (context->get(context->sp).type != LPC_TYPE_INT) {
-	context->block->flags |= BLOCK_SWITCHINT;
+	context->block->setRelay();
 	ref = context->genRef();
 	context->call(VM_SWITCH_INT, ref);
 	fprintf(context->stream, "\tbr i1 %s, label %%%s, label %%%s\n", ref,
@@ -2261,65 +2147,6 @@ ClangBlock::~ClangBlock()
 }
 
 /*
- * parameter merged type
- */
-Type ClangBlock::mergedParamType(Block *b, LPCParam param, Type type)
-{
-    CodeSize i;
-
-    if (!b->paramMerged(param)) {
-	return LPC_TYPE_VOID;
-    }
-
-    i = 0;
-    if (type == LPC_TYPE_VOID) {
-	for (; i < b->nFrom; i++) {
-	    if (b->from[i]->paramOut(param) != 0) {
-		type = b->from[i]->paramType(param);
-		break;
-	    }
-	}
-    }
-    for (; i < b->nFrom; i++) {
-	if (b->from[i]->paramOut(param) != 0 &&
-	    b->from[i]->paramType(param) != type) {
-	    type = LPC_TYPE_VOID;
-	    break;
-	}
-    }
-    return type;
-}
-
-/*
- * local variable merged type
- */
-Type ClangBlock::mergedLocalType(Block *b, LPCLocal local)
-{
-    Type type;
-    CodeSize i;
-
-    if (!b->localMerged(local)) {
-	return LPC_TYPE_VOID;
-    }
-
-    type = LPC_TYPE_MIXED;
-    for (i = 0; i < b->nFrom; i++) {
-	if (b->from[i]->localOut(local) != 0) {
-	    type = b->from[i]->localType(local);
-	    break;
-	}
-    }
-    for (; i < b->nFrom; i++) {
-	if (b->from[i]->localOut(local) != 0 &&
-	    b->from[i]->localType(local) != type) {
-	    type = LPC_TYPE_MIXED;
-	    break;
-	}
-    }
-    return type;
-}
-
-/*
  * emit instructions for all blocks
  */
 void ClangBlock::emit(GenContext *context, CodeFunction *function)
@@ -2407,7 +2234,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	     */
 	    for (n = 0; n < context->nLocals; n++) {
 		ref = b->localIn(n);
-		switch (mergedLocalType(b, n)) {
+		switch (b->mergedLocalType(n)) {
 		case LPC_TYPE_INT:
 		    fprintf(context->stream, "\t%s = phi " Int,
 			    ClangCode::localPhi(n, ref));
@@ -2444,7 +2271,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		ref = b->paramIn(n);
 		type = (b == this) ?
 			function->proto[nParams - n].type : LPC_TYPE_VOID;
-		switch (mergedParamType(b, n, type)) {
+		switch (b->mergedParamType(n, type)) {
 		case LPC_TYPE_INT:
 		    fprintf(context->stream, "\t%s = phi " Int,
 			    ClangCode::paramPhi(n, ref));
@@ -2484,7 +2311,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		ref = b->paramIn(n);
 		type = (b == this) ?
 			function->proto[nParams - n].type : LPC_TYPE_VOID;
-		switch (mergedParamType(b, n, type)) {
+		switch (b->mergedParamType(n, type)) {
 		case LPC_TYPE_INT:
 		    context->copyInt(ClangCode::paramRef(n, ref),
 				     ClangCode::paramPhi(n, ref));
@@ -2504,7 +2331,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	     */
 	    for (n = 0; n < context->nLocals; n++) {
 		ref = b->localIn(n);
-		switch (mergedLocalType(b, n)) {
+		switch (b->mergedLocalType(n)) {
 		case LPC_TYPE_INT:
 		    context->copyInt(ClangCode::localRef(n, ref),
 				     ClangCode::localPhi(n, ref));

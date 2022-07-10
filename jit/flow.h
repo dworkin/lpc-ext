@@ -45,6 +45,8 @@ public:
     virtual int localIn(LPCLocal local);
     virtual int localOut(LPCLocal local);
     virtual bool localMerged(LPCLocal local);
+    virtual Type mergedParamType(LPCParam param, Type type);
+    virtual Type mergedLocalType(LPCLocal local);
     virtual void prepareFlow(FlowContext *context);
     virtual void evaluateFlow(FlowContext *context, Block **list);
     virtual void evaluateInputs(FlowContext *context, Block **list);

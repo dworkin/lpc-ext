@@ -452,6 +452,117 @@ Type TypedCode::simplifiedType(Type type)
 }
 
 /*
+ * return a type if a value should be kept off the stack, LPC_TYPE_NIL otherwise
+ */
+Type TypedCode::offStack(BlockContext *context, StackSize stackPointer)
+{
+    Type type;
+    Code *code;
+
+    type = context->get(stackPointer).type;
+    code = context->consumer(stackPointer, type);
+    if (code == NULL) {
+	return LPC_TYPE_NIL;
+    }
+
+    switch (code->instruction) {
+    case STORE_PARAM:
+    case STORE_LOCAL:
+    case STORE_GLOBAL:
+	if (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) {
+	    return type;
+	}
+	break;
+
+    case JUMP_ZERO:
+    case JUMP_NONZERO:
+    case SWITCH_INT:
+    case SWITCH_RANGE:
+	if (type == LPC_TYPE_INT) {
+	    return type;
+	}
+	break;
+
+    case KFUNC:
+	switch (code->kfun.func) {
+	case KF_ADD_INT:
+	case KF_ADD1_INT:
+	case KF_AND_INT:
+	case KF_DIV_INT:
+	case KF_EQ_INT:
+	case KF_GE_INT:
+	case KF_GT_INT:
+	case KF_LE_INT:
+	case KF_LSHIFT_INT:
+	case KF_LT_INT:
+	case KF_MOD_INT:
+	case KF_MULT_INT:
+	case KF_NE_INT:
+	case KF_NEG_INT:
+	case KF_NOT_INT:
+	case KF_OR_INT:
+	case KF_RSHIFT_INT:
+	case KF_SUB_INT:
+	case KF_SUB1_INT:
+	case KF_TST_INT:
+	case KF_UMIN_INT:
+	case KF_XOR_INT:
+	    return LPC_TYPE_INT;
+
+	case KF_ADD_FLT:
+	case KF_ADD1_FLT:
+	case KF_DIV_FLT:
+	case KF_EQ_FLT:
+	case KF_GE_FLT:
+	case KF_GT_FLT:
+	case KF_LE_FLT:
+	case KF_LT_FLT:
+	case KF_MULT_FLT:
+	case KF_NE_FLT:
+	case KF_NOT_FLT:
+	case KF_SUB_FLT:
+	case KF_SUB1_FLT:
+	case KF_TST_FLT:
+	case KF_UMIN_FLT:
+	case KF_FABS:
+	case KF_FLOOR:
+	case KF_CEIL:
+	case KF_FMOD:
+	case KF_EXP:
+	case KF_LOG:
+	case KF_LOG10:
+	case KF_POW:
+	case KF_SQRT:
+	case KF_COS:
+	case KF_SIN:
+	case KF_TAN:
+	case KF_ACOS:
+	case KF_ASIN:
+	case KF_ATAN:
+	case KF_ATAN2:
+	case KF_COSH:
+	case KF_SINH:
+	case KF_TANH:
+	    return LPC_TYPE_FLOAT;
+
+	case KF_TOFLOAT:
+	case KF_TOINT:
+	case KF_LDEXP:
+	    if (type == LPC_TYPE_INT || type == LPC_TYPE_FLOAT) {
+		return type;
+	    }
+	    break;
+	}
+	break;
+
+    default:
+	break;
+    }
+
+    return LPC_TYPE_NIL;
+}
+
+/*
  * evaluate type changes
  */
 void TypedCode::evaluateTypes(BlockContext *context)

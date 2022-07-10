@@ -7,6 +7,9 @@ public:
     void startAllVisits(Block **list);
     void toVisit(Block **list);
 
+    void setRelay();
+    bool relay();
+    bool relayToDefault(Block *to);
     CodeSize fragment();
     void clear();
     virtual void setContext(class BlockContext *context, Block *b);
@@ -18,6 +21,8 @@ public:
     virtual int localIn(LPCLocal local);
     virtual int localOut(LPCLocal local);
     virtual bool localMerged(LPCLocal local);
+    virtual Type mergedParamType(LPCParam param, Type type);
+    virtual Type mergedLocalType(LPCLocal local);
     virtual void prepareFlow(class FlowContext *context);
     virtual void evaluateTypes(class BlockContext *context, Block **list);
     virtual void evaluateFlow(class FlowContext *context, Block **list);
@@ -40,7 +45,6 @@ public:
     CodeSize nFrom;			/* # entrance blocks */
     CodeSize nTo;			/* # following blocks */
     CodeSize size;			/* size of block */
-    uint16_t flags;			/* flag bits */
     StackSize sp;			/* stack pointer */
     StackSize endSp;			/* final stack pointer */
     StackSize level;			/* catch level */
@@ -62,9 +66,10 @@ private:
 
     Block *left, *right;		/* left and right child in tree */
     Block *visit;			/* next in visit list */
+    uint16_t flags;			/* flag bits */
 
     static Block *(*factory)(Code*, Code*, CodeSize);
 };
 
 # define BLOCK_DEFAULT			0x0001
-# define BLOCK_SWITCHINT		0x0002
+# define BLOCK_RELAY			0x0002

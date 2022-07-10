@@ -183,6 +183,65 @@ bool FlowBlock::localMerged(LPCLocal local)
 }
 
 /*
+ * parameter merged type
+ */
+Type FlowBlock::mergedParamType(LPCParam param, Type type)
+{
+    CodeSize i;
+
+    if (!paramMerged(param)) {
+	return LPC_TYPE_VOID;
+    }
+
+    i = 0;
+    if (type == LPC_TYPE_VOID) {
+	for (; i < nFrom; i++) {
+	    if (from[i]->paramOut(param) != 0) {
+		type = from[i]->paramType(param);
+		break;
+	    }
+	}
+    }
+    for (; i < nFrom; i++) {
+	if (from[i]->paramOut(param) != 0 && from[i]->paramType(param) != type)
+	{
+	    type = LPC_TYPE_MIXED;
+	    break;
+	}
+    }
+    return type;
+}
+
+/*
+ * local variable merged type
+ */
+Type FlowBlock::mergedLocalType(LPCLocal local)
+{
+    Type type;
+    CodeSize i;
+
+    if (!localMerged(local)) {
+	return LPC_TYPE_VOID;
+    }
+
+    type = LPC_TYPE_MIXED;
+    for (i = 0; i < nFrom; i++) {
+	if (from[i]->localOut(local) != 0) {
+	    type = from[i]->localType(local);
+	    break;
+	}
+    }
+    for (; i < nFrom; i++) {
+	if (from[i]->localOut(local) != 0 && from[i]->localType(local) != type)
+	{
+	    type = LPC_TYPE_MIXED;
+	    break;
+	}
+    }
+    return type;
+}
+
+/*
  * give Context access to the inputs and outputs of this block
  */
 void FlowBlock::prepareFlow(FlowContext *context)

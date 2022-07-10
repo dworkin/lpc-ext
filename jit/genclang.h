@@ -7,7 +7,6 @@ public:
     void emitRangeTable(class GenContext *context);
     void emitStringTable(class GenContext *context);
 
-    static Type offStack(class GenContext *context, StackSize sp);
     static void intArg(class GenContext *context, StackSize sp);
     static void floatArg(class GenContext *context, StackSize sp);
     static char *tmpRef(StackSize sp);
@@ -36,9 +35,6 @@ public:
     virtual ~ClangBlock();
 
     virtual void emit(class GenContext *context, CodeFunction *function);
-
-    static Type mergedParamType(Block *b, LPCParam param, Type type);
-    static Type mergedLocalType(Block *b, LPCLocal local);
 
     static Block *create(Code *first, Code *last, CodeSize size);
 };
