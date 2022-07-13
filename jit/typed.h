@@ -41,7 +41,7 @@ public:
     StackSize merge(StackSize codeSp);
     bool changed(Type *params, Type *locals);
     TVC get(StackSize stackPointer);
-    Code *consumer(StackSize stackPointer, Type type);
+    Code *consumer(StackSize stackPointer, Type *type);
     StackSize nextSp(StackSize stackPointer, int depth = 1);
 
     Type *params;		/* function parameter types */

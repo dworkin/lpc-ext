@@ -403,14 +403,12 @@ TVC BlockContext::get(StackSize stackPointer)
 /*
  * find the Code that consumes a type/value
  */
-Code *BlockContext::consumer(StackSize stackPointer, Type type)
+Code *BlockContext::consumer(StackSize stackPointer, Type *type)
 {
     while (stackPointer != STACK_EMPTY) {
 	TVC val = stack->get(stackPointer);
-	if (val.type != type) {
-	    return NULL;
-	}
 	if (val.code != NULL) {
+	    *type = val.type;
 	    return val.code;
 	}
 	stackPointer = val.ref;
@@ -456,11 +454,10 @@ Type TypedCode::simplifiedType(Type type)
  */
 Type TypedCode::offStack(BlockContext *context, StackSize stackPointer)
 {
-    Type type;
     Code *code;
+    Type type;
 
-    type = context->get(stackPointer).type;
-    code = context->consumer(stackPointer, type);
+    code = context->consumer(stackPointer, &type);
     if (code == NULL) {
 	return LPC_TYPE_NIL;
     }

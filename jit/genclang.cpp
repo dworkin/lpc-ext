@@ -2197,10 +2197,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	     */
 	    for (n = 0, sp = b->sp; sp != STACK_EMPTY;
 		 n++, sp = context->nextSp(sp)) {
-		if (ClangCode::offStack(context, sp) == LPC_TYPE_NIL) {
-		    continue;
-		}
-		switch (context->get(sp).type) {
+		switch (ClangCode::offStack(context, sp)) {
 		case LPC_TYPE_INT:
 		    fprintf(context->stream, "\t%s = phi " Int,
 			    ClangCode::tmpRef(sp));
