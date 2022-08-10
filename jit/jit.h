@@ -1,6 +1,6 @@
 typedef struct {
     uint8_t major;		/* 2 */
-    uint8_t minor;		/* 3 */
+    uint8_t minor;		/* 4 */
     uint16_t flags;            /* flags */
     size_t intSize;		/* size of Int */
     size_t inheritSize;		/* size of inherit offset */

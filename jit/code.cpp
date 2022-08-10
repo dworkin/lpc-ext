@@ -198,6 +198,7 @@ CodeFunction::CodeFunction(CodeObject *object, CodeByte *prog)
     line = 0;
     if (!(fclass & CLASS_UNDEFINED)) {
 	stack = FETCH2U(program);
+	program += 2;
 	locals = FETCH1U(program);
 	size = FETCH2U(program);
 	lines = program + size;

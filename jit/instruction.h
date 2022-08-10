@@ -1,6 +1,6 @@
 /*
- * VM Version 2.3
- * 8 August 2021
+ * VM Version 2.4
+ * 10 August 2022
  */
 
 # define I_INSTR_MASK			0x3f
@@ -56,7 +56,7 @@
 # define I_SWITCH_STRING		2
 
 # define VERSION_VM_MAJOR		2
-# define VERSION_VM_MINOR		3
+# define VERSION_VM_MINOR		4
 
 # define FETCH1U(pc)	(*(pc)++)
 # define FETCH1S(pc)	((int64_t) (int8_t) *(pc)++)
