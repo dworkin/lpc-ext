@@ -18,8 +18,10 @@ extern "C" {
 # include "flow.h"
 # ifndef WIN32
 # include "gentt.h"
-# else
+# elif defined(_M_IX86)
 # define TARGET_TRIPLE "i686-pc-windows-msvc"
+# else
+# define TARGET_TRIPLE "x86_64-pc-windows-msvc"
 # endif
 # include "genclang.h"
 # include "jitcomp.h"
@@ -2506,8 +2508,10 @@ bool ClangObject::emit(char *base, int flags)
     sprintf(buffer,
 # ifndef WIN32
 	    "clang -fPIC"
-# else
+# elif defined(_M_IX86)
 	    "\"\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\Llvm\\bin\\clang.exe\"\""
+# else
+	    "\"\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe\"\""
 # endif
 # ifndef LLVM3_6
 	    " -march=native"
