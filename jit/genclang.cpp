@@ -2520,9 +2520,6 @@ bool ClangObject::emit(char *base, int flags)
 # if defined(__APPLE__) || defined(WIN32)
 	    " -Wno-override-module"
 # endif
-# ifdef __APPLE__
-	    " -undefined dynamic_lookup"
-# endif
 # ifndef WIN32
 	    " -o %s.so"
 # else
