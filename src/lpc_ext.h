@@ -44,7 +44,6 @@ typedef struct {
 typedef struct _lpc_database_	LPC_db;
 typedef struct _lpc_db_object_	LPC_db_object;
 typedef uint64_t		LPC_db_index;
-typedef uint64_t		LPC_db_sector;
 typedef struct {
     void *data;			/* address */
     uint64_t offset;		/* offset of request */
