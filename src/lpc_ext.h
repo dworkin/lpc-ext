@@ -52,15 +52,14 @@ typedef struct {
 } LPC_db_request;
 typedef struct {
     int (*valid)		(const char*);
-    LPC_db (*creat)		(const char*);
-    LPC_db (*open_rw)		(const char*);
-    LPC_db (*open_r)		(const char*);
+    LPC_db *(*creat)		(const char*);
+    LPC_db *(*open_rw)		(const char*);
+    LPC_db *(*open_r)		(const char*);
     void (*close)		(LPC_db*);
-    LPC_db_object (*new_obj)	(LPC_db*, LPC_db_index);
-    LPC_db_object (*load_obj)	(LPC_db*, LPC_db_index, LPC_db_sector);
+    LPC_db_object *(*new_obj)	(LPC_db*, LPC_db_index);
+    LPC_db_object *(*load_obj)	(LPC_db*, LPC_db_index);
     int (*del_obj)		(LPC_db*, LPC_db_object*);
-    int (*resize_obj)		(LPC_db*, LPC_db_object*, uint64_t,
-				 LPC_db_sector*);
+    int (*resize_obj)		(LPC_db*, LPC_db_object*, uint64_t);
     int (*read)			(LPC_db*, LPC_db_object*, LPC_db_request*, int);
     int (*write)		(LPC_db*, LPC_db_object*, LPC_db_request*, int);
     int (*erase_obj)		(LPC_db*, LPC_db_object*);
@@ -96,7 +95,7 @@ extern int			lpc_ext_writeback(const void*, int);
 # endif
 
 LPCEXT void			(*lpc_ext_kfun)(const LPC_ext_kfun*, int);
-LPCEXT void			(*lpc_ext_dbase)(LPC_ext_dbase*);
+LPCEXT void			(*lpc_ext_dbase)(const LPC_ext_dbase*);
 LPCEXT int			(*lpc_ext_jit)(LPC_jit_init, LPC_jit_finish,
 					       LPC_jit_compile, LPC_jit_execute,
 					       LPC_jit_release,
