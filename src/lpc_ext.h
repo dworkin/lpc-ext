@@ -59,9 +59,8 @@ typedef struct {
     LPC_db_object *(*load_obj)	(LPC_db*, LPC_db_index);
     int (*del_obj)		(LPC_db*, LPC_db_object*);
     int (*resize_obj)		(LPC_db*, LPC_db_object*, uint64_t);
-    int (*read)			(LPC_db*, LPC_db_object*, LPC_db_request*, int);
-    int (*write)		(LPC_db*, LPC_db_object*, LPC_db_request*, int);
-    int (*erase_obj)		(LPC_db*, LPC_db_object*);
+    int (*read_obj)		(LPC_db*, LPC_db_object*, LPC_db_request*, int);
+    int (*write_obj)		(LPC_db*, LPC_db_object*, LPC_db_request*, int);
     int (*save)			(LPC_db*, LPC_db_request*);
     int (*restore)		(LPC_db*, LPC_db_request*);
     int (*save_snapshot)	(LPC_db*, LPC_db_request*);
