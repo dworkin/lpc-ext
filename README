@@ -1,6 +1,7 @@
 src	API glue to compile with your kfun source code
 doc	documentation
 kfun	kfun source code
+dbase	example database module
 jit	JIT compiler module
 
 To build modules for most kfuns, just type 'make' (or whatever your GNU make

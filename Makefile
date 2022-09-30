@@ -21,6 +21,8 @@ jit:	jit.$(EXT)
 
 zlib:	zlib.$(EXT)
 
+dbase:	dbase.$(EXT)
+
 crypto:	crypto.$(EXT)
 
 tls:	tls.$(EXT)
@@ -58,6 +60,12 @@ kfun/zlib/zlib.o:	kfun/zlib/zlib.c src/lpc_ext.h
 
 zlib.$(EXT):	kfun/zlib/zlib.o $(OBJ)
 	$(LD) -o $@ $(LDFLAGS) $+ -lz
+
+dbase/dbase.o:	dbase/dbase.c src/lpc_ext.h
+	$(CC) -o $@ -c $(CFLAGS) -Isrc dbase/dbase.c
+
+dbase.$(EXT):	dbase/dbase.o $(OBJ)
+	$(LD) -o $@ $(LDFLAGS) $+
 
 kfun/crypto.o:	kfun/crypto.c src/lpc_ext.h
 	$(CC) -o $@ -c $(CFLAGS) -Isrc kfun/crypto.c

@@ -52,13 +52,12 @@ typedef struct {
 } LPC_db_request;
 typedef struct {
     int (*valid)		(const char*);
-    LPC_db *(*creat)		(const char*);
-    LPC_db *(*open_rw)		(const char*);
-    LPC_db *(*open_r)		(const char*);
+    LPC_db *(*open)		(const char*, int*);
     void (*close)		(LPC_db*);
     LPC_db_object *(*new_obj)	(LPC_db*, LPC_db_index);
     LPC_db_object *(*load_obj)	(LPC_db*, LPC_db_index, LPC_db_handle);
     int (*del_obj)		(LPC_db_object*);
+    int (*refresh_obj)		(LPC_db_object*);
     int (*resize_obj)		(LPC_db_object*, uint64_t, LPC_db_handle*);
     int (*read_obj)		(LPC_db_object*, LPC_db_request*, int);
     int (*write_obj)		(LPC_db_object*, LPC_db_request*, int);
