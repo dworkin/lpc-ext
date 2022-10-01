@@ -10,6 +10,8 @@ lpc-ext.sln, or use 'make EXT=dll' with Cygwin.
 
 Use 'make zlib' to build the zlib module.  Requires zlib 1.2.11 dev headers.
 
+Use 'make dbase' to create the example database module for Hydra.
+
 Use 'make jit' to build the JIT compiler module.  This requires clang to
 be installed (any version from 3.7 onward will work).  The jit module
 will start the actual JIT compiler as a separate program.  It must be

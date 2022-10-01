@@ -3,9 +3,25 @@
  *
  * Minimal example implementation of database module: replace snapshots with
  * database.  This is incomplete; not all errors are checked for, locking is
- * not implemented, pwrite/pread could be used, file descriptors are kept
- * open for all database objects, snapshots are not cleaned up and the
- * database can grow very large, etc.
+ * not implemented, pwrite/pread/aio/io_uring could be used, file descriptors
+ * are kept open for all database objects, internal database snapshots are
+ * not cleaned up and the database can grow very large, etc.
+ *
+ * Functions may simultaneously be called from different threads, but each
+ * database object will only be accessed by one thread at a time.  Snapshot
+ * functions are always called sequentially.
+ *
+ * The database module support code in Hydra is not as well-tested as the
+ * swap/snapshot code.  Note that Hydra can restore snapshots into a database
+ * but not the other way around; once you switch to using the database
+ * interface, you are committed!
+ *
+ * Hydra's snapshot code is not an implementation of the database interface,
+ * and there is a difference in what data is saved.  That difference is likely
+ * to increase in the future.
+ *
+ * For use in production, this code should be completely rewritten, perhaps to
+ * forward calls to an external database.
  */
 
 # include <string.h>
@@ -187,7 +203,7 @@ static int db_del_obj(LPC_db_object *obj)
 
 /*
  * if the object is not of the current generation, it should be refreshed
- * (recreated in the current generation)
+ * (recreated in the current generation) when modified
  */
 static int db_refresh_obj(LPC_db_object *obj)
 {
@@ -195,7 +211,8 @@ static int db_refresh_obj(LPC_db_object *obj)
 }
 
 /*
- * resize an object in a database (first time, resize from 0)
+ * Resize an object in a database (first time, resize from 0). Objects that
+ * change in size are always resized before they are written to.
  */
 static int db_resize_obj(LPC_db_object *obj, uint64_t size,
 			 LPC_db_handle *handle)
@@ -255,7 +272,7 @@ static int db_remove_obj(LPC_db_object *obj)
     char buffer[2048];
 
     if (obj->fd < 0) {
-	return FALSE;
+	return FALSE;	/* already removed */
     }
 
     close(obj->fd);
@@ -359,7 +376,7 @@ static int db_save_snapshot(LPC_db *db, LPC_db_request *request)
 	db->generation = 1;
     }
     sprintf(buffer, "%s/%d", db->path, db->generation);
-    mkdir(buffer, 0700);	/* allowed to fail (wraparound) */
+    mkdir(buffer, 0700);	/* allowed to fail (generation wraparound) */
 
     return TRUE;
 }
