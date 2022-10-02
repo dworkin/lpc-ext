@@ -23,7 +23,11 @@
 # define LPC_TYPE_ELLIPSIS	16
 # define LPC_TYPE_ARRAY_OF(t)	((t) + 16)
 
+# ifdef LARGENUM
+typedef int64_t			LPC_int;
+# else
 typedef int32_t			LPC_int;
+# endif
 # ifndef NOFLOAT
 typedef long double		LPC_float;
 # endif

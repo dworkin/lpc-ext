@@ -26,10 +26,17 @@ extern "C" {
 # include "genclang.h"
 # include "jitcomp.h"
 
-# define Int		"i32"		/* LARGENUM: "i64" */
+# ifdef LARGENUM
+# define Int		"i64"
 # define Double		"double"
-# define INT_SIZE	4		/* LARGENUM: 8 */
+# define INT_SIZE	8
 # define DOUBLE_SIZE	8
+# else
+# define Int		"i32"
+# define Double		"double"
+# define INT_SIZE	4
+# define DOUBLE_SIZE	8
+# endif
 # undef  LLVM3_6	/* generate IR for LLVM 3.5 and 3.6 */
 
 static const struct {

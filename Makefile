@@ -1,8 +1,8 @@
 #
-# Makefile for kfun shared objects
+# Makefile for extension modules
 #
 EXT=1.4
-DEFINES=
+DEFINES=			# -DLARGENUM
 DEBUG=-ggdb
 CCFLAGS=$(DEFINES) $(DEBUG)
 CC=cc
@@ -81,6 +81,6 @@ tls.$(EXT):	kfun/tls/tls.o $(OBJ)
 
 clean:
 	rm -f lower_case.$(EXT) regexp.$(EXT) zlib.$(EXT) jit.$(EXT) \
-	      crypto.$(EXT) tls.$(EXT) src/*.o kfun/*.o kfun/rgx/*.o \
-	      kfun/zlib/*.o kfun/tls/*.o
+	      dbase.$(EXT) crypto.$(EXT) tls.$(EXT) src/*.o kfun/*.o \
+	      kfun/rgx/*.o kfun/zlib/*.o kfun/tls/*.o dbase/*.o
 	$(MAKE) -C jit clean
