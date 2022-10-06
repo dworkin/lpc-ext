@@ -35,7 +35,7 @@ typedef struct Output {
 # define A_BYTES	2	/* extra bytes */
 # define A_ALLOCATED	3	/* first of allocated blocks */
 
-# if ZLIB_VERNUM == 0x12b0
+# if ZLIB_VERNUM >= 0x12b0
 # define const_0x12b0	const
 # else
 # define const_0x12b0	/* */
@@ -168,8 +168,12 @@ static void save_deflate(LPC_array arr, z_stream *stream)
 
     state = (deflate_state *) stream->state;
     state->pending_out = PDIFF(state->pending_out, state->pending_buf);
+# if ZLIB_VERNUM >= 0x12c0
+    state->sym_buf = PDIFF(state->sym_buf, state->pending_buf);
+# else
     state->l_buf = PDIFF(state->l_buf, state->pending_buf);
     state->d_buf = PDIFF(state->d_buf, state->pending_buf);
+# endif
 }
 
 /*
@@ -187,8 +191,12 @@ static z_stream *restore_deflate(LPC_dataspace data, LPC_array arr)
     state->head = restore_new(data, arr, A_ALLOCATED + 3);
     state->pending_buf = restore_new(data, arr, A_ALLOCATED + 4);
     state->pending_out = PADD(state->pending_out, state->pending_buf);
+# if ZLIB_VERNUM >= 0x12c0
+    state->sym_buf = PADD(state->sym_buf, state->pending_buf);
+# else
     state->l_buf = PADD(state->l_buf, state->pending_buf);
     state->d_buf = PADD(state->d_buf, state->pending_buf);
+# endif
     state->l_desc.dyn_tree = state->dyn_ltree;
     state->l_desc.stat_desc = stat_l_desc;
     state->d_desc.dyn_tree = state->dyn_dtree;
@@ -246,7 +254,7 @@ static z_stream *restore_inflate(LPC_dataspace data, LPC_array arr)
 
     state = restore_new(data, arr, A_ALLOCATED);
     state->window = restore_new(data, arr, A_ALLOCATED + 1);
-# if ZLIB_VERNUM == 0x12b0
+# if ZLIB_VERNUM >= 0x12b0
     state->strm =
 # endif
     stream = restore_new(data, arr, A_STREAM);
@@ -670,7 +678,7 @@ int lpc_ext_init(int major, int minor, const char *config)
 
     /* inflation static data */
     stream.state = (void *) &inflateState;
-# if ZLIB_VERNUM == 0x12b0
+# if ZLIB_VERNUM >= 0x12b0
     inflateState.strm = &stream;
 # endif
     inflateState.mode = TYPEDO;
