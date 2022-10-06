@@ -14,21 +14,21 @@
     <ClInclude Include="..\..\src\lpc_ext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\kfun\rgx\libiberty\ansidecl.h">
+    <ClInclude Include="..\..\src\kfun\rgx\libiberty\ansidecl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\kfun\rgx\libiberty\xregex.h">
+    <ClInclude Include="..\..\src\kfun\rgx\libiberty\xregex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\kfun\rgx\libiberty\xregex2.h">
+    <ClInclude Include="..\..\src\kfun\rgx\libiberty\xregex2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\kfun\rgx\regexp.c">
+    <ClCompile Include="..\..\src\kfun\rgx\regexp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\kfun\rgx\libiberty\regex.c">
+    <ClCompile Include="..\..\src\kfun\rgx\libiberty\regex.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

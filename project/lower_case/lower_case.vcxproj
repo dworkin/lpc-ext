@@ -146,7 +146,7 @@
     <ClInclude Include="..\..\src\lpc_ext.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\kfun\lower_case.c" />
+    <ClCompile Include="..\..\src\kfun\lower_case.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

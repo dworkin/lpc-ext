@@ -16,7 +16,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\jit\jit.c">
+    <ClCompile Include="..\..\src\jit\jit.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

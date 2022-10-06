@@ -146,7 +146,7 @@
     <ClInclude Include="..\..\src\lpc_ext.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\jit\jit.c" />
+    <ClCompile Include="..\..\src\jit\jit.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -11,22 +11,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\jit\block.cpp">
+    <ClCompile Include="..\..\src\jit\block.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\jit\code.cpp">
+    <ClCompile Include="..\..\src\jit\code.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\jit\flow.cpp">
+    <ClCompile Include="..\..\src\jit\flow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\jit\genclang.cpp">
+    <ClCompile Include="..\..\src\jit\genclang.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\jit\jitcomp.cpp">
+    <ClCompile Include="..\..\src\jit\jitcomp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\jit\typed.cpp">
+    <ClCompile Include="..\..\src\jit\typed.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -34,31 +34,31 @@
     <ClInclude Include="..\..\src\lpc_ext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\jit\block.h">
+    <ClInclude Include="..\..\src\jit\block.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\jit\code.h">
+    <ClInclude Include="..\..\src\jit\code.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\jit\data.h">
+    <ClInclude Include="..\..\src\jit\data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\jit\flow.h">
+    <ClInclude Include="..\..\src\jit\flow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\jit\genclang.h">
+    <ClInclude Include="..\..\src\jit\genclang.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\jit\instruction.h">
+    <ClInclude Include="..\..\src\jit\instruction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\jit\jitcomp.h">
+    <ClInclude Include="..\..\src\jit\jitcomp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\jit\stack.h">
+    <ClInclude Include="..\..\src\jit\stack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\jit\typed.h">
+    <ClInclude Include="..\..\src\jit\typed.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

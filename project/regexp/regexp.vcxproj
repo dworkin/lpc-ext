@@ -81,7 +81,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;REGEX_MALLOC;HAVE_LIMITS_H=1;HAVE_STRING_H=1;HAVE_UINTPTR_T=1;STDC_HEADERS=1;_DEBUG;_WINDOWS;_USRDLL;REGEXP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\src;..\..\kfun\rgx\libiberty</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\kfun\rgx\libiberty</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -96,7 +96,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;REGEX_MALLOC;HAVE_LIMITS_H=1;HAVE_STRING_H=1;HAVE_UINTPTR_T=1;STDC_HEADERS=1;_DEBUG;_WINDOWS;_USRDLL;REGEXP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\src;..\..\kfun\rgx\libiberty</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\kfun\rgx\libiberty</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -113,7 +113,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;REGEX_MALLOC;HAVE_LIMITS_H=1;HAVE_STRING_H=1;HAVE_UINTPTR_T=1;STDC_HEADERS=1;NDEBUG;_WINDOWS;_USRDLL;REGEXP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\src;..\..\kfun\rgx\libiberty</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\kfun\rgx\libiberty</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -132,7 +132,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;REGEX_MALLOC;HAVE_LIMITS_H=1;HAVE_STRING_H=1;HAVE_UINTPTR_T=1;STDC_HEADERS=1;NDEBUG;_WINDOWS;_USRDLL;REGEXP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\src;..\..\kfun\rgx\libiberty</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\kfun\rgx\libiberty</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -143,14 +143,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\kfun\rgx\libiberty\ansidecl.h" />
-    <ClInclude Include="..\..\kfun\rgx\libiberty\xregex.h" />
-    <ClInclude Include="..\..\kfun\rgx\libiberty\xregex2.h" />
+    <ClInclude Include="..\..\src\kfun\rgx\libiberty\ansidecl.h" />
+    <ClInclude Include="..\..\src\kfun\rgx\libiberty\xregex.h" />
+    <ClInclude Include="..\..\src\kfun\rgx\libiberty\xregex2.h" />
     <ClInclude Include="..\..\src\lpc_ext.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\kfun\rgx\libiberty\regex.c" />
-    <ClCompile Include="..\..\kfun\rgx\regexp.c" />
+    <ClCompile Include="..\..\src\kfun\rgx\libiberty\regex.c" />
+    <ClCompile Include="..\..\src\kfun\rgx\regexp.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
