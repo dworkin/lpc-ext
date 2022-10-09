@@ -1,12 +1,12 @@
-src	API glue to compile with your kfun source code
-doc	documentation
-kfun	kfun source code
-dbase	example database module
-jit	JIT compiler module
+doc		documentation
+src		API glue to compile with your kfun source code
+src/dbase	example database module
+src/jit		JIT compiler module
+src/kfun	kfun source code
 
 To build modules for most kfuns, just type 'make' (or whatever your GNU make
-command is).  On Windows, use Visual Studio 2010 with the solution file
-lpc-ext.sln, or use 'make EXT=dll' with Cygwin.
+command is) in the src directory.  On Windows, use Visual Studio 2010 with
+the solution file lpc-ext.sln, or use 'make EXT=dll' with Cygwin.
 
 Use 'make zlib' to build the zlib module.  Requires zlib 1.2.11 dev headers.
 
@@ -20,7 +20,7 @@ the JIT cache will be created:
 
     modules = ([
 		 "/home/server/lpc-ext/jit.1.4" :	/* JIT module */
-		 "/home/server/lpc-ext/jit"	/* where jitcomp resides */
+		 "/home/server/lpc-ext/src/jit"	/* where jitcomp resides */
 	      ]);
 
 On Windows, there are different solution files for the components of the JIT
