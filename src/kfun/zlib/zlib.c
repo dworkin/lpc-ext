@@ -26,6 +26,8 @@ typedef struct Output {
     char buffer[65535];		/* output buffer */
 } Output;
 
+# define MAX_OUTBUFS	1032	/* maximum number of output buffers */
+
 /*
  * ({ "deflate", stream, tails, allocbits... })
  */
@@ -376,6 +378,18 @@ static LPC_array process(z_stream *stream, int (*func)(z_stream*, int),
 	if (stream->avail_out != 0) {
 	    break;
 	}
+	if (n >= MAX_OUTBUFS) {
+	    /*
+	     * defend against maliciously constructed input
+	     */
+	    do {
+		free(buf);
+		buf = next;
+		next = buf->next;
+	    } while (next != NULL);
+	    return NULL;
+	}
+
 	buf->size = 65535;
 	next = buf;
 	buf = (Output *) malloc(sizeof(Output));
@@ -512,6 +526,9 @@ static void kf_gunzip(LPC_frame f, int nargs, LPC_value retval)
 	inflateEnd(stream);
 	finish(f);
     }
+    if (array == NULL) {
+	lpc_runtime_error(f, "Decompressed output too large");
+    }
 
     lpc_array_putval(retval, array);
 }
@@ -617,6 +634,9 @@ static void kf_inflate(LPC_frame f, int nargs, LPC_value retval)
 	array = process(stream, &inflate, context.data, Z_FINISH);
 	inflateEnd(stream);
 	finish(f);
+    }
+    if (array == NULL) {
+	lpc_runtime_error(f, "Decompressed output too large");
     }
 
     lpc_array_putval(retval, array);
