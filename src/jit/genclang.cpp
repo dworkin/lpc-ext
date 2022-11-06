@@ -1388,7 +1388,7 @@ void ClangCode::emit(GenContext *context)
 		    context->load(VM_SWITCH_RANGE));
 	    genTable(context, Int);
 	    fprintf(context->stream,
-		    ", " Int " %s)\n\tswitch i32 %s, label %%%s [\n",
+		    ", " Int " %s) #2\n\tswitch i32 %s, label %%%s [\n",
 		    tmpRef(context->sp), ref,
 		    context->target(context->block->to[0]));
 	    for (i = 1; i < size; i++) {
@@ -1454,7 +1454,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_DIV_INT:
 	    context->updateLine(line);
 	    context->callArgs(VM_DIV_INT, tmpRef(sp));
-	    fprintf(context->stream, Int " %s, " Int " %s)\n",
+	    fprintf(context->stream, Int " %s, " Int " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
 	    pushResult(context);
 	    return;
@@ -1498,7 +1498,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_LSHIFT_INT:
 	    context->updateLine(line);
 	    context->callArgs(VM_LSHIFT_INT, tmpRef(sp));
-	    fprintf(context->stream, Int " %s, " Int " %s)\n",
+	    fprintf(context->stream, Int " %s, " Int " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
@@ -1516,7 +1516,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_MOD_INT:
 	    context->updateLine(line);
 	    context->callArgs(VM_MOD_INT, tmpRef(sp));
-	    fprintf(context->stream, Int " %s, " Int " %s)\n",
+	    fprintf(context->stream, Int " %s, " Int " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
@@ -1563,7 +1563,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_RSHIFT_INT:
 	    context->updateLine(line);
 	    context->callArgs(VM_RSHIFT_INT, tmpRef(sp));
-	    fprintf(context->stream, Int " %s, " Int " %s)\n",
+	    fprintf(context->stream, Int " %s, " Int " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
@@ -1611,7 +1611,8 @@ void ClangCode::emit(GenContext *context)
 	    case LPC_TYPE_FLOAT:
 		context->updateLine(line);
 		context->callArgs(VM_TOINT_FLOAT, tmpRef(sp));
-		fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+		fprintf(context->stream, Double " %s) #2\n",
+			tmpRef(context->sp));
 		break;
 
 	    default:
@@ -1651,7 +1652,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_ADD_FLT:
 	    context->updateLine(line);
 	    context->callArgs(VM_ADD_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+	    fprintf(context->stream, Double " %s, " Double " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
 	    pushResult(context);
 	    return;
@@ -1659,7 +1660,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_ADD1_FLT:
 	    context->updateLine(line);
 	    context->callArgs(VM_ADD_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+	    fprintf(context->stream, Double " %s, " Double " %s) #2\n",
 		    tmpRef(context->sp), context->genFloat(1.0L));
 	    pushResult(context);
 	    return;
@@ -1667,7 +1668,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_DIV_FLT:
 	    context->updateLine(line);
 	    context->callArgs(VM_DIV_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+	    fprintf(context->stream, Double " %s, " Double " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
 	    pushResult(context);
 	    return;
@@ -1720,7 +1721,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_MULT_FLT:
 	    context->updateLine(line);
 	    context->callArgs(VM_MULT_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+	    fprintf(context->stream, Double " %s, " Double " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
@@ -1747,7 +1748,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_SUB_FLT:
 	    context->updateLine(line);
 	    context->callArgs(VM_SUB_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+	    fprintf(context->stream, Double " %s, " Double " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)), tmpRef(context->sp));
 	    pushResult(context);
 	    return;
@@ -1755,7 +1756,7 @@ void ClangCode::emit(GenContext *context)
 	case KF_SUB1_FLT:
 	    context->updateLine(line);
 	    context->callArgs(VM_SUB_FLOAT, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+	    fprintf(context->stream, Double " %s, " Double " %s) #2\n",
 		    tmpRef(context->sp), context->genFloat(1.0L));
 	    pushResult(context);
 	    return;
@@ -1777,26 +1778,26 @@ void ClangCode::emit(GenContext *context)
 
 	case KF_FABS:
 	    context->callArgs(VM_FABS, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_FLOOR:
 	    context->callArgs(VM_FLOOR, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_CEIL:
 	    context->callArgs(VM_CEIL, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_FMOD:
 	    context->updateLine(line);
 	    context->callArgs(VM_FMOD, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+	    fprintf(context->stream, Double " %s, " Double " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
@@ -1807,7 +1808,7 @@ void ClangCode::emit(GenContext *context)
 	    intArg(context, context->sp);
 	    floatArg(context, context->nextSp(context->sp));
 	    context->callArgs(VM_LDEXP, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Int " %s)\n",
+	    fprintf(context->stream, Double " %s, " Int " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
@@ -1816,28 +1817,28 @@ void ClangCode::emit(GenContext *context)
 	case KF_EXP:
 	    context->updateLine(line);
 	    context->callArgs(VM_EXP, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_LOG:
 	    context->updateLine(line);
 	    context->callArgs(VM_LOG, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_LOG10:
 	    context->updateLine(line);
 	    context->callArgs(VM_LOG10, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_POW:
 	    context->updateLine(line);
 	    context->callArgs(VM_POW, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+	    fprintf(context->stream, Double " %s, " Double " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
@@ -1846,56 +1847,56 @@ void ClangCode::emit(GenContext *context)
 	case KF_SQRT:
 	    context->updateLine(line);
 	    context->callArgs(VM_SQRT, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_COS:
 	    context->updateLine(line);
 	    context->callArgs(VM_COS, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_SIN:
 	    context->updateLine(line);
 	    context->callArgs(VM_SIN, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_TAN:
 	    context->updateLine(line);
 	    context->callArgs(VM_TAN, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_ACOS:
 	    context->updateLine(line);
 	    context->callArgs(VM_ACOS, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_ASIN:
 	    context->updateLine(line);
 	    context->callArgs(VM_ASIN, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_ATAN:
 	    context->updateLine(line);
 	    context->callArgs(VM_ATAN, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_ATAN2:
 	    context->updateLine(line);
 	    context->callArgs(VM_ATAN2, tmpRef(sp));
-	    fprintf(context->stream, Double " %s, " Double " %s)\n",
+	    fprintf(context->stream, Double " %s, " Double " %s) #2\n",
 		    tmpRef(context->nextSp(context->sp)),
 		    tmpRef(context->sp));
 	    pushResult(context);
@@ -1904,21 +1905,21 @@ void ClangCode::emit(GenContext *context)
 	case KF_COSH:
 	    context->updateLine(line);
 	    context->callArgs(VM_COSH, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_SINH:
 	    context->updateLine(line);
 	    context->callArgs(VM_SINH, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
 	case KF_TANH:
 	    context->updateLine(line);
 	    context->callArgs(VM_TANH, tmpRef(sp));
-	    fprintf(context->stream, Double " %s)\n", tmpRef(context->sp));
+	    fprintf(context->stream, Double " %s) #2\n", tmpRef(context->sp));
 	    pushResult(context);
 	    return;
 
@@ -2502,10 +2503,9 @@ bool ClangObject::emit(char *base, int flags)
 
     /* attributes */
     fprintf(stream, "attributes #0 = { nounwind returns_twice }\n");
-    if (nFunctions != 0) {
-	fprintf(stream, "attributes #1 = { nounwind "
-			"\"no-frame-pointer-elim\"=\"false\" }\n");
-    }
+    fprintf(stream, "attributes #1 = { nounwind "
+		    "\"no-frame-pointer-elim\"=\"false\" }\n");
+    fprintf(stream, "attributes #2 = { readnone }\n");
 
     fclose(stream);
 
