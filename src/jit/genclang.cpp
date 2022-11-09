@@ -636,25 +636,6 @@ char *ClangCode::paramRef(LPCParam param, int ref)
 }
 
 /*
- * return a name for a parameter phi reference
- */
-char *ClangCode::paramPhi(LPCParam param, int ref)
-{
-    static char buf[20];
-
-    if (ref < 0) {
-	/* merged */
-	sprintf(buf, "%%p%um%dx", param, -ref);
-    } else {
-	if (ref == GenContext::INITIAL) {
-	    ref = 0;
-	}
-	sprintf(buf, "%%p%ur%dx", param, ref);
-    }
-    return buf;
-}
-
-/*
  * return a name for a local var reference
  */
 char *ClangCode::localRef(LPCLocal local, int ref)
@@ -669,25 +650,6 @@ char *ClangCode::localRef(LPCLocal local, int ref)
 	    ref = 0;
 	}
 	sprintf(buf, "%%l%ur%d", local, ref);
-    }
-    return buf;
-}
-
-/*
- * return a name for a local var phi reference
- */
-char *ClangCode::localPhi(LPCLocal local, int ref)
-{
-    static char buf[20];
-
-    if (ref < 0) {
-	/* merged */
-	sprintf(buf, "%%l%um%dx", local, -ref);
-    } else {
-	if (ref == GenContext::INITIAL) {
-	    ref = 0;
-	}
-	sprintf(buf, "%%l%ur%dx", local, ref);
     }
     return buf;
 }
@@ -2244,12 +2206,12 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		switch (b->mergedLocalType(n)) {
 		case LPC_TYPE_INT:
 		    fprintf(context->stream, "\t%s = phi " Int,
-			    ClangCode::localPhi(n, ref));
+			    ClangCode::localRef(n, ref));
 		    break;
 
 		case LPC_TYPE_FLOAT:
 		    fprintf(context->stream, "\t%s = phi " Double,
-			    ClangCode::localPhi(n, ref));
+			    ClangCode::localRef(n, ref));
 		    break;
 
 		default:
@@ -2281,12 +2243,12 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		switch (b->mergedParamType(n, type)) {
 		case LPC_TYPE_INT:
 		    fprintf(context->stream, "\t%s = phi " Int,
-			    ClangCode::paramPhi(n, ref));
+			    ClangCode::paramRef(n, ref));
 		    break;
 
 		case LPC_TYPE_FLOAT:
 		    fprintf(context->stream, "\t%s = phi " Double,
-			    ClangCode::paramPhi(n, ref));
+			    ClangCode::paramRef(n, ref));
 		    break;
 
 		default:
@@ -2309,46 +2271,6 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 			    GenContext::label(b->from[i], b));
 		}
 		fprintf(context->stream, "\n");
-	    }
-
-	    /*
-	     * copy from phi
-	     */
-	    for (n = 0; n < context->nParams; n++) {
-		ref = b->paramIn(n);
-		type = (b == this) ?
-			function->proto[nParams - n].type : LPC_TYPE_VOID;
-		switch (b->mergedParamType(n, type)) {
-		case LPC_TYPE_INT:
-		    context->copyInt(ClangCode::paramRef(n, ref),
-				     ClangCode::paramPhi(n, ref));
-		    break;
-
-		case LPC_TYPE_FLOAT:
-		    context->copyFloat(ClangCode::paramRef(n, ref),
-				       ClangCode::paramPhi(n, ref));
-		    break;
-		}
-	    }
-	}
-
-	if (b->nFrom > 1) {
-	    /*
-	     * copy locals from phi
-	     */
-	    for (n = 0; n < context->nLocals; n++) {
-		ref = b->localIn(n);
-		switch (b->mergedLocalType(n)) {
-		case LPC_TYPE_INT:
-		    context->copyInt(ClangCode::localRef(n, ref),
-				     ClangCode::localPhi(n, ref));
-		    break;
-
-		case LPC_TYPE_FLOAT:
-		    context->copyFloat(ClangCode::localRef(n, ref),
-				       ClangCode::localPhi(n, ref));
-		    break;
-		}
 	    }
 	}
 
