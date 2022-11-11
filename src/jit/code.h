@@ -97,11 +97,10 @@ public:
     Code(CodeFunction *function);
     virtual ~Code();
 
-    virtual void evaluateTypes(class BlockContext *context);
+    virtual void evaluateTypes(class TypedContext *context);
     virtual void evaluateFlow(class FlowContext *context);
-    virtual void emit(class GenContext *context);
+    virtual void emit(class GenContext *context) = 0;
 
-    static Code *create(CodeFunction *function);
     static Code *produce(CodeFunction *function);
     static void producer(Code *(*factory)(CodeFunction*));
 

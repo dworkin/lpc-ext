@@ -415,9 +415,6 @@ void DisBlock::emit(GenContext *context, CodeFunction *function)
 	    }
 	    fprintf(context->stream, "]");
 	}
-	if (b->level != 0) {
-	    fprintf(context->stream, " <%d>", b->level);
-	}
 	fprintf(context->stream, "\n");
 	for (code = b->first; ; code = code->next) {
 	    code->emit(context);

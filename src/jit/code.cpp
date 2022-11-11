@@ -944,7 +944,7 @@ Code::~Code()
     }
 }
 
-void Code::evaluateTypes(class BlockContext *context)
+void Code::evaluateTypes(class TypedContext *context)
 {
 }
 
@@ -952,19 +952,7 @@ void Code::evaluateFlow(class FlowContext *context)
 {
 }
 
-void Code::emit(class GenContext *context)
-{
-}
-
-/*
- * produce code
- */
-Code *Code::create(CodeFunction *function)
-{
-    return new Code(function);
-}
-
-Code *(*Code::factory)(CodeFunction*) = create;
+Code *(*Code::factory)(CodeFunction*);
 
 /*
  * set the factory which produces code

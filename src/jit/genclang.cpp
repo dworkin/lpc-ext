@@ -1046,7 +1046,7 @@ void ClangCode::emit(GenContext *context)
 	switch (context->get(context->sp).type) {
 	case LPC_TYPE_INT:
 	    context->copyInt(localRef(context, local), tmpRef(context->sp));
-	    if (context->level > 0) {
+	    if (context->caught != NULL) {
 		context->voidCallArgs(VM_STORE_LOCAL_INT);
 		fprintf(context->stream, "i8 %u, " Int " %s)\n", local + 1,
 			tmpRef(context->sp));
@@ -1059,7 +1059,7 @@ void ClangCode::emit(GenContext *context)
 
 	case LPC_TYPE_FLOAT:
 	    context->copyFloat(localRef(context, local), tmpRef(context->sp));
-	    if (context->level > 0) {
+	    if (context->caught != NULL) {
 		context->voidCallArgs(VM_STORE_LOCAL_FLOAT);
 		fprintf(context->stream, "i8 %u, " Double " %s)\n", local + 1,
 			tmpRef(context->sp));
@@ -2004,7 +2004,7 @@ void ClangCode::emit(GenContext *context)
 	break;
 
     case CATCH:
-	if (context->level == 0) {
+	if (context->caught == NULL) {
 	    context->saveLocals();
 	}
 	ref = context->genRef();
@@ -2275,13 +2275,13 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	}
 
 	context->sp = b->sp;
-	context->level = b->level;
+	context->caught = b->caught;
 
 	/*
 	 * emit code for the block
 	 */
 	for (code = b->first; ; code = code->next) {
-	    if (code == b->last && context->level == 0) {
+	    if (code == b->last && context->caught == NULL) {
 		switch (code->instruction) {
 		case Code::JUMP_ZERO:
 		case Code::JUMP_NONZERO:
@@ -2298,7 +2298,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 	    }
 	    code->emit(context);
 	    if (code->instruction == Code::END_CATCH) {
-		context->level--;
+		context->caught = context->caught->caught;
 	    }
 	    if (code == b->last) {
 		switch (code->instruction) {
@@ -2312,7 +2312,7 @@ void ClangBlock::emit(GenContext *context, CodeFunction *function)
 		    break;
 
 		default:
-		    if (context->level == 0) {
+		    if (context->caught == NULL) {
 			context->saveBeforeMerge(b);
 		    }
 		    /* fall through */

@@ -14,12 +14,13 @@ extern "C" {
 # include "jitcomp.h"
 
 
-BlockContext::BlockContext(CodeFunction *func, StackSize size)
+TypedContext::TypedContext(CodeFunction *func, StackSize size) :
+    BlockContext()
 {
     LPCParam i;
 
     /*
-     * construct BlockContext from function and expected stack space
+     * construct TypedContext from function and expected stack space
      */
     nParams = func->nargs + func->vargs;
     if (nParams != 0) {
@@ -48,15 +49,12 @@ BlockContext::BlockContext(CodeFunction *func, StackSize size)
 
     stack = new Stack<TVC>((size * 3) / 2);
     altSp = sp = STACK_EMPTY;
-    storeCount = 0;
-    storeCode = NULL;
     castType = LPC_TYPE_MIXED;
-    lvalue = false;
     spreadArgs = false;
     merging = false;
 }
 
-BlockContext::~BlockContext()
+TypedContext::~TypedContext()
 {
     delete[] params;
     delete[] locals;
@@ -66,7 +64,7 @@ BlockContext::~BlockContext()
 /*
  * merge two types
  */
-Type BlockContext::mergeType(Type type1, Type type2)
+Type TypedContext::mergeType(Type type1, Type type2)
 {
     if (type1 != LPC_TYPE_MIXED && type1 != type2) {
 	if (type1 == LPC_TYPE_NIL && type2 >= LPC_TYPE_STRING) {
@@ -84,7 +82,7 @@ Type BlockContext::mergeType(Type type1, Type type2)
 /*
  * copy stack
  */
-StackSize BlockContext::copyStack(StackSize copy, StackSize from, StackSize to)
+StackSize TypedContext::copyStack(StackSize copy, StackSize from, StackSize to)
 {
     StackSize sp;
 
@@ -106,7 +104,7 @@ StackSize BlockContext::copyStack(StackSize copy, StackSize from, StackSize to)
 /*
  * prepare before evaluating a block
  */
-void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
+void TypedContext::prologue(Type *mergeParams, Type *mergeLocals,
 			    StackSize mergeSp, Block *b)
 {
     StackSize sp;
@@ -150,7 +148,7 @@ void BlockContext::prologue(Type *mergeParams, Type *mergeLocals,
 /*
  * push type on stack
  */
-void BlockContext::push(TVC val)
+void TypedContext::push(TVC val)
 {
     if (merging) {
 	altStack[altSp++] = val;
@@ -162,7 +160,7 @@ void BlockContext::push(TVC val)
 /*
  * pop type from stack
  */
-TVC BlockContext::pop(Code *code)
+TVC TypedContext::pop(Code *code)
 {
     if (altSp != STACK_EMPTY) {
 	return altStack[--altSp];
@@ -180,30 +178,11 @@ TVC BlockContext::pop(Code *code)
 }
 
 /*
- * prepare for N stores
- */
-bool BlockContext::stores(int count, Code *popCode, bool flag)
-{
-    storeCount = count;
-    storeCode = popCode;
-    lvalue = flag;
-    return (count != 0);
-}
-
-/*
- * handle store N
- */
-bool BlockContext::storeN()
-{
-    castType = LPC_TYPE_MIXED;
-    return (--storeCount != 0);
-}
-
-/*
  * clean up after stores
  */
-void BlockContext::endStores()
+void TypedContext::endStores()
 {
+    castType = LPC_TYPE_MIXED;
     if (!storeN()) {
 	if (storePop() != NULL) {
 	    if (lval()) {
@@ -218,7 +197,7 @@ void BlockContext::endStores()
 /*
  * return indexed type on the stack, skipping index
  */
-TVC BlockContext::indexed()
+TVC TypedContext::indexed()
 {
     return stack->get(stack->pop(sp));
 }
@@ -226,7 +205,7 @@ TVC BlockContext::indexed()
 /*
  * handle a kfun call and return the resulting type
  */
-Type BlockContext::kfun(LPCKFunCall *kf, Code *code)
+Type TypedContext::kfun(LPCKFunCall *kf, Code *code)
 {
     int nargs, i;
     Type type, summand;
@@ -324,7 +303,7 @@ Type BlockContext::kfun(LPCKFunCall *kf, Code *code)
 /*
  * pop function arguments
  */
-void BlockContext::args(int nargs, Code *code)
+void TypedContext::args(int nargs, Code *code)
 {
     if (spreadArgs) {
 	--nargs;
@@ -340,7 +319,7 @@ void BlockContext::args(int nargs, Code *code)
  * Handle caught by resetting all parameter/variable types to LPC_TYPE_MIXED.
  * XXX Only do this for variables whose types are altered inside a catch.
  */
-void BlockContext::caught()
+void TypedContext::modCaught()
 {
     LPCParam i;
 
@@ -355,7 +334,7 @@ void BlockContext::caught()
 /*
  * merge stacks after evaluating code
  */
-StackSize BlockContext::merge(StackSize codeSp)
+StackSize TypedContext::merge(StackSize codeSp)
 {
     if (codeSp != STACK_INVALID) {
 	sp = codeSp;
@@ -376,7 +355,7 @@ StackSize BlockContext::merge(StackSize codeSp)
 /*
  * propagate changes to following blocks?
  */
-bool BlockContext::changed(Type *params, Type *locals)
+bool TypedContext::changed(Type *params, Type *locals)
 {
     LPCParam i;
 
@@ -395,7 +374,7 @@ bool BlockContext::changed(Type *params, Type *locals)
 /*
  * retrieve a TVC
  */
-TVC BlockContext::get(StackSize stackPointer)
+TVC TypedContext::get(StackSize stackPointer)
 {
     return stack->get(stackPointer);
 }
@@ -403,7 +382,7 @@ TVC BlockContext::get(StackSize stackPointer)
 /*
  * find the Code that consumes a type/value
  */
-Code *BlockContext::consumer(StackSize stackPointer, Type *type)
+Code *TypedContext::consumer(StackSize stackPointer, Type *type)
 {
     while (stackPointer != STACK_EMPTY) {
 	TVC val = stack->get(stackPointer);
@@ -420,7 +399,7 @@ Code *BlockContext::consumer(StackSize stackPointer, Type *type)
 /*
  * find the next item on the stack
  */
-StackSize BlockContext::nextSp(StackSize stackPointer, int depth)
+StackSize TypedContext::nextSp(StackSize stackPointer, int depth)
 {
     while (depth != 0) {
 	stackPointer = stack->pop(stackPointer);
@@ -452,7 +431,7 @@ Type TypedCode::simplifiedType(Type type)
 /*
  * return a type if a value should be kept off the stack, LPC_TYPE_NIL otherwise
  */
-Type TypedCode::offStack(BlockContext *context, StackSize stackPointer)
+Type TypedCode::offStack(TypedContext *context, StackSize stackPointer)
 {
     Code *code;
     Type type;
@@ -562,7 +541,7 @@ Type TypedCode::offStack(BlockContext *context, StackSize stackPointer)
 /*
  * evaluate type changes
  */
-void TypedCode::evaluateTypes(BlockContext *context)
+void TypedCode::evaluateTypes(TypedContext *context)
 {
     TVC val;
     CodeSize i;
@@ -786,7 +765,7 @@ void TypedCode::evaluateTypes(BlockContext *context)
 	break;
 
     case CAUGHT:
-	context->caught();
+	context->modCaught();
 	context->push(LPC_TYPE_STRING);
 	break;
 
@@ -818,14 +797,6 @@ void TypedCode::evaluateTypes(BlockContext *context)
     if (pop) {
 	context->pop(NULL);
     }
-}
-
-/*
- * create a typed code
- */
-Code *TypedCode::create(CodeFunction *function)
-{
-    return new TypedCode(function);
 }
 
 
@@ -860,7 +831,7 @@ Type TypedBlock::localType(LPCLocal local)
 /*
  * prepare a context with params, locals and stack from this block
  */
-void TypedBlock::setContext(BlockContext *context, Block *b)
+void TypedBlock::setContext(TypedContext *context, Block *b)
 {
     context->prologue(params, locals, endSp, b);
 }
@@ -868,7 +839,7 @@ void TypedBlock::setContext(BlockContext *context, Block *b)
 /*
  * evaluate code in a block
  */
-void TypedBlock::evaluateTypes(BlockContext *context, Block **list)
+void TypedBlock::evaluateTypes(TypedContext *context, Block **list)
 {
     Code *code;
     CodeSize i, j;
@@ -923,7 +894,7 @@ void TypedBlock::evaluateTypes(BlockContext *context, Block **list)
 /*
  * evaluate all blocks
  */
-void TypedBlock::evaluate(BlockContext *context)
+void TypedBlock::evaluate(TypedContext *context)
 {
     Block *list, *b;
     StackSize sp;
@@ -955,12 +926,4 @@ void TypedBlock::evaluate(BlockContext *context)
 	    }
 	}
     }
-}
-
-/*
- * create a typed block
- */
-Block *TypedBlock::create(Code *first, Code *last, CodeSize size)
-{
-    return new TypedBlock(first, last, size);
 }

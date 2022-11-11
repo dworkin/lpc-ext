@@ -15,7 +15,7 @@ extern "C" {
 
 
 FlowContext::FlowContext(CodeFunction *func, StackSize size) :
-    BlockContext(func, size)
+    TypedContext(func, size)
 {
     inParams = outParams = inLocals = outLocals = NULL;
 }
@@ -109,14 +109,6 @@ void FlowCode::evaluateFlow(FlowContext *context)
     default:
 	break;
     }
-}
-
-/*
- * create a flow code
- */
-Code *FlowCode::create(CodeFunction *function)
-{
-    return new FlowCode(function);
 }
 
 
@@ -449,12 +441,4 @@ void FlowBlock::evaluate(FlowContext *context)
 	    }
 	}
     }
-}
-
-/*
- * create a FlowBlock
- */
-Block *FlowBlock::create(Code *first, Code *last, CodeSize size)
-{
-    return new FlowBlock(first, last, size);
 }

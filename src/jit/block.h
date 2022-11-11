@@ -1,3 +1,23 @@
+class BlockContext {
+public:
+    BlockContext();
+    virtual ~BlockContext();
+
+    bool stores(int count, Code *popCode, bool flag);
+    bool lval() {
+	return lvalue;
+    }
+    bool storeN();
+    Code *storePop() {
+	return storeCode;
+    }
+
+private:
+    int storeCount;		/* number of STOREX instructions left */
+    Code *storeCode;		/* pop at end of STORES? */
+    bool lvalue;		/* lvalue stores? */
+};
+
 class Block {
 public:
     Block(Code *first, Code *last, CodeSize size);
@@ -12,7 +32,7 @@ public:
     bool relayToDefault(Block *to);
     CodeSize fragment();
     void clear();
-    virtual void setContext(class BlockContext *context, Block *b);
+    virtual void setContext(class TypedContext *context, Block *b);
     virtual Type paramType(LPCParam param);
     virtual int paramIn(LPCParam param);
     virtual int paramOut(LPCParam param);
@@ -24,7 +44,7 @@ public:
     virtual Type mergedParamType(LPCParam param, Type type);
     virtual Type mergedLocalType(LPCLocal local);
     virtual void prepareFlow(class FlowContext *context);
-    virtual void evaluateTypes(class BlockContext *context, Block **list);
+    virtual void evaluateTypes(class TypedContext *context, Block **list);
     virtual void evaluateFlow(class FlowContext *context, Block **list);
     virtual void evaluateInputs(class FlowContext *context, Block **list);
     virtual void evaluateOutputs(class FlowContext *context, Block **list);
@@ -33,12 +53,12 @@ public:
     static Block *function(CodeFunction *function);
     static Block *nextVisit(Block **List);
 
-    static Block *create(Code *first, Code *last, CodeSize size);
     static Block *produce(Code *first, Code *last, CodeSize size);
     static void producer(Block *(*factory)(Code*, Code*, CodeSize));
 
     Code *first, *last;			/* first and last code in block */
     Block *next;			/* next block */
+    Block *caught;			/* catch context at start of block */
     Block **from;			/* entrance blocks */
     bool *fromVisit;			/* entrance flags */
     Block **to;				/* following blocks */
@@ -47,7 +67,6 @@ public:
     CodeSize size;			/* size of block */
     StackSize sp;			/* stack pointer */
     StackSize endSp;			/* final stack pointer */
-    StackSize level;			/* catch level */
 
 private:
     enum Context {
@@ -57,8 +76,7 @@ private:
 
     Block *find(CodeSize addr);
     Block *split(CodeSize addr);
-    void toVisitOnce(Block **list, StackSize stackPointer,
-		     StackSize catchLevel);
+    void toVisitOnce(Block **list, StackSize stackPointer, Block *catchContext);
     Block *pass1();
     Block *pass2(Block *tree, StackSize size);
     void pass3(Block *b);

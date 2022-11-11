@@ -10,10 +10,10 @@ public:
     StackSize ref;	/* replacement reference */
 };
 
-class BlockContext {
+class TypedContext : public BlockContext {
 public:
-    BlockContext(CodeFunction *func, StackSize size);
-    virtual ~BlockContext();
+    TypedContext(CodeFunction *func, StackSize size);
+    virtual ~TypedContext();
 
     void prologue(Type *mergeParams, Type *mergeLocals, StackSize mergeSp,
 		  Block *b);
@@ -23,21 +23,13 @@ public:
     }
     TVC pop(Code *code);
     TVC indexed();
-    bool stores(int count, Code *popCode, bool flag);
-    bool lval() {
-	return lvalue;
-    }
-    bool storeN();
-    Code *storePop() {
-	return storeCode;
-    }
     void endStores();
     void spread() {
 	spreadArgs = true;
     }
     Type kfun(LPCKFunCall *kf, Code *code);
     void args(int nargs, Code *code);
-    void caught();
+    void modCaught();
     StackSize merge(StackSize codeSp);
     bool changed(Type *params, Type *locals);
     TVC get(StackSize stackPointer);
@@ -50,7 +42,7 @@ public:
     LPCLocal nLocals;		/* # local variables */
     StackSize sp;		/* stack pointer */
     Type castType;		/* CASTX argument */
-    StackSize level;		/* catch level */
+    Block *caught;		/* catch context */
 
 private:
     StackSize copyStack(StackSize copy, StackSize from, StackSize to);
@@ -60,9 +52,6 @@ private:
     Stack<TVC> *stack;		/* type/val/code stack */
     TVC altStack[3];		/* alternative stack */
     StackSize altSp;		/* alternative stack pointer */
-    int storeCount;		/* number of STOREX instructions left */
-    Code *storeCode;		/* pop at end of STORES? */
-    bool lvalue;		/* lvalue stores? */
     bool spreadArgs;		/* SPREAD before call? */
     bool merging;		/* merging stack values? */
 };
@@ -72,13 +61,11 @@ public:
     TypedCode(CodeFunction *function);
     virtual ~TypedCode();
 
-    virtual void evaluateTypes(BlockContext *context);
+    virtual void evaluateTypes(TypedContext *context);
     StackSize stackPointer() { return sp; }
 
     static Type simplifiedType(Type type);
-    static Type offStack(BlockContext *context, StackSize stackPointer);
-
-    static Code *create(CodeFunction *function);
+    static Type offStack(TypedContext *context, StackSize stackPointer);
 
     Type varType;		/* STORES param/local type */
 
@@ -93,11 +80,9 @@ public:
 
     virtual Type paramType(LPCParam param);
     virtual Type localType(LPCLocal local);
-    virtual void setContext(BlockContext *context, Block *b);
-    virtual void evaluateTypes(BlockContext *context, Block **list);
-    void evaluate(BlockContext *context);
-
-    static Block *create(Code *first, Code *last, CodeSize size);
+    virtual void setContext(TypedContext *context, Block *b);
+    virtual void evaluateTypes(TypedContext *context, Block **list);
+    void evaluate(TypedContext *context);
 
 private:
     Type *params;		/* parameter types at end of block */

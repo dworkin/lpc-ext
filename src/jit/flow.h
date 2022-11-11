@@ -1,4 +1,4 @@
-class FlowContext : public BlockContext {
+class FlowContext : public TypedContext {
 public:
     FlowContext(CodeFunction *func, StackSize size);
     virtual ~FlowContext();
@@ -19,8 +19,6 @@ public:
     virtual ~FlowCode();
 
     virtual void evaluateFlow(FlowContext *context);
-
-    static Code *create(CodeFunction *function);
 
     int inputRef() {
 	return in;
@@ -52,8 +50,6 @@ public:
     virtual void evaluateInputs(FlowContext *context, Block **list);
     virtual void evaluateOutputs(FlowContext *context, Block **list);
     void evaluate(FlowContext *context);
-
-    static Block *create(Code *first, Code *last, CodeSize size);
 
 private:
     int *inParams;		/* parameter input references */

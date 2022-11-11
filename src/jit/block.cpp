@@ -12,15 +12,46 @@ extern "C" {
 # include "jitcomp.h"
 
 
+BlockContext::BlockContext()
+{
+    storeCount = 0;
+    storeCode = NULL;
+    lvalue = false;
+}
+
+BlockContext::~BlockContext()
+{
+}
+
+/*
+ * prepare for N stores
+ */
+bool BlockContext::stores(int count, Code *popCode, bool flag)
+{
+    storeCount = count;
+    storeCode = popCode;
+    lvalue = flag;
+    return (count != 0);
+}
+
+/*
+ * handle store N
+ */
+bool BlockContext::storeN()
+{
+    return (--storeCount != 0);
+}
+
+
 Block::Block(Code *first, Code *last, CodeSize size) :
     first(first), last(last), size(size)
 {
+    caught = NULL;
     from = to = NULL;
     fromVisit = NULL;
     nFrom = nTo = 0;
     flags = 0;
     endSp = STACK_INVALID;
-    level = 0;
 }
 
 Block::~Block()
@@ -490,11 +521,11 @@ Block *Block::nextVisit(Block **list)
  * prepare to visit, but only once
  */
 void Block::toVisitOnce(Block **list, StackSize stackPointer,
-			StackSize catchLevel)
+			Block *caughtBlock)
 {
     if (sp == STACK_INVALID) {
 	sp = stackPointer;
-	level = catchLevel;
+	caught = caughtBlock;
 	toVisit(list);
     }
 }
@@ -529,10 +560,9 @@ bool Block::relayToDefault(Block *to)
 Block *Block::pass2(Block *tree, StackSize size)
 {
     Stack<Context> context(size);	/* too large but we need some limit */
-    Block *b, *list;
+    Block *b, *list, *caughtBlock;
     Code *code;
     CodeSize stackPointer, i;
-    StackSize catchLevel;
 
     /*
      * determine the catch/rlimits context at the start and end of each block
@@ -544,7 +574,7 @@ Block *Block::pass2(Block *tree, StackSize size)
     }
     for (b = this; b != NULL; b = nextVisit(&list)) {
 	stackPointer = b->sp;
-	catchLevel = b->level;
+	caughtBlock = b->caught;
 
 	/*
 	 * go through the code and make adjustments as needed
@@ -553,7 +583,6 @@ Block *Block::pass2(Block *tree, StackSize size)
 	    switch (code->instruction) {
 	    case Code::CATCH:
 		stackPointer = context.push(stackPointer, Block::CATCH);
-		catchLevel++;
 		break;
 
 	    case Code::RLIMITS:
@@ -566,7 +595,7 @@ Block *Block::pass2(Block *tree, StackSize size)
 		    switch (context.get(stackPointer)) {
 		    case Block::CATCH:
 			code->instruction = Code::END_CATCH;
-			--catchLevel;
+			caughtBlock = caughtBlock->caught;
 			break;
 
 		    case Block::RLIMITS:
@@ -595,17 +624,18 @@ Block *Block::pass2(Block *tree, StackSize size)
 		 * special case for CATCH: the context will be gone after an
 		 * exception occurs
 		 */
+		b->to[0]->caught = caughtBlock;
 		b->to[0]->toVisitOnce(&list, context.pop(stackPointer),
-				      catchLevel - 1);
-		b->to[1]->toVisitOnce(&list, stackPointer, catchLevel);
+				      caughtBlock);
+		b->to[1]->toVisitOnce(&list, stackPointer, b->to[0]);
 	    } else {
 		for (i = 0; i < b->nTo; i++) {
-		    b->to[i]->toVisitOnce(&list, stackPointer, catchLevel);
+		    b->to[i]->toVisitOnce(&list, stackPointer, caughtBlock);
 		}
 	    }
 	} else if (b->next != NULL && code->instruction != Code::RETURN) {
 	    /* add the next block to the list */
-	    b->next->toVisitOnce(&list, stackPointer, catchLevel);
+	    b->next->toVisitOnce(&list, stackPointer, caughtBlock);
 	} else if (stackPointer != STACK_EMPTY) {
 	    /* function ended within a catch/rlimits context */
 	    fatal("catch/rlimits return mismatch");
@@ -705,7 +735,7 @@ void Block::pass4()
     }
 }
 
-void Block::setContext(class BlockContext *context, Block *b)
+void Block::setContext(class TypedContext *context, Block *b)
 {
 }
 
@@ -713,7 +743,7 @@ void Block::prepareFlow(class FlowContext *context)
 {
 }
 
-void Block::evaluateTypes(class BlockContext *context, Block **list)
+void Block::evaluateTypes(class TypedContext *context, Block **list)
 {
 }
 
@@ -821,15 +851,7 @@ CodeSize Block::fragment()
     return funcSize;
 }
 
-/*
- * produce a block
- */
-Block *Block::create(Code *first, Code *last, CodeSize size)
-{
-    return new Block(first, last, size);
-}
-
-Block *(*Block::factory)(Code*, Code*, CodeSize) = &create;
+Block *(*Block::factory)(Code*, Code*, CodeSize);
 
 /*
  * set the factory which produces blocks
