@@ -96,13 +96,16 @@ void FlowCode::evaluateFlow(FlowContext *context)
 	break;
 
     case CAUGHT:
-	/* XXX only do this for variables that actually may have changed */
 	out = addr + 1;
 	for (n = 0; n < context->nParams; n++) {
-	    context->outParams[n] = out;
+	    if (context->block->mod[n]) {
+		context->outParams[n] = out;
+	    }
 	}
 	for (n = 0; n < context->nLocals; n++) {
-	    context->outLocals[n] = out;
+	    if (context->block->mod[context->nParams + n]) {
+		context->outLocals[n] = out;
+	    }
 	}
 	break;
 
@@ -269,6 +272,7 @@ void FlowBlock::evaluateFlow(FlowContext *context, Block **list)
     }
 
     prepareFlow(context);
+    context->block = this;
 
     for (code = first; ; code = code->next) {
 	code->evaluateFlow(context);
@@ -399,11 +403,9 @@ void FlowBlock::evaluate(FlowContext *context)
      * flow back inputs
      */
     while ((b=nextVisit(&list)) != NULL) {
-	if (b->first->instruction != Code::CAUGHT) {
-	    b->prepareFlow(context);
-	    for (i = 0; i < b->nFrom; i++) {
-		b->from[i]->evaluateInputs(context, &list);
-	    }
+	b->prepareFlow(context);
+	for (i = 0; i < b->nFrom; i++) {
+	    b->from[i]->evaluateInputs(context, &list);
 	}
     }
 
@@ -428,17 +430,13 @@ void FlowBlock::evaluate(FlowContext *context)
     for (b = this; b != NULL; b = b->next) {
 	b->prepareFlow(context);
 	for (i = 0; i < b->nTo; i++) {
-	    if (b->to[i]->first->instruction != Code::CAUGHT) {
-		b->to[i]->evaluateOutputs(context, &list);
-	    }
+	    b->to[i]->evaluateOutputs(context, &list);
 	}
     }
     while ((b=nextVisit(&list)) != NULL) {
 	b->prepareFlow(context);
 	for (i = 0; i < b->nTo; i++) {
-	    if (b->to[i]->first->instruction != Code::CAUGHT) {
-		b->to[i]->evaluateOutputs(context, &list);
-	    }
+	    b->to[i]->evaluateOutputs(context, &list);
 	}
     }
 }

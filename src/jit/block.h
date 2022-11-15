@@ -27,6 +27,7 @@ public:
     void startAllVisits(Block **list);
     void toVisit(Block **list);
 
+    void initMod(LPCParam size);
     void setRelay();
     bool relay();
     bool relayToDefault(Block *to);
@@ -67,6 +68,7 @@ public:
     CodeSize size;			/* size of block */
     StackSize sp;			/* stack pointer */
     StackSize endSp;			/* final stack pointer */
+    bool *mod;				/* modification flags */
 
 private:
     enum Context {

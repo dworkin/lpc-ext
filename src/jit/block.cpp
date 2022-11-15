@@ -52,6 +52,7 @@ Block::Block(Code *first, Code *last, CodeSize size) :
     nFrom = nTo = 0;
     flags = 0;
     endSp = STACK_INVALID;
+    mod = NULL;
 }
 
 Block::~Block()
@@ -71,6 +72,7 @@ Block::~Block()
     delete[] from;
     delete[] fromVisit;
     delete[] to;
+    delete[] mod;
 }
 
 /*
@@ -531,6 +533,15 @@ void Block::toVisitOnce(Block **list, StackSize stackPointer,
 }
 
 /*
+ * initialize modification flags
+ */
+void Block::initMod(LPCParam size)
+{
+    mod = new bool[size];
+    memset(mod, false, size);
+}
+
+/*
  * mark as in need of relaying
  */
 void Block::setRelay()
@@ -726,7 +737,7 @@ void Block::pass4()
 	    if (b->from == NULL) {
 		b->from = new Block*[b->nFrom];
 		b->fromVisit = new bool[b->nFrom];
-		memset(b->fromVisit, '\0', b->nFrom);
+		memset(b->fromVisit, false, b->nFrom);
 		b->nFrom = 0;
 		b->toVisit(&list);
 	    }

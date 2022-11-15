@@ -23,13 +23,17 @@ public:
     }
     TVC pop(Code *code);
     TVC indexed();
+    void storeParam(LPCParam param, Type type);
+    void storeLocal(LPCParam local, Type type);
     void endStores();
     void spread() {
 	spreadArgs = true;
     }
     Type kfun(LPCKFunCall *kf, Code *code);
     void args(int nargs, Code *code);
+    void startCatch();
     void modCaught();
+    void endCatch();
     StackSize merge(StackSize codeSp);
     bool changed(Type *params, Type *locals);
     TVC get(StackSize stackPointer);
@@ -42,7 +46,9 @@ public:
     LPCLocal nLocals;		/* # local variables */
     StackSize sp;		/* stack pointer */
     Type castType;		/* CASTX argument */
+    Block *block;		/* current block */
     Block *caught;		/* catch context */
+    Block **list;		/* visitation list */
 
 private:
     StackSize copyStack(StackSize copy, StackSize from, StackSize to);

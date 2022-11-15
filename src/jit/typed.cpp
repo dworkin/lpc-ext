@@ -178,6 +178,30 @@ TVC TypedContext::pop(Code *code)
 }
 
 /*
+ * store a parameter
+ */
+void TypedContext::storeParam(LPCParam param, Type type)
+{
+    params[param] = type;
+    if (caught != NULL && !caught->mod[param]) {
+	caught->mod[param] = true;
+	caught->toVisit(list);
+    }
+}
+
+/*
+ * store a local variable
+ */
+void TypedContext::storeLocal(LPCParam local, Type type)
+{
+    locals[local] = type;
+    if (caught != NULL && !caught->mod[nParams + local]) {
+	caught->mod[nParams + local] = true;
+	caught->toVisit(list);
+    }
+}
+
+/*
  * clean up after stores
  */
 void TypedContext::endStores()
@@ -316,19 +340,51 @@ void TypedContext::args(int nargs, Code *code)
 }
 
 /*
- * Handle caught by resetting all parameter/variable types to LPC_TYPE_MIXED.
+ * prepare modification flags for caught context
+ */
+void TypedContext::startCatch()
+{
+    if (block->next->mod == NULL && nParams + nLocals != 0) {
+	block->next->initMod(nParams + nLocals);
+    }
+}
+
+/*
+ * Handle caught by setting modified parameter/variable types to LPC_TYPE_MIXED.
  * XXX Only do this for variables whose types are altered inside a catch.
  */
 void TypedContext::modCaught()
 {
-    LPCParam i;
+    LPCParam i, j;
 
     for (i = 0; i < nParams; i++) {
-	params[i] = LPC_TYPE_MIXED;
+	if (block->mod[i]) {
+	    params[i] = LPC_TYPE_MIXED;
+	}
     }
-    for (i = 0; i < nLocals; i++) {
-	locals[i] = LPC_TYPE_MIXED;
+    for (j = 0; j < nLocals; i++, j++) {
+	if (block->mod[i]) {
+	    locals[j] = LPC_TYPE_MIXED;
+	}
     }
+}
+
+/*
+ * copy modifications to enclosing caught context
+ */
+void TypedContext::endCatch()
+{
+    LPCParam i;
+
+    if (caught->caught != NULL) {
+	for (i = 0; i < nParams + nLocals; i++) {
+	    if (caught->mod[i] && !caught->caught->mod[i]) {
+		caught->caught->mod[i] = true;
+		caught->caught->toVisit(list);
+	    }
+	}
+    }
+    caught = caught->caught;
 }
 
 /*
@@ -630,13 +686,13 @@ void TypedCode::evaluateTypes(TypedContext *context)
 
     case STORE_PARAM:
 	val = context->pop(this);
-	context->params[param] = val.type;
+	context->storeParam(param, val.type);
 	context->push(val);
 	break;
 
     case STORE_LOCAL:
 	val = context->pop(this);
-	context->locals[local] = val.type;
+	context->storeLocal(local, val.type);
 	context->push(val);
 	break;
 
@@ -692,7 +748,7 @@ void TypedCode::evaluateTypes(TypedContext *context)
 	varType = (context->lval() &&
 				context->params[param] != context->castType) ?
 		   LPC_TYPE_MIXED : context->castType;
-	context->params[param] = varType;
+	context->storeParam(param, varType);
 	sp = context->merge(sp);
 	context->endStores();
 	return;
@@ -701,7 +757,7 @@ void TypedCode::evaluateTypes(TypedContext *context)
 	varType = (context->lval() &&
 				context->locals[local] != context->castType) ?
 		   LPC_TYPE_MIXED : context->castType;
-	context->locals[local] = varType;
+	context->storeLocal(local, varType);
 	sp = context->merge(sp);
 	context->endStores();
 	return;
@@ -762,6 +818,7 @@ void TypedCode::evaluateTypes(TypedContext *context)
 	break;
 
     case CATCH:
+	context->startCatch();
 	break;
 
     case CAUGHT:
@@ -770,6 +827,7 @@ void TypedCode::evaluateTypes(TypedContext *context)
 	break;
 
     case END_CATCH:
+	context->endCatch();
 	break;
 
     case RLIMITS:
@@ -846,6 +904,9 @@ void TypedBlock::evaluateTypes(TypedContext *context, Block **list)
     Block *b;
 
     context->sp = sp;
+    context->block = this;
+    context->caught = caught;
+    context->list = list;
 
     for (code = first; ; code = code->next) {
 	code->evaluateTypes(context);

@@ -283,7 +283,6 @@ public:
     GenContext(FILE *stream, CodeFunction *func, StackSize size, int num,
 	       int flags) :
 	FlowContext(func, size), stream(stream), num(num), flags(flags) {
-	block = NULL;
 	next = 0;
 	line = 0;
 	switchList = NULL;
@@ -500,13 +499,13 @@ public:
     }
 
     /*
-     * store local variables
+     * store local variables that will be modified
      */
     void saveLocals() {
 	LPCLocal n;
 
 	for (n = 0; n < nLocals; n++) {
-	    if (block->localOut(n) != 0) {
+	    if (block->next->mod[nParams + n] && block->localOut(n) != 0) {
 		switch (block->localType(n)) {
 		case LPC_TYPE_INT:
 		    voidCallArgs(VM_STORE_LOCAL_INT);
@@ -562,7 +561,6 @@ public:
 
     FILE *stream;		/* output file */
     int num;			/* function number */
-    Block *block;		/* current block */
     CodeSize next;		/* address of next block */
     ClangCode *switchList;	/* list of switch tables */
     int flags;			/* jitcomp flags */
