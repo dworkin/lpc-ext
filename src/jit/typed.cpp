@@ -351,7 +351,6 @@ void TypedContext::startCatch()
 
 /*
  * Handle caught by setting modified parameter/variable types to LPC_TYPE_MIXED.
- * XXX Only do this for variables whose types are altered inside a catch.
  */
 void TypedContext::modCaught()
 {
