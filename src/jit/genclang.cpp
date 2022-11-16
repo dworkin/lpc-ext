@@ -856,12 +856,12 @@ void ClangCode::emit(GenContext *context)
 	    switch (offStack(context, sp)) {
 	    case LPC_TYPE_INT:
 		context->callArgs(VM_PARAM_INT, tmpRef(sp));
-		fprintf(context->stream, "i8 %u) #2\n", param);
+		fprintf(context->stream, "i8 %u)\n", param);
 		break;
 
 	    case LPC_TYPE_FLOAT:
 		context->callArgs(VM_PARAM_FLOAT, tmpRef(sp));
-		fprintf(context->stream, "i8 %u) #2\n", param);
+		fprintf(context->stream, "i8 %u)\n", param);
 		break;
 
 	    default:
@@ -889,12 +889,12 @@ void ClangCode::emit(GenContext *context)
 	    switch (offStack(context, sp)) {
 	    case LPC_TYPE_INT:
 		context->callArgs(VM_LOCAL_INT, tmpRef(sp));
-		fprintf(context->stream, "i8 %u) #2\n", local + 1);
+		fprintf(context->stream, "i8 %u)\n", local + 1);
 		break;
 
 	    case LPC_TYPE_FLOAT:
 		context->callArgs(VM_LOCAL_FLOAT, tmpRef(sp));
-		fprintf(context->stream, "i8 %u) #2\n", local + 1);
+		fprintf(context->stream, "i8 %u)\n", local + 1);
 		break;
 
 	    default:
@@ -1348,7 +1348,7 @@ void ClangCode::emit(GenContext *context)
 		    context->load(VM_SWITCH_RANGE));
 	    genTable(context, Int);
 	    fprintf(context->stream,
-		    ", " Int " %s) #2\n\tswitch i32 %s, label %%%s [\n",
+		    ", " Int " %s)\n\tswitch i32 %s, label %%%s [\n",
 		    tmpRef(context->sp), ref,
 		    context->target(context->block->to[0]));
 	    for (i = 1; i < size; i++) {
@@ -2425,7 +2425,6 @@ bool ClangObject::emit(char *base, int flags)
     fprintf(stream, "attributes #0 = { nounwind returns_twice }\n");
     fprintf(stream, "attributes #1 = { nounwind "
 		    "\"no-frame-pointer-elim\"=\"false\" }\n");
-    fprintf(stream, "attributes #2 = { readonly }\n");
 
     fclose(stream);
 
