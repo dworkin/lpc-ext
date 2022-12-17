@@ -14,6 +14,7 @@ LDFLAGS=-shared $(DEBUG)
 OBJ=	lpc_ext.o
 LIBLIB=	kfun/rgx/libiberty
 ZLIB=	1.2.11
+ZLIBDIR=$(ZLIB)
 
 all:	../lower_case.$(EXT) ../regexp.$(EXT)
 
@@ -55,7 +56,7 @@ jit/jit.o::
 	$(LD) -o $@ $(LDFLAGS) jit/jit.o $(OBJ)
 
 kfun/zlib/zlib.o:	kfun/zlib/zlib.c lpc_ext.h
-	$(CC) -o $@ -c $(CFLAGS) -I. -Ikfun/zlib/$(ZLIB) -DVERSION=$(ZLIB) \
+	$(CC) -o $@ -c $(CFLAGS) -I. -Ikfun/zlib/$(ZLIBDIR) -DVERSION=$(ZLIB) \
 	      kfun/zlib/zlib.c
 
 ../zlib.$(EXT):		kfun/zlib/zlib.o $(OBJ)

@@ -1,8 +1,12 @@
+The overaching license for the LPC extensions is the Unlicense.  Some modules
+or portions thereof in the src/kfun directory have their own open source
+license; please consult the relevant code for the details.
+
 doc		documentation
-src		API glue to compile with your kfun source code
+src		API glue to compile with your module
 src/dbase	example database module
 src/jit		JIT compiler module
-src/kfun	kfun source code
+src/kfun	kfun modules
 
 To build modules for most kfuns, just type 'make' (or whatever your GNU make
 command is) in the src directory.  On Windows, use Visual Studio 2010 with
@@ -26,6 +30,6 @@ the JIT cache will be created:
 On Windows, there are different solution files for the components of the JIT
 compiler.  lpc-ext.sln is used to build the JIT extension, jitcomp.sln is
 used to build the actual jit compiler which runs as a separate program, and
-which depends on clang.  clang can be installed as a component of Visual Studio
+which depends on clang.  Clang can be installed as a component of Visual Studio
 Community 2022.  Note that jitcomp.sln is a VS2019 solution, whereas
 lpc-ext.sln can be built with any Visual Studio version from 2010 onward.
