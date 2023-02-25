@@ -16,13 +16,11 @@ LIBLIB=	kfun/rgx/libiberty
 ZLIB=	1.2.11
 ZLIBDIR=$(ZLIB)
 
-all:	../lower_case.$(EXT) ../regexp.$(EXT)
+all:	../lower_case.$(EXT) ../regexp.$(EXT) ../dbase.$(EXT)
 
 jit:	../jit.$(EXT)
 
 zlib:	../zlib.$(EXT)
-
-dbase:	../dbase.$(EXT)
 
 crypto:	../crypto.$(EXT)
 
@@ -46,6 +44,12 @@ kfun/rgx/regex.o:	kfun/rgx/libiberty/regex.c
 ../regexp.$(EXT):	kfun/rgx/regexp.o kfun/rgx/regex.o $(OBJ)
 	$(LD) -o $@ $(LDFLAGS) $+
 
+dbase/dbase.o:	dbase/dbase.c lpc_ext.h
+	$(CC) -o $@ -c $(CFLAGS) -I. dbase/dbase.c
+
+../dbase.$(EXT):	dbase/dbase.o $(OBJ)
+	$(LD) -o $@ $(LDFLAGS) $+
+
 jit/jitcomp::
 	$(MAKE) -C jit 'DEFINES=$(DEFINES)' 'DEBUG=$(DEBUG)'
 
@@ -61,12 +65,6 @@ kfun/zlib/zlib.o:	kfun/zlib/zlib.c lpc_ext.h
 
 ../zlib.$(EXT):		kfun/zlib/zlib.o $(OBJ)
 	$(LD) -o $@ $(LDFLAGS) $+ -lz
-
-dbase/dbase.o:	dbase/dbase.c lpc_ext.h
-	$(CC) -o $@ -c $(CFLAGS) -I. dbase/dbase.c
-
-../dbase.$(EXT):	dbase/dbase.o $(OBJ)
-	$(LD) -o $@ $(LDFLAGS) $+
 
 kfun/crypto.o:	kfun/crypto.c lpc_ext.h
 	$(CC) -o $@ -c $(CFLAGS) -I. kfun/crypto.c
