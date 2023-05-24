@@ -7,6 +7,7 @@
 # include <string.h>
 # include <openssl/ssl.h>
 # include <openssl/bio.h>
+# include <openssl/err.h>
 # include "lpc_ext.h"
 
 
@@ -104,14 +105,17 @@ static bool init(LPC_frame f, const SSL_METHOD *method, SSL **ptls, BIO **pbio)
 
     context = SSL_CTX_new(method);
     if (context == NULL) {
+	ERR_get_error();
 	return FALSE;
     }
     tls = SSL_new(context);
     if (tls == NULL) {
+	ERR_get_error();
 	SSL_CTX_free(context);
 	return FALSE;
     }
-    if (!BIO_new_bio_pair(&internal, 0, &external, 0)) {
+    if (BIO_new_bio_pair(&internal, 0, &external, 0) <= 0) {
+	ERR_get_error();
 	SSL_free(tls);
 	SSL_CTX_free(context);
 	return FALSE;
@@ -135,11 +139,16 @@ static bool cert_key(SSL *tls, char *certificate, char *key)
 	return FALSE;
     }
     sprintf(buffer, "%s/%s", dir, certificate);
-    if (!SSL_use_certificate_chain_file(tls, buffer)) {
+    if (SSL_use_certificate_chain_file(tls, buffer) <= 0) {
+	ERR_get_error();
 	return FALSE;
     }
     sprintf(buffer, "%s/%s", dir, key);
-    return SSL_use_PrivateKey_file(tls, buffer, SSL_FILETYPE_PEM);
+    if (SSL_use_PrivateKey_file(tls, buffer, SSL_FILETYPE_PEM) <= 0) {
+	ERR_get_error();
+	return FALSE;
+    }
+    return TRUE;
 }
 
 /*
@@ -412,17 +421,15 @@ static char tls_server_proto[] = { LPC_TYPE_VOID, LPC_TYPE_STRING,
 				   LPC_TYPE_STRING, 0 };
 static char tls_client_proto[] = { LPC_TYPE_STRING, LPC_TYPE_VARARGS,
 				   LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
-static char tls_send_proto[] = { LPC_TYPE_ARRAY_OF(LPC_TYPE_STRING),
+static char tls_sendrecv_proto[] = { LPC_TYPE_ARRAY_OF(LPC_TYPE_STRING),
 				 LPC_TYPE_STRING, 0 };
-static char tls_receive_proto[] = { LPC_TYPE_ARRAY_OF(LPC_TYPE_STRING),
-				    LPC_TYPE_STRING, 0 };
 static char tls_close_proto[] = { LPC_TYPE_STRING, 0 };
 
 static LPC_ext_kfun kf[] = {
     { "tls_server", tls_server_proto, &kf_tls_server },
     { "tls_client", tls_client_proto, &kf_tls_client },
-    { "tls_send", tls_send_proto, &kf_tls_send },
-    { "tls_receive", tls_receive_proto, &kf_tls_receive },
+    { "tls_send", tls_sendrecv_proto, &kf_tls_send },
+    { "tls_receive", tls_sendrecv_proto, &kf_tls_receive },
     { "tls_close", tls_close_proto, &kf_tls_close }
 };
 
