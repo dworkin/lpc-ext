@@ -23,7 +23,8 @@ static void hash(const EVP_MD *md, LPC_frame f, int nargs, LPC_value retval)
 {
     EVP_MD_CTX *ctx;
     unsigned char digest[EVP_MAX_MD_SIZE];
-    int i, length;
+    int i;
+    unsigned int length;
     LPC_string str;
 
     ctx = EVP_MD_CTX_new();
@@ -38,7 +39,7 @@ static void hash(const EVP_MD *md, LPC_frame f, int nargs, LPC_value retval)
     EVP_MD_CTX_free(ctx);
 
     /* make a digest string */
-    str = lpc_string_new(lpc_frame_dataspace(f), digest, length);
+    str = lpc_string_new(lpc_frame_dataspace(f), (char *) digest, (int) length);
 
     /* put result in return value */
     lpc_string_putval(retval, str);
@@ -154,8 +155,8 @@ static void secure_random(LPC_frame f, int nargs, LPC_value retval)
 	lpc_runtime_error(f, "Invalid number of random bytes");
     }
     if (RAND_bytes(buffer, n) <= 0) {
-	sprintf(buffer, "OpenSSL error %lu", ERR_get_error());
-	lpc_runtime_error(f, buffer);
+	sprintf((char *) buffer, "OpenSSL error %lu", ERR_get_error());
+	lpc_runtime_error(f, (char *) buffer);
     }
 
     str = lpc_string_new(lpc_frame_dataspace(f), (char *) buffer, n);
@@ -165,49 +166,83 @@ static void secure_random(LPC_frame f, int nargs, LPC_value retval)
 /*
  * encrypt using AES-GCM
  */
-static void encrypt_aes_gcm(LPC_frame f, const EVP_CIPHER *cipher, int nbytes,
-			    LPC_value retval)
+static void encrypt_aes_gcm(LPC_frame f, int nargs, LPC_value retval,
+			    const EVP_CIPHER *cipher, int nbytes)
 {
+    LPC_value arg;
     LPC_string key, str, iv, aad;
-    LPC_dataspace data;
-    int length, aadlen, len;
-    char *plaintext, *ciphertext, *tag;
+    LPC_int taglen;
+    int length, ivlen, aadlen, len;
+    unsigned char *plaintext, *ciphertext, *tag;
     EVP_CIPHER_CTX *ctx;
 
-    key = lpc_string_getval(lpc_frame_arg(f, 4, 0));
+    if (nargs != 5) {
+	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
+    }
+    arg = lpc_frame_arg(f, 5, 0);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 2 for kfun encrypt");
+    }
+    key = lpc_string_getval(lpc_frame_arg(f, 5, 0));
     if (lpc_string_length(key) != nbytes) {
 	lpc_runtime_error(f, "Bad key");
     }
-    iv = lpc_string_getval(lpc_frame_arg(f, 4, 1));
-    if (lpc_string_length(iv) != 12) {
+    arg = lpc_frame_arg(f, 5, 1);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 3 for kfun encrypt");
+    }
+    iv = lpc_string_getval(arg);
+    ivlen = lpc_string_length(iv);
+    if (ivlen == 0 || ivlen > 16) {
 	lpc_runtime_error(f, "Bad IV");
     }
-    aad = lpc_string_getval(lpc_frame_arg(f, 4, 2));
+    arg = lpc_frame_arg(f, 5, 2);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 4 for kfun encrypt");
+    }
+    aad = lpc_string_getval(arg);
     aadlen = lpc_string_length(aad);
     if (aadlen == 0) {
 	lpc_runtime_error(f, "Bad AAD");
     }
-    str = lpc_string_getval(lpc_frame_arg(f, 4, 3));
+    arg = lpc_frame_arg(f, 5, 3);
+    if (lpc_value_type(arg) != LPC_TYPE_INT) {
+	lpc_runtime_error(f, "Bad argument 5 for kfun encrypt");
+    }
+    taglen = lpc_int_getval(arg);
+    if (taglen <= 0 || taglen > 16) {
+	lpc_runtime_error(f, "Bad tag length");
+    }
+    arg = lpc_frame_arg(f, 5, 4);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 6 for kfun encrypt");
+    }
+    str = lpc_string_getval(arg);
     length = lpc_string_length(str);
     if (length == 0) {
 	lpc_runtime_error(f, "Bad plaintext");
     }
-    plaintext = lpc_string_text(str);
+    plaintext = (unsigned char *) lpc_string_text(str);
 
     len = length;
-    length += 16;
+    length += taglen;
     ciphertext = alloca(length);
     tag = ciphertext + len;
 
     ctx = EVP_CIPHER_CTX_new();
     if (ctx == NULL ||
-	EVP_EncryptInit_ex(ctx, cipher, NULL, lpc_string_text(key),
-			   lpc_string_text(iv)) <= 0 ||
-	EVP_EncryptUpdate(ctx, NULL, &aadlen, lpc_string_text(aad),
+	EVP_EncryptInit_ex(ctx, cipher, NULL, NULL, NULL) <= 0 ||
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, ivlen, NULL) <= 0 ||
+	EVP_EncryptInit_ex(ctx, NULL, NULL,
+			   (unsigned char *) lpc_string_text(key),
+			   (unsigned char *) lpc_string_text(iv)) <= 0 ||
+	EVP_EncryptUpdate(ctx, NULL, &aadlen,
+			  (unsigned char *) lpc_string_text(aad),
 			  aadlen) <= 0 ||
 	EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, len) <= 0 ||
 	EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) <= 0 ||
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag) <= 0) {
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, (int) taglen, tag) <= 0)
+    {
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -215,80 +250,106 @@ static void encrypt_aes_gcm(LPC_frame f, const EVP_CIPHER *cipher, int nbytes,
     }
     EVP_CIPHER_CTX_free(ctx);
 
-    str = lpc_string_new(lpc_frame_dataspace(f), ciphertext, length);
+    str = lpc_string_new(lpc_frame_dataspace(f), (char *) ciphertext, length);
     lpc_string_putval(retval, str);
 }
 
 /*
- * ciphertext = encrypt("AEAD_AES_128_GCM", key, iv, aad, plaintext)
+ * ciphertext = encrypt("AES-128-GCM", key, iv, aad, taglen, plaintext)
  */
 static void encrypt_aes_128_gcm(LPC_frame f, int nargs, LPC_value retval)
 {
-    if (nargs != 4) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
-    }
-    encrypt_aes_gcm(f, cipher_aes_128_gcm, 16, retval);
+    encrypt_aes_gcm(f, nargs, retval, cipher_aes_128_gcm, 16);
 }
 
 /*
- * ciphertext = encrypt("AEAD_AES_256_GCM", key, iv, aad, plaintext)
+ * ciphertext = encrypt("AES-256-GCM", key, iv, aad, taglen, plaintext)
  */
 static void encrypt_aes_256_gcm(LPC_frame f, int nargs, LPC_value retval)
 {
-    if (nargs != 4) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
-    }
-    encrypt_aes_gcm(f, cipher_aes_256_gcm, 32, retval);
+    encrypt_aes_gcm(f, nargs, retval, cipher_aes_256_gcm, 32);
 }
 
 /*
- * ciphertext = encrypt("AEAD_CHACHS20_POLY1305", key, iv, aad, plaintext)
+ * ciphertext = encrypt("ChaCha20-Poly1305", key, iv, aad, taglen, plaintext)
  */
 static void encrypt_chacha20_poly1305(LPC_frame f, int nargs, LPC_value retval)
 {
+    LPC_value arg;
     LPC_string key, str, iv, aad;
-    LPC_dataspace data;
-    int length, aadlen, len;
-    char *plaintext, *ciphertext, *tag;
+    LPC_int taglen;
+    int length, ivlen, aadlen, len;
+    unsigned char *plaintext, *ciphertext, *tag;
     EVP_CIPHER_CTX *ctx;
 
-    if (nargs != 4) {
+    if (nargs != 5) {
 	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
     }
-    key = lpc_string_getval(lpc_frame_arg(f, 4, 0));
+    arg = lpc_frame_arg(f, 5, 0);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 2 for kfun encrypt");
+    }
+    key = lpc_string_getval(arg);
     if (lpc_string_length(key) != 32) {
 	lpc_runtime_error(f, "Bad key");
     }
-    iv = lpc_string_getval(lpc_frame_arg(f, 4, 1));
-    if (lpc_string_length(iv) != 12) {
+    arg = lpc_frame_arg(f, 5, 1);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 3 for kfun encrypt");
+    }
+    iv = lpc_string_getval(arg);
+    ivlen = lpc_string_length(iv);
+    if (ivlen == 0 || ivlen > 12) {
 	lpc_runtime_error(f, "Bad IV");
     }
-    aad = lpc_string_getval(lpc_frame_arg(f, 4, 2));
+    arg = lpc_frame_arg(f, 5, 2);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 4 for kfun encrypt");
+    }
+    aad = lpc_string_getval(arg);
     aadlen = lpc_string_length(aad);
     if (aadlen == 0) {
 	lpc_runtime_error(f, "Bad AAD");
     }
-    str = lpc_string_getval(lpc_frame_arg(f, 4, 3));
+    arg = lpc_frame_arg(f, 5, 3);
+    if (lpc_value_type(arg) != LPC_TYPE_INT) {
+	lpc_runtime_error(f, "Bad argument 5 for kfun encrypt");
+    }
+    taglen = lpc_int_getval(arg);
+    if (taglen <= 0 || taglen > 16) {
+	lpc_runtime_error(f, "Bag tag length");
+    }
+    arg = lpc_frame_arg(f, 5, 4);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 6 for kfun encrypt");
+    }
+    str = lpc_string_getval(arg);
     length = lpc_string_length(str);
     if (length == 0) {
 	lpc_runtime_error(f, "Bad plaintext");
     }
-    plaintext = lpc_string_text(str);
+    plaintext = (unsigned char *) lpc_string_text(str);
 
     len = length;
-    length += 16;
+    length += taglen;
     ciphertext = alloca(length);
     tag = ciphertext + len;
 
     ctx = EVP_CIPHER_CTX_new();
     if (ctx == NULL ||
-	EVP_EncryptInit_ex(ctx, cipher_chacha20_poly1305, NULL,
-			   lpc_string_text(key), lpc_string_text(iv)) <= 0 ||
-	EVP_EncryptUpdate(ctx, NULL, &aadlen, lpc_string_text(aad),
+	EVP_EncryptInit_ex(ctx, cipher_chacha20_poly1305, NULL, NULL,
+			   NULL) <= 0 ||
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL) <= 0 ||
+	EVP_EncryptInit_ex(ctx, NULL, NULL,
+			   (unsigned char *) lpc_string_text(key),
+			   (unsigned char *) lpc_string_text(iv)) <= 0 ||
+	EVP_EncryptUpdate(ctx, NULL, &aadlen,
+			  (unsigned char *) lpc_string_text(aad),
 			  aadlen) <= 0 ||
 	EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, len) <= 0 ||
 	EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) <= 0 ||
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, tag) <= 0) {
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, (int) taglen, tag) <= 0)
+    {
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -296,40 +357,69 @@ static void encrypt_chacha20_poly1305(LPC_frame f, int nargs, LPC_value retval)
     }
     EVP_CIPHER_CTX_free(ctx);
 
-    str = lpc_string_new(lpc_frame_dataspace(f), ciphertext, length);
+    str = lpc_string_new(lpc_frame_dataspace(f), (char *) ciphertext, length);
     lpc_string_putval(retval, str);
 }
 
 /*
- * encrypt using AES-CCM
+ * ciphertext = encrypt("AES-128-CCM", key, iv, aad, taglen, plaintext)
  */
-static void encrypt_aes_ccm(LPC_frame f, int taglen, LPC_value retval)
+static void encrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 {
+    LPC_value arg;
     LPC_string key, str, iv, aad;
-    LPC_dataspace data;
-    int length, aadlen, len;
-    char *plaintext, *ciphertext, *tag;
+    LPC_int taglen;
+    int length, ivlen, aadlen, len;
+    unsigned char *plaintext, *ciphertext, *tag;
     EVP_CIPHER_CTX *ctx;
 
-    key = lpc_string_getval(lpc_frame_arg(f, 4, 0));
+    if (nargs != 5) {
+	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
+    }
+    arg = lpc_frame_arg(f, 5, 0);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 2 for kfun encrypt");
+    }
+    key = lpc_string_getval(arg);
     if (lpc_string_length(key) != 16) {
 	lpc_runtime_error(f, "Bad key");
     }
-    iv = lpc_string_getval(lpc_frame_arg(f, 4, 1));
-    if (lpc_string_length(iv) != 12) {
+    arg = lpc_frame_arg(f, 5, 1);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 3 for kfun encrypt");
+    }
+    iv = lpc_string_getval(arg);
+    ivlen = lpc_string_length(iv);
+    if (ivlen < 7 || ivlen > 13) {
 	lpc_runtime_error(f, "Bad IV");
     }
-    aad = lpc_string_getval(lpc_frame_arg(f, 4, 2));
+    arg = lpc_frame_arg(f, 5, 2);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 4 for kfun encrypt");
+    }
+    aad = lpc_string_getval(arg);
     aadlen = lpc_string_length(aad);
     if (aadlen == 0) {
 	lpc_runtime_error(f, "Bad AAD");
     }
-    str = lpc_string_getval(lpc_frame_arg(f, 4, 3));
+    arg = lpc_frame_arg(f, 5, 3);
+    if (lpc_value_type(arg) != LPC_TYPE_INT) {
+	lpc_runtime_error(f, "Bad argument 5 for kfun encrypt");
+    }
+    taglen = lpc_int_getval(arg);
+    if (taglen < 4 || taglen > 16 || (taglen & 1)) {
+	lpc_runtime_error(f, "Bad tag length");
+    }
+    arg = lpc_frame_arg(f, 5, 4);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 6 for kfun encrypt");
+    }
+    str = lpc_string_getval(arg);
     length = lpc_string_length(str);
     if (length == 0) {
 	lpc_runtime_error(f, "Bad plaintext");
     }
-    plaintext = lpc_string_text(str);
+    plaintext = (unsigned char *) lpc_string_text(str);
 
     len = length;
     length += taglen;
@@ -339,16 +429,19 @@ static void encrypt_aes_ccm(LPC_frame f, int taglen, LPC_value retval)
     ctx = EVP_CIPHER_CTX_new();
     if (ctx == NULL ||
 	EVP_EncryptInit_ex(ctx, cipher_aes_128_ccm, NULL, NULL, NULL) <= 0 ||
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_IVLEN, 12, NULL) <= 0 ||
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_IVLEN, ivlen, NULL) <= 0 ||
 	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_TAG, taglen, NULL) <= 0 ||
-	EVP_EncryptInit_ex(ctx, NULL, NULL, lpc_string_text(key),
-			   lpc_string_text(iv)) <= 0 ||
+	EVP_EncryptInit_ex(ctx, NULL, NULL,
+			   (unsigned char *) lpc_string_text(key),
+			   (unsigned char *) lpc_string_text(iv)) <= 0 ||
 	EVP_EncryptUpdate(ctx, NULL, &len, NULL, len) <= 0 ||
-	EVP_EncryptUpdate(ctx, NULL, &aadlen, lpc_string_text(aad),
+	EVP_EncryptUpdate(ctx, NULL, &aadlen,
+			  (unsigned char *) lpc_string_text(aad),
 			  aadlen) <= 0 ||
 	EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, len) <= 0 ||
 	EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) <= 0 ||
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_GET_TAG, taglen, tag) <= 0) {
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_GET_TAG, (int) taglen, tag) <= 0)
+    {
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -356,76 +449,88 @@ static void encrypt_aes_ccm(LPC_frame f, int taglen, LPC_value retval)
     }
     EVP_CIPHER_CTX_free(ctx);
 
-    str = lpc_string_new(lpc_frame_dataspace(f), ciphertext, length);
+    str = lpc_string_new(lpc_frame_dataspace(f), (char *) ciphertext, length);
     lpc_string_putval(retval, str);
-}
-
-/*
- * ciphertext = encrypt("AEAD_AES_128_CCM", key, iv, aad, plaintext)
- */
-static void encrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
-{
-    if (nargs != 4) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
-    }
-    encrypt_aes_ccm(f, 16, retval);
-}
-
-/*
- * ciphertext = encrypt("AEAD_AES_128_CCM_8", key, iv, aad, plaintext)
- */
-static void encrypt_aes_128_ccm_8(LPC_frame f, int nargs, LPC_value retval)
-{
-    if (nargs != 4) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
-    }
-    encrypt_aes_ccm(f, 8, retval);
 }
 
 /*
  * decrypt using AES-GCM
  */
-static void decrypt_aes_gcm(LPC_frame f, const EVP_CIPHER *cipher, int nbytes,
-			    LPC_value retval)
+static void decrypt_aes_gcm(LPC_frame f, int nargs, LPC_value retval,
+			    const EVP_CIPHER *cipher, int nbytes)
 {
+    LPC_value arg;
     LPC_string key, str, iv, aad;
-    LPC_dataspace data;
-    int length, aadlen, len;
-    char *plaintext, *ciphertext, *tag;
+    LPC_int taglen;
+    int length, ivlen, aadlen, len;
+    unsigned char *plaintext, *ciphertext, *tag;
     EVP_CIPHER_CTX *ctx;
 
-    key = lpc_string_getval(lpc_frame_arg(f, 4, 0));
+    if (nargs != 5) {
+	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
+    }
+    arg = lpc_frame_arg(f, 5, 0);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 2 for kfun decrypt");
+    }
+    key = lpc_string_getval(arg);
     if (lpc_string_length(key) != nbytes) {
 	lpc_runtime_error(f, "Bad key");
     }
-    iv = lpc_string_getval(lpc_frame_arg(f, 4, 1));
-    if (lpc_string_length(iv) != 12) {
+    arg = lpc_frame_arg(f, 5, 1);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
+    }
+    iv = lpc_string_getval(arg);
+    ivlen = lpc_string_length(iv);
+    if (ivlen == 0 || ivlen > 16) {
 	lpc_runtime_error(f, "Bad IV");
     }
-    aad = lpc_string_getval(lpc_frame_arg(f, 4, 2));
+    arg = lpc_frame_arg(f, 5, 2);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
+    }
+    aad = lpc_string_getval(arg);
     aadlen = lpc_string_length(aad);
     if (aadlen == 0) {
 	lpc_runtime_error(f, "Bad AAD");
     }
-    str = lpc_string_getval(lpc_frame_arg(f, 4, 3));
+    arg = lpc_frame_arg(f, 5, 3);
+    if (lpc_value_type(arg) != LPC_TYPE_INT) {
+	lpc_runtime_error(f, "Bad argument 5 for kfun decrypt");
+    }
+    taglen = lpc_int_getval(arg);
+    if (taglen <= 0 || taglen > 16) {
+	lpc_runtime_error(f, "Bad tag length");
+    }
+    arg = lpc_frame_arg(f, 5, 4);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 6 for kfun decrypt");
+    }
+    str = lpc_string_getval(arg);
     length = lpc_string_length(str);
-    if (length == 0) {
+    if (length <= taglen) {
 	lpc_runtime_error(f, "Bad ciphertext");
     }
-    ciphertext = lpc_string_text(str);
+    ciphertext = (unsigned char *) lpc_string_text(str);
 
-    len = length -= 16;
+    len = length -= taglen;
     plaintext = alloca(length);
     tag = ciphertext + length;
 
     ctx = EVP_CIPHER_CTX_new();
     if (ctx == NULL ||
-	EVP_DecryptInit_ex(ctx, cipher, NULL, lpc_string_text(key),
-			   lpc_string_text(iv)) <= 0 ||
-	EVP_DecryptUpdate(ctx, NULL, &aadlen, lpc_string_text(aad),
+	EVP_DecryptInit_ex(ctx, cipher, NULL, NULL, NULL) <= 0 ||
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, ivlen, NULL) <= 0 ||
+	EVP_DecryptInit_ex(ctx, NULL, NULL,
+			   (unsigned char *) lpc_string_text(key),
+			   (unsigned char *) lpc_string_text(iv)) <= 0 ||
+	EVP_DecryptUpdate(ctx, NULL, &aadlen,
+			  (unsigned char *) lpc_string_text(aad),
 			  aadlen) <= 0 ||
 	EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, len) <= 0 ||
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, tag) <= 0) {
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, (int) taglen, tag) <= 0)
+    {
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -433,69 +538,90 @@ static void decrypt_aes_gcm(LPC_frame f, const EVP_CIPHER *cipher, int nbytes,
     }
 
     if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) > 0) {
-	str = lpc_string_new(lpc_frame_dataspace(f), plaintext, length);
+	str = lpc_string_new(lpc_frame_dataspace(f), (char *) plaintext,
+			     length);
 	lpc_string_putval(retval, str);
     }
     EVP_CIPHER_CTX_free(ctx);
 }
 
 /*
- * plaintext = decrypt("AEAD_AES_128_GCM", key, iv, aad, ciphertext)
+ * plaintext = decrypt("AES-128-GCM", key, iv, aad, taglen, ciphertext)
  */
 static void decrypt_aes_128_gcm(LPC_frame f, int nargs, LPC_value retval)
 {
-    if (nargs != 4) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
-    }
-    decrypt_aes_gcm(f, cipher_aes_128_gcm, 16, retval);
+    decrypt_aes_gcm(f, nargs, retval, cipher_aes_128_gcm, 16);
 }
 
 /*
- * plaintext = decrypt("AEAD_AES_256_GCM", key, iv, aad, ciphertext)
+ * plaintext = decrypt("AES-256-GCM", key, iv, aad, taglen, ciphertext)
  */
 static void decrypt_aes_256_gcm(LPC_frame f, int nargs, LPC_value retval)
 {
-    if (nargs != 4) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
-    }
-    decrypt_aes_gcm(f, cipher_aes_256_gcm, 32, retval);
+    decrypt_aes_gcm(f, nargs, retval, cipher_aes_256_gcm, 32);
 }
 
 /*
- * plaintext = decrypt("AEAD_CHACHA20_POLY1305", key, iv, aad, ciphertext)
+ * plaintext = decrypt("ChaCha20-Poly1305", key, iv, aad, taglen, ciphertext)
  */
 static void decrypt_chacha20_poly1305(LPC_frame f, int nargs, LPC_value retval)
 {
+    LPC_value arg;
     LPC_string key, str, iv, aad;
-    LPC_dataspace data;
-    int length, aadlen, len;
-    char *plaintext, *ciphertext, *tag;
+    LPC_int taglen;
+    int length, ivlen, aadlen, len;
+    unsigned char *plaintext, *ciphertext, *tag;
     EVP_CIPHER_CTX *ctx;
 
-    if (nargs != 4) {
+    if (nargs != 5) {
 	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
     }
-    key = lpc_string_getval(lpc_frame_arg(f, 4, 0));
+    arg = lpc_frame_arg(f, 5, 0);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 2 for kfun decrypt");
+    }
+    key = lpc_string_getval(arg);
     if (lpc_string_length(key) != 32) {
 	lpc_runtime_error(f, "Bad key");
     }
-    iv = lpc_string_getval(lpc_frame_arg(f, 4, 1));
-    if (lpc_string_length(iv) != 12) {
+    arg = lpc_frame_arg(f, 5, 1);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
+    }
+    iv = lpc_string_getval(arg);
+    ivlen = lpc_string_length(iv);
+    if (ivlen == 0 || ivlen > 12) {
 	lpc_runtime_error(f, "Bad IV");
     }
-    aad = lpc_string_getval(lpc_frame_arg(f, 4, 2));
+    arg = lpc_frame_arg(f, 5, 2);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
+    }
+    aad = lpc_string_getval(arg);
     aadlen = lpc_string_length(aad);
     if (aadlen == 0) {
 	lpc_runtime_error(f, "Bad AAD");
     }
-    str = lpc_string_getval(lpc_frame_arg(f, 4, 3));
+    arg = lpc_frame_arg(f, 5, 3);
+    if (lpc_value_type(arg) != LPC_TYPE_INT) {
+	lpc_runtime_error(f, "Bad argument 5 for kfun decrypt");
+    }
+    taglen = lpc_int_getval(arg);
+    if (taglen <= 0 || taglen > 16) {
+	lpc_runtime_error(f, "Bad tag length");
+    }
+    arg = lpc_frame_arg(f, 5, 4);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 6 for kfun decrypt");
+    }
+    str = lpc_string_getval(arg);
     length = lpc_string_length(str);
-    if (length == 0) {
+    if (length <= taglen) {
 	lpc_runtime_error(f, "Bad ciphertext");
     }
-    ciphertext = lpc_string_text(str);
+    ciphertext = (unsigned char *) lpc_string_text(str);
 
-    len = length -= 16;
+    len = length -= taglen;
     plaintext = alloca(length);
     tag = ciphertext + length;
 
@@ -503,10 +629,14 @@ static void decrypt_chacha20_poly1305(LPC_frame f, int nargs, LPC_value retval)
     if (ctx == NULL ||
 	EVP_DecryptInit_ex(ctx, cipher_chacha20_poly1305, NULL, NULL,
 			   NULL) <= 0 ||
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, tag) <= 0 ||
-	EVP_DecryptInit_ex(ctx, NULL, NULL, lpc_string_text(key),
-			   lpc_string_text(iv)) <= 0 ||
-	EVP_DecryptUpdate(ctx, NULL, &aadlen, lpc_string_text(aad),
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL) <= 0 ||
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, (int) taglen,
+			    tag) <= 0 ||
+	EVP_DecryptInit_ex(ctx, NULL, NULL,
+			   (unsigned char *) lpc_string_text(key),
+			   (unsigned char *) lpc_string_text(iv)) <= 0 ||
+	EVP_DecryptUpdate(ctx, NULL, &aadlen,
+			  (unsigned char *) lpc_string_text(aad),
 			  aadlen) <= 0 ||
 	EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, len) <= 0) {
 	if (ctx != NULL) {
@@ -516,42 +646,72 @@ static void decrypt_chacha20_poly1305(LPC_frame f, int nargs, LPC_value retval)
     }
 
     if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) > 0) {
-	str = lpc_string_new(lpc_frame_dataspace(f), plaintext, length);
+	str = lpc_string_new(lpc_frame_dataspace(f), (char *) plaintext,
+			     length);
 	lpc_string_putval(retval, str);
     }
     EVP_CIPHER_CTX_free(ctx);
 }
 
 /*
- * decrypt using AES-CCM
+ * plaintext = decrypt("AES-128-CCM", key, iv, aad, taglen, ciphertext)
  */
-static void decrypt_aes_ccm(LPC_frame f, int taglen, LPC_value retval)
+static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 {
+    LPC_value arg;
     LPC_string key, str, iv, aad;
-    LPC_dataspace data;
-    int length, aadlen, len;
-    char *plaintext, *ciphertext, *tag;
+    LPC_int taglen;
+    int length, ivlen, aadlen, len;
+    unsigned char *plaintext, *ciphertext, *tag;
     EVP_CIPHER_CTX *ctx;
 
-    key = lpc_string_getval(lpc_frame_arg(f, 4, 0));
+    if (nargs != 5) {
+	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
+    }
+    arg = lpc_frame_arg(f, 5, 0);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 2 for kfun decrypt");
+    }
+    key = lpc_string_getval(arg);
     if (lpc_string_length(key) != 16) {
 	lpc_runtime_error(f, "Bad key");
     }
-    iv = lpc_string_getval(lpc_frame_arg(f, 4, 1));
-    if (lpc_string_length(iv) != 12) {
+    arg = lpc_frame_arg(f, 5, 1);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
+    }
+    iv = lpc_string_getval(arg);
+    ivlen = lpc_string_length(iv);
+    if (ivlen < 7 || ivlen > 13) {
 	lpc_runtime_error(f, "Bad IV");
     }
-    aad = lpc_string_getval(lpc_frame_arg(f, 4, 2));
+    arg = lpc_frame_arg(f, 5, 2);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
+    }
+    aad = lpc_string_getval(arg);
     aadlen = lpc_string_length(aad);
     if (aadlen == 0) {
 	lpc_runtime_error(f, "Bad AAD");
     }
-    str = lpc_string_getval(lpc_frame_arg(f, 4, 3));
+    arg = lpc_frame_arg(f, 5, 3);
+    if (lpc_value_type(arg) != LPC_TYPE_INT) {
+	lpc_runtime_error(f, "Bad argument 5 for kfun decrypt");
+    }
+    taglen = lpc_int_getval(arg);
+    if (taglen < 4 || taglen > 16 || (taglen & 1)) {
+	lpc_runtime_error(f, "Bad tag length");
+    }
+    arg = lpc_frame_arg(f, 5, 4);
+    if (lpc_value_type(arg) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 6 for kfun decrypt");
+    }
+    str = lpc_string_getval(arg);
     length = lpc_string_length(str);
-    if (length == 0) {
+    if (length <= taglen) {
 	lpc_runtime_error(f, "Bad ciphertext");
     }
-    ciphertext = lpc_string_text(str);
+    ciphertext = (unsigned char *) lpc_string_text(str);
 
     len = length -= taglen;
     plaintext = alloca(length);
@@ -560,12 +720,15 @@ static void decrypt_aes_ccm(LPC_frame f, int taglen, LPC_value retval)
     ctx = EVP_CIPHER_CTX_new();
     if (ctx == NULL ||
 	EVP_DecryptInit_ex(ctx, cipher_aes_128_ccm, NULL, NULL, NULL) <= 0 ||
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_IVLEN, 12, NULL) <= 0 ||
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_TAG, taglen, tag) <= 0 ||
-	EVP_DecryptInit_ex(ctx, NULL, NULL, lpc_string_text(key),
-			   lpc_string_text(iv)) <= 0 ||
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_IVLEN, ivlen, NULL) <= 0 ||
+	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_SET_TAG, (int) taglen,
+			    tag) <= 0 ||
+	EVP_DecryptInit_ex(ctx, NULL, NULL,
+			   (unsigned char *) lpc_string_text(key),
+			   (unsigned char *) lpc_string_text(iv)) <= 0 ||
 	EVP_DecryptUpdate(ctx, NULL, &len, NULL, len) <= 0 ||
-	EVP_DecryptUpdate(ctx, NULL, &aadlen, lpc_string_text(aad),
+	EVP_DecryptUpdate(ctx, NULL, &aadlen,
+			  (unsigned char *) lpc_string_text(aad),
 			  aadlen) <= 0) {
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
@@ -574,39 +737,18 @@ static void decrypt_aes_ccm(LPC_frame f, int taglen, LPC_value retval)
     }
 
     if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, len) > 0) {
-	str = lpc_string_new(lpc_frame_dataspace(f), plaintext, length);
+	str = lpc_string_new(lpc_frame_dataspace(f), (char *) plaintext,
+			     length);
 	lpc_string_putval(retval, str);
     }
     EVP_CIPHER_CTX_free(ctx);
-}
-
-/*
- * plaintext = decrypt("AEAD_AES_128_CCM", key, iv, aad, ciphertext)
- */
-static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
-{
-    if (nargs != 4) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
-    }
-    decrypt_aes_ccm(f, 16, retval);
-}
-
-/*
- * plaintext = decrypt("AEAD_AES_128_CCM_8", key, iv, aad, ciphertext)
- */
-static void decrypt_aes_128_ccm_8(LPC_frame f, int nargs, LPC_value retval)
-{
-    if (nargs != 4) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
-    }
-    decrypt_aes_ccm(f, 8, retval);
 }
 
 static char hash_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_STRING,
 			     LPC_TYPE_ELLIPSIS, 0 };
 static char secure_random_proto[] = { LPC_TYPE_STRING, LPC_TYPE_INT, 0 };
 static char cipher_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
-			       LPC_TYPE_STRING, LPC_TYPE_STRING,
+			       LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_INT,
 			       LPC_TYPE_STRING, 0 };
 
 static LPC_ext_kfun kf[] = {
@@ -617,16 +759,14 @@ static LPC_ext_kfun kf[] = {
     { "hash SHA384", hash_proto, &sha384 },
     { "hash SHA512", hash_proto, &sha512 },
     { "secure_random", secure_random_proto, &secure_random },
-    { "encrypt AEAD_AES_128_GCM", cipher_proto, &encrypt_aes_128_gcm },
-    { "encrypt AEAD_AES_256_GCM", cipher_proto, &encrypt_aes_256_gcm },
-    { "encrypt AEAD_CHACHA20_POLY1305", cipher_proto, &encrypt_chacha20_poly1305 },
-    { "encrypt AEAD_AES_128_CCM", cipher_proto, &encrypt_aes_128_ccm },
-    { "encrypt AEAD_AES_128_CCM_8", cipher_proto, &encrypt_aes_128_ccm_8 },
-    { "decrypt AEAD_AES_128_GCM", cipher_proto, &decrypt_aes_128_gcm },
-    { "decrypt AEAD_AES_256_GCM", cipher_proto, &decrypt_aes_256_gcm },
-    { "decrypt AEAD_CHACHA20_POLY1305", cipher_proto, &decrypt_chacha20_poly1305 },
-    { "decrypt AEAD_AES_128_CCM", cipher_proto, &decrypt_aes_128_ccm },
-    { "decrypt AEAD_AES_128_CCM_8", cipher_proto, &decrypt_aes_128_ccm_8 },
+    { "encrypt AES-128-GCM", cipher_proto, &encrypt_aes_128_gcm },
+    { "encrypt AES-256-GCM", cipher_proto, &encrypt_aes_256_gcm },
+    { "encrypt ChaCha20-Poly1305", cipher_proto, &encrypt_chacha20_poly1305 },
+    { "encrypt AES-128-CCM", cipher_proto, &encrypt_aes_128_ccm },
+    { "decrypt AES-128-GCM", cipher_proto, &decrypt_aes_128_gcm },
+    { "decrypt AES-256-GCM", cipher_proto, &decrypt_aes_256_gcm },
+    { "decrypt ChaCha20-Poly1305", cipher_proto, &decrypt_chacha20_poly1305 },
+    { "decrypt AES-128-CCM", cipher_proto, &decrypt_aes_128_ccm }
 };
 
 int lpc_ext_init(int major, int minor, const char *config)
@@ -642,6 +782,6 @@ int lpc_ext_init(int major, int minor, const char *config)
     cipher_chacha20_poly1305 = EVP_get_cipherbyname("ChaCha20-Poly1305");
     cipher_aes_128_ccm = EVP_get_cipherbyname("id-aes128-CCM");
 
-    lpc_ext_kfun(kf, 17);
+    lpc_ext_kfun(kf, 15);
     return 1;
 }
