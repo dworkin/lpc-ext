@@ -158,7 +158,7 @@ LPCEXT void			(*lpc_mapping_assign)(LPC_dataspace,
 LPCEXT LPC_value		(*lpc_mapping_enum)(LPC_mapping, unsigned int);
 LPCEXT int			(*lpc_mapping_size)(LPC_mapping);
 
-LPCEXT void			(*lpc_runtime_error)(LPC_frame, char*);
+LPCEXT void			(*lpc_runtime_error)(LPC_frame, const char*);
 LPCEXT void			(*lpc_md5_start)(uint32_t*);
 LPCEXT void			(*lpc_md5_block)(uint32_t*,
 						 const unsigned char*);

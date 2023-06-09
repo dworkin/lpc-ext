@@ -6,7 +6,10 @@
 
 # include <openssl/evp.h>
 # include <openssl/rand.h>
+# include <openssl/x509v3.h>
+# include <openssl/x509_vfy.h>
 # include <openssl/err.h>
+# include <string.h>
 # include <alloca.h>
 # include "lpc_ext.h"
 
@@ -146,7 +149,7 @@ static void sha512(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secure_random(LPC_frame f, int nargs, LPC_value retval)
 {
-    unsigned char buffer[256 / 8];
+    unsigned char buffer[256];
     LPC_int n;
     LPC_string str;
 
@@ -155,12 +158,108 @@ static void secure_random(LPC_frame f, int nargs, LPC_value retval)
 	lpc_runtime_error(f, "Invalid number of random bytes");
     }
     if (RAND_bytes(buffer, n) <= 0) {
-	sprintf((char *) buffer, "OpenSSL error %lu", ERR_get_error());
+	ERR_error_string(ERR_get_error(), (char *) buffer);
 	lpc_runtime_error(f, (char *) buffer);
     }
 
     str = lpc_string_new(lpc_frame_dataspace(f), (char *) buffer, n);
     lpc_string_putval(retval, str);
+}
+
+/*
+ * failure_reason = verify_certificate(purpose, certificate, intermediates...)
+ */
+static void verify_certificate(LPC_frame f, int nargs, LPC_value retval)
+{
+    LPC_string str;
+    int purpose, i;
+    const unsigned char *p;
+    X509 *certificate, *intermediate;
+    STACK_OF(X509) *intermediates;
+    X509_STORE_CTX *context;
+    X509_STORE *store;
+
+    /* purpose */
+    str = lpc_string_getval(lpc_frame_arg(f, nargs, 0));
+    if (lpc_string_length(str) != 10) {
+	lpc_runtime_error(f, "Invalid purpose");
+    }
+    if (strcmp(lpc_string_text(str), "TLS server") == 0) {
+	purpose = X509_PURPOSE_SSL_SERVER;
+    } else if (strcmp(lpc_string_text(str), "TLS client") == 0) {
+	purpose = X509_PURPOSE_SSL_CLIENT;
+    } else {
+	lpc_runtime_error(f, "Invalid purpose");
+    }
+
+    /* target certificate */
+    str = lpc_string_getval(lpc_frame_arg(f, nargs, 1));
+    p = (const unsigned char *) lpc_string_text(str);
+    certificate = d2i_X509(NULL, &p, lpc_string_length(str));
+    if (certificate == NULL) {
+	lpc_runtime_error(f, "Bad certificate");
+    }
+
+    /* intermediate certificates */
+    intermediates = sk_X509_new_reserve(NULL, 1);
+    if (intermediates == NULL) {
+	X509_free(certificate);
+	lpc_runtime_error(f, "SSL stack error");
+    }
+    for (i = 2; i < nargs; i++) {
+	str = lpc_string_getval(lpc_frame_arg(f, nargs, i));
+	p = (const unsigned char *) lpc_string_text(str);
+	intermediate = d2i_X509(NULL, &p, lpc_string_length(str));
+	if (intermediate == NULL) {
+	    sk_X509_pop_free(intermediates, X509_free);
+	    X509_free(certificate);
+	    lpc_runtime_error(f, "Bad intermediate certificate");
+	}
+	sk_X509_push(intermediates, intermediate);
+    }
+
+    /* prepare context */
+    store = X509_STORE_new();
+    context = X509_STORE_CTX_new();
+    if (store == NULL || context == NULL ||
+	X509_STORE_set_default_paths(store) <= 0 ||
+	X509_STORE_CTX_init(context, store, certificate, intermediates) <= 0 ||
+	X509_STORE_CTX_set_purpose(context, purpose) <= 0) {
+	if (context != NULL) {
+	    X509_STORE_CTX_free(context);
+	}
+	if (store != NULL) {
+	    X509_STORE_free(store);
+	}
+	sk_X509_pop_free(intermediates, X509_free);
+	X509_free(certificate);
+	lpc_runtime_error(f, "SSL context error");
+    }
+
+    /* verify */
+    i = X509_verify_cert(context);
+    if (i <= 0) {
+	int code;
+	const char *error;
+
+	code = X509_STORE_CTX_get_error(context);
+	error = X509_verify_cert_error_string(code);
+	if (i < 0) {
+	    X509_STORE_CTX_free(context);
+	    X509_STORE_free(store);
+	    sk_X509_pop_free(intermediates, X509_free);
+	    X509_free(certificate);
+	    lpc_runtime_error(f, error);
+	}
+	lpc_string_putval(retval, lpc_string_new(lpc_frame_dataspace(f),
+						 error, strlen(error)));
+    }
+
+    /* cleanup */
+    X509_STORE_CTX_free(context);
+    X509_STORE_free(store);
+    sk_X509_pop_free(intermediates, X509_free);
+    X509_free(certificate);
 }
 
 /*
@@ -747,6 +846,9 @@ static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 static char hash_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_STRING,
 			     LPC_TYPE_ELLIPSIS, 0 };
 static char secure_random_proto[] = { LPC_TYPE_STRING, LPC_TYPE_INT, 0 };
+static char verify_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
+			       LPC_TYPE_STRING, LPC_TYPE_STRING,
+			       LPC_TYPE_ELLIPSIS, 0 };
 static char cipher_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
 			       LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_INT,
 			       LPC_TYPE_STRING, 0 };
@@ -759,6 +861,7 @@ static LPC_ext_kfun kf[] = {
     { "hash SHA384", hash_proto, &sha384 },
     { "hash SHA512", hash_proto, &sha512 },
     { "secure_random", secure_random_proto, &secure_random },
+    { "verify_certificate", verify_proto, &verify_certificate },
     { "encrypt AES-128-GCM", cipher_proto, &encrypt_aes_128_gcm },
     { "encrypt AES-256-GCM", cipher_proto, &encrypt_aes_256_gcm },
     { "encrypt ChaCha20-Poly1305", cipher_proto, &encrypt_chacha20_poly1305 },
@@ -782,6 +885,6 @@ int lpc_ext_init(int major, int minor, const char *config)
     cipher_chacha20_poly1305 = EVP_get_cipherbyname("ChaCha20-Poly1305");
     cipher_aes_128_ccm = EVP_get_cipherbyname("id-aes128-CCM");
 
-    lpc_ext_kfun(kf, 15);
+    lpc_ext_kfun(kf, 16);
     return 1;
 }
