@@ -149,20 +149,20 @@ static void sha512(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secure_random(LPC_frame f, int nargs, LPC_value retval)
 {
-    unsigned char buffer[256];
+    char buffer[65535];
     LPC_int n;
     LPC_string str;
 
     n = lpc_int_getval(lpc_frame_arg(f, nargs, 0));
-    if (n <= 0 || n > 256 / 8) {
+    if (n <= 0 || n > sizeof(buffer)) {
 	lpc_runtime_error(f, "Invalid number of random bytes");
     }
-    if (RAND_bytes(buffer, n) <= 0) {
-	ERR_error_string(ERR_get_error(), (char *) buffer);
-	lpc_runtime_error(f, (char *) buffer);
+    if (RAND_bytes((unsigned char *) buffer, n) <= 0) {
+	ERR_error_string(ERR_get_error(), buffer);
+	lpc_runtime_error(f, buffer);
     }
 
-    str = lpc_string_new(lpc_frame_dataspace(f), (char *) buffer, n);
+    str = lpc_string_new(lpc_frame_dataspace(f), buffer, n);
     lpc_string_putval(retval, str);
 }
 

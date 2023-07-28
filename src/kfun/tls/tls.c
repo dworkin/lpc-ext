@@ -105,17 +105,17 @@ static bool init(LPC_frame f, const SSL_METHOD *method, SSL **ptls, BIO **pbio)
 
     context = SSL_CTX_new(method);
     if (context == NULL) {
-	ERR_get_error();
+	ERR_clear_error();
 	return FALSE;
     }
     tls = SSL_new(context);
     if (tls == NULL) {
-	ERR_get_error();
+	ERR_clear_error();
 	SSL_CTX_free(context);
 	return FALSE;
     }
     if (BIO_new_bio_pair(&internal, 0, &external, 0) <= 0) {
-	ERR_get_error();
+	ERR_clear_error();
 	SSL_free(tls);
 	SSL_CTX_free(context);
 	return FALSE;
@@ -140,12 +140,12 @@ static bool cert_key(SSL *tls, char *certificate, char *key)
     }
     sprintf(buffer, "%s/%s", dir, certificate);
     if (SSL_use_certificate_chain_file(tls, buffer) <= 0) {
-	ERR_get_error();
+	ERR_clear_error();
 	return FALSE;
     }
     sprintf(buffer, "%s/%s", dir, key);
     if (SSL_use_PrivateKey_file(tls, buffer, SSL_FILETYPE_PEM) <= 0) {
-	ERR_get_error();
+	ERR_clear_error();
 	return FALSE;
     }
     return TRUE;
@@ -268,9 +268,13 @@ static void kf_tls_send(LPC_frame f, int nargs, LPC_value retval)
 	/* send bytes through TLS */
 	size = 0;
 	ret = SSL_write_ex(tls, text, len, &size);
-	if (ret <= 0 && SSL_get_error(tls, ret) != SSL_ERROR_WANT_READ &&
-	    SSL_get_error(tls, ret) != SSL_ERROR_WANT_WRITE) {
-	    lpc_runtime_error(f, "Unrecoverable TLS error");
+	if (ret <= 0) {
+	    if (SSL_get_error(tls, ret) != SSL_ERROR_WANT_READ &&
+		SSL_get_error(tls, ret) != SSL_ERROR_WANT_WRITE) {
+		ERR_clear_error();
+		lpc_runtime_error(f, "Unrecoverable TLS error");
+	    }
+	    ERR_clear_error();
 	}
 	text += size;
 	len -= size;
@@ -340,8 +344,10 @@ static void kf_tls_receive(LPC_frame f, int nargs, LPC_value retval)
 	    if (SSL_get_error(tls, ret) != SSL_ERROR_WANT_READ &&
 		SSL_get_error(tls, ret) != SSL_ERROR_WANT_WRITE &&
 		SSL_get_error(tls, ret) != SSL_ERROR_ZERO_RETURN) {
+		ERR_clear_error();
 		lpc_runtime_error(f, "Unrecoverable TLS error");
 	    }
+	    ERR_clear_error();
 	} else {
 	    progress += size;
 	}
