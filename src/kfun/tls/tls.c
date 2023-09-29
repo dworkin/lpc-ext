@@ -250,7 +250,7 @@ static void kf_tls_send(LPC_frame f, int nargs, LPC_value retval)
     SSL *tls;
     BIO *bio;
     LPC_string str;
-    char *text;
+    const char *text;
     size_t len, size, buflen;
     int ret;
     LPC_array array;
@@ -269,10 +269,20 @@ static void kf_tls_send(LPC_frame f, int nargs, LPC_value retval)
 	size = 0;
 	ret = SSL_write_ex(tls, text, len, &size);
 	if (ret <= 0) {
-	    if (SSL_get_error(tls, ret) != SSL_ERROR_WANT_READ &&
-		SSL_get_error(tls, ret) != SSL_ERROR_WANT_WRITE) {
+	    ret = SSL_get_error(tls, ret);
+	    if (ret != SSL_ERROR_WANT_READ &&
+		ret != SSL_ERROR_WANT_WRITE) {
+		if (ret == SSL_ERROR_SSL) {
+		    text = ERR_reason_error_string(ERR_get_error());
+		    if (text == NULL) {
+			text = "unknown error";
+		    }
+		} else {
+		    text = "unknown error";
+		}
+		sprintf(buffer, "TLS: %s", text);
 		ERR_clear_error();
-		lpc_runtime_error(f, "Unrecoverable TLS error");
+		lpc_runtime_error(f, buffer);
 	    }
 	    ERR_clear_error();
 	}
@@ -312,7 +322,7 @@ static void kf_tls_receive(LPC_frame f, int nargs, LPC_value retval)
     SSL *tls;
     BIO *bio;
     LPC_string str;
-    char *text;
+    const char *text;
     size_t len, progress, size, buflen, outbuflen;
     int ret;
     LPC_array array;
@@ -341,11 +351,21 @@ static void kf_tls_receive(LPC_frame f, int nargs, LPC_value retval)
 	size = 0;
 	ret = SSL_read_ex(tls, buffer + buflen, sizeof(buffer) - buflen, &size);
 	if (ret <= 0) {
-	    if (SSL_get_error(tls, ret) != SSL_ERROR_WANT_READ &&
-		SSL_get_error(tls, ret) != SSL_ERROR_WANT_WRITE &&
-		SSL_get_error(tls, ret) != SSL_ERROR_ZERO_RETURN) {
+	    ret = SSL_get_error(tls, ret);
+	    if (ret != SSL_ERROR_WANT_READ &&
+		ret != SSL_ERROR_WANT_WRITE &&
+		ret != SSL_ERROR_ZERO_RETURN) {
+		if (ret == SSL_ERROR_SSL) {
+		    text = ERR_reason_error_string(ERR_get_error());
+		    if (text == NULL) {
+			text = "unknown error";
+		    }
+		} else {
+		    text = "unknown error";
+		}
+		sprintf(buffer, "TLS: %s", text);
 		ERR_clear_error();
-		lpc_runtime_error(f, "Unrecoverable TLS error");
+		lpc_runtime_error(f, buffer);
 	    }
 	    ERR_clear_error();
 	} else {
