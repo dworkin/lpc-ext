@@ -6,7 +6,7 @@ relocation of buffers, which is needed by the kfun module.
 Therefore, the kfun module does its own reallocation, adjusting pointers when
 needed.  This means that the kfun module has to know about zlib internal
 datastructures, which can change between zlib versions.  Currently, the
-kfun module supports zlib versions 1.2.11 and 1.2.8.
+kfun module supports zlib versions 1.2.8, 1.2.11 to 1.2.13, and 1.3.
 
 Thanks to buffer reallocation, the compression kfuns can be used in atomic
 functions (an error will roll back the compression state too) and across
