@@ -8,6 +8,7 @@
 # include <openssl/rand.h>
 # include <openssl/x509v3.h>
 # include <openssl/x509_vfy.h>
+# include <openssl/bn.h>
 # include <openssl/err.h>
 # include <string.h>
 # include <alloca.h>
@@ -197,12 +198,14 @@ static void verify_certificate(LPC_frame f, int nargs, LPC_value retval)
     p = (const unsigned char *) lpc_string_text(str);
     certificate = d2i_X509(NULL, &p, lpc_string_length(str));
     if (certificate == NULL) {
+	ERR_clear_error();
 	lpc_runtime_error(f, "Bad certificate");
     }
 
     /* intermediate certificates */
     intermediates = sk_X509_new_reserve(NULL, 1);
     if (intermediates == NULL) {
+	ERR_clear_error();
 	X509_free(certificate);
 	lpc_runtime_error(f, "SSL stack error");
     }
@@ -211,6 +214,7 @@ static void verify_certificate(LPC_frame f, int nargs, LPC_value retval)
 	p = (const unsigned char *) lpc_string_text(str);
 	intermediate = d2i_X509(NULL, &p, lpc_string_length(str));
 	if (intermediate == NULL) {
+	    ERR_clear_error();
 	    sk_X509_pop_free(intermediates, X509_free);
 	    X509_free(certificate);
 	    lpc_runtime_error(f, "Bad intermediate certificate");
@@ -225,6 +229,7 @@ static void verify_certificate(LPC_frame f, int nargs, LPC_value retval)
 	X509_STORE_set_default_paths(store) <= 0 ||
 	X509_STORE_CTX_init(context, store, certificate, intermediates) <= 0 ||
 	X509_STORE_CTX_set_purpose(context, purpose) <= 0) {
+	ERR_clear_error();
 	if (context != NULL) {
 	    X509_STORE_CTX_free(context);
 	}
@@ -245,6 +250,7 @@ static void verify_certificate(LPC_frame f, int nargs, LPC_value retval)
 	code = X509_STORE_CTX_get_error(context);
 	error = X509_verify_cert_error_string(code);
 	if (i < 0) {
+	    ERR_clear_error();
 	    X509_STORE_CTX_free(context);
 	    X509_STORE_free(store);
 	    sk_X509_pop_free(intermediates, X509_free);
@@ -342,6 +348,7 @@ static void encrypt_aes_gcm(LPC_frame f, int nargs, LPC_value retval,
 	EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) <= 0 ||
 	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, (int) taglen, tag) <= 0)
     {
+	ERR_clear_error();
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -449,6 +456,7 @@ static void encrypt_chacha20_poly1305(LPC_frame f, int nargs, LPC_value retval)
 	EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) <= 0 ||
 	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, (int) taglen, tag) <= 0)
     {
+	ERR_clear_error();
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -541,6 +549,7 @@ static void encrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 	EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) <= 0 ||
 	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_CCM_GET_TAG, (int) taglen, tag) <= 0)
     {
+	ERR_clear_error();
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -550,6 +559,88 @@ static void encrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 
     str = lpc_string_new(lpc_frame_dataspace(f), (char *) ciphertext, length);
     lpc_string_putval(retval, str);
+}
+
+/*
+ * from 3072 to NID_ffdhe3072
+ */
+static int ffdhe_id(LPC_frame f, int id)
+{
+    switch (id) {
+    case 2048:	return NID_ffdhe2048;
+    case 3072:	return NID_ffdhe3072;
+    case 4096:	return NID_ffdhe4096;
+    case 6144:	return NID_ffdhe6144;
+    case 8192:	return NID_ffdhe8192;
+    }
+
+    lpc_runtime_error(f, "Bad argument 2 for kfun encrypt");
+}
+
+/*
+ * ({ pubkey, privkey }) = encrypt("FFDHE key", 3072)
+ */
+static void ffdhe_key(LPC_frame f, int nargs, LPC_value retval)
+{
+    LPC_value val;
+    int nid;
+    EVP_PKEY_CTX *context;
+    EVP_PKEY *key;
+    const DH *dh;
+    const BIGNUM *pub, *priv;
+    LPC_dataspace data;
+    LPC_array a;
+    LPC_string str;
+
+    if (nargs != 1) {
+	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
+    }
+    val = lpc_frame_arg(f, nargs, 0);
+    if (lpc_value_type(val) != LPC_TYPE_INT) {
+	lpc_runtime_error(f, "Bad argument 2 for kfun encrypt");
+    }
+    nid = ffdhe_id(f, lpc_int_getval(val));
+
+    /* create DH public and private key */
+    context = EVP_PKEY_CTX_new_id(EVP_PKEY_DH, NULL);
+    key = NULL;
+    if (context == NULL || EVP_PKEY_keygen_init(context) <= 0 ||
+	EVP_PKEY_CTX_set_dh_nid(context, nid) <= 0 ||
+	EVP_PKEY_keygen(context, &key) <= 0 ||
+	(dh=EVP_PKEY_get0_DH(key)) == NULL) {
+	ERR_clear_error();
+	if (key != NULL) {
+	    EVP_PKEY_free(key);
+	}
+	if (context != NULL) {
+	    EVP_PKEY_CTX_free(context);
+	}
+	lpc_runtime_error(f, "FFDHE key failed");
+    }
+
+    /* obtain public and private key */
+    pub = NULL;
+    priv = NULL;
+    DH_get0_key(dh, &pub, &priv);
+
+    /* store public and private key in LPC array */
+    data = lpc_frame_dataspace(f);
+    a = lpc_array_new(data, 2);
+    val = lpc_value_temp(data);
+    str = lpc_string_new(data, NULL, BN_num_bytes(pub));
+    BN_bn2bin(pub, lpc_string_text(str));
+    lpc_string_putval(val, str);
+    lpc_array_assign(data, a, 0, val);
+    str = lpc_string_new(data, NULL, BN_num_bytes(priv));
+    BN_bn2bin(priv, lpc_string_text(str));
+    lpc_string_putval(val, str);
+    lpc_array_assign(data, a, 1, val);
+
+    EVP_PKEY_free(key);
+    EVP_PKEY_CTX_free(context);
+
+    /* return ({ public, private }) */
+    lpc_array_putval(retval, a);
 }
 
 /*
@@ -630,6 +721,7 @@ static void decrypt_aes_gcm(LPC_frame f, int nargs, LPC_value retval,
 	EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, len) <= 0 ||
 	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, (int) taglen, tag) <= 0)
     {
+	ERR_clear_error();
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -738,6 +830,7 @@ static void decrypt_chacha20_poly1305(LPC_frame f, int nargs, LPC_value retval)
 			  (unsigned char *) lpc_string_text(aad),
 			  aadlen) <= 0 ||
 	EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, len) <= 0) {
+	ERR_clear_error();
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -829,6 +922,7 @@ static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 	EVP_DecryptUpdate(ctx, NULL, &aadlen,
 			  (unsigned char *) lpc_string_text(aad),
 			  aadlen) <= 0) {
+	ERR_clear_error();
 	if (ctx != NULL) {
 	    EVP_CIPHER_CTX_free(ctx);
 	}
@@ -843,6 +937,96 @@ static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
     EVP_CIPHER_CTX_free(ctx);
 }
 
+/*
+ * shared_secret = decrypt("FFDHE derive", 3072, foreignkey, privkey)
+ */
+static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
+{
+    LPC_value val;
+    int nid;
+    LPC_string pub, priv, secret;
+    BIGNUM *bn;
+    DH *dh;
+    EVP_PKEY *key;
+    EVP_PKEY_CTX *context;
+    size_t len;
+
+    /* retrieve arguments */
+    if (nargs != 3) {
+	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
+    }
+    val = lpc_frame_arg(f, nargs, 0);
+    if (lpc_value_type(val) != LPC_TYPE_INT) {
+	lpc_runtime_error(f, "Bad argument 2 for kfun decrypt");
+    }
+    nid = ffdhe_id(f, lpc_int_getval(val));
+    val = lpc_frame_arg(f, nargs, 1);
+    if (lpc_value_type(val) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
+    }
+    pub = lpc_string_getval(val);
+    val = lpc_frame_arg(f, nargs, 2);
+    if (lpc_value_type(val) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
+    }
+    priv = lpc_string_getval(val);
+
+    /* FFDHE context with private key */
+    bn = BN_bin2bn(lpc_string_text(priv), lpc_string_length(priv), NULL);
+    dh = NULL;
+    key = NULL;
+    if (bn == NULL || (dh=DH_new_by_nid(nid)) == NULL ||
+	DH_set0_key(dh, NULL, bn) <= 0 || (key=EVP_PKEY_new()) == NULL ||
+	EVP_PKEY_assign_DH(key, dh) <= 0 ||
+	(context=EVP_PKEY_CTX_new(key, NULL)) == NULL) {
+	ERR_clear_error();
+	if (key != NULL) {
+	    EVP_PKEY_free(key);
+	} else if (dh != NULL) {
+	    DH_free(dh);
+	} else if (bn != NULL) {
+	    BN_free(bn);
+	}
+	lpc_runtime_error(f, "FFDHE derive context failed");
+    }
+    EVP_PKEY_free(key);
+
+    /* peer key */
+    bn = BN_bin2bn(lpc_string_text(pub), lpc_string_length(pub), NULL);
+    dh = NULL;
+    key = NULL;
+    if (bn == NULL || (dh=DH_new_by_nid(nid)) == NULL ||
+	DH_set0_key(dh, bn, NULL) <= 0 || (key=EVP_PKEY_new()) == NULL ||
+	EVP_PKEY_assign_DH(key, dh) <= 0) {
+	ERR_clear_error();
+	if (key != NULL) {
+	    EVP_PKEY_free(key);
+	} else if (dh != NULL) {
+	    DH_free(dh);
+	} else if (bn != NULL) {
+	    BN_free(bn);
+	}
+	lpc_runtime_error(f, "FFDHE derive peer failed");
+    }
+
+    /* derive shared secret */
+    if (EVP_PKEY_derive_init(context) <= 0 ||
+	EVP_PKEY_derive_set_peer(context, key) <= 0 ||
+	EVP_PKEY_derive(context, NULL, &len) <= 0) {
+	ERR_clear_error();
+	EVP_PKEY_free(key);
+	EVP_PKEY_CTX_free(context);
+	lpc_runtime_error(f, "FFDHE derive failed");
+    }
+    secret = lpc_string_new(lpc_frame_dataspace(f), NULL, len);
+    EVP_PKEY_derive(context, lpc_string_text(secret), &len);
+
+    EVP_PKEY_free(key);
+    EVP_PKEY_CTX_free(context);
+
+    lpc_string_putval(retval, secret);
+}
+
 static char hash_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_STRING,
 			     LPC_TYPE_ELLIPSIS, 0 };
 static char secure_random_proto[] = { LPC_TYPE_STRING, LPC_TYPE_INT, 0 };
@@ -852,6 +1036,11 @@ static char verify_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
 static char cipher_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
 			       LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_INT,
 			       LPC_TYPE_STRING, 0 };
+static char ffdhe_key_proto[] = { LPC_TYPE_ARRAY_OF(LPC_TYPE_STRING),
+				  LPC_TYPE_STRING, LPC_TYPE_INT, 0 };
+static char ffdhe_derive_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
+				     LPC_TYPE_STRING, LPC_TYPE_INT,
+				     LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
 
 static LPC_ext_kfun kf[] = {
     { "hash MD5", hash_proto, &md5 },
@@ -866,10 +1055,12 @@ static LPC_ext_kfun kf[] = {
     { "encrypt AES-256-GCM", cipher_proto, &encrypt_aes_256_gcm },
     { "encrypt ChaCha20-Poly1305", cipher_proto, &encrypt_chacha20_poly1305 },
     { "encrypt AES-128-CCM", cipher_proto, &encrypt_aes_128_ccm },
+    { "encrypt FFDHE key", ffdhe_key_proto, &ffdhe_key },
     { "decrypt AES-128-GCM", cipher_proto, &decrypt_aes_128_gcm },
     { "decrypt AES-256-GCM", cipher_proto, &decrypt_aes_256_gcm },
     { "decrypt ChaCha20-Poly1305", cipher_proto, &decrypt_chacha20_poly1305 },
-    { "decrypt AES-128-CCM", cipher_proto, &decrypt_aes_128_ccm }
+    { "decrypt AES-128-CCM", cipher_proto, &decrypt_aes_128_ccm },
+    { "decrypt FFDHE derive", ffdhe_derive_proto, &ffdhe_derive }
 };
 
 int lpc_ext_init(int major, int minor, const char *config)
@@ -885,6 +1076,6 @@ int lpc_ext_init(int major, int minor, const char *config)
     cipher_chacha20_poly1305 = EVP_get_cipherbyname("ChaCha20-Poly1305");
     cipher_aes_128_ccm = EVP_get_cipherbyname("id-aes128-CCM");
 
-    lpc_ext_kfun(kf, 16);
+    lpc_ext_kfun(kf, sizeof(kf) / sizeof(LPC_ext_kfun));
     return 1;
 }
