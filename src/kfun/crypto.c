@@ -615,7 +615,7 @@ static void ffdhe_key(LPC_frame f, int nargs, LPC_value retval)
 	if (context != NULL) {
 	    EVP_PKEY_CTX_free(context);
 	}
-	lpc_runtime_error(f, "FFDHE key failed");
+	lpc_runtime_error(f, "Key generation failed");
     }
 
     /* obtain public and private key */
@@ -641,6 +641,100 @@ static void ffdhe_key(LPC_frame f, int nargs, LPC_value retval)
 
     /* return ({ public, private }) */
     lpc_array_putval(retval, a);
+}
+
+/*
+ * EC key generation
+ */
+static void ec_key(LPC_frame f, int nargs, int nid, LPC_value retval)
+{
+    EVP_PKEY_CTX *context;
+    EVP_PKEY *key;
+    const EC_KEY *ec;
+    BIGNUM *x, *y;
+    const BIGNUM *priv;
+    LPC_dataspace data;
+    LPC_array a;
+    LPC_value val;
+    LPC_string str;
+
+    if (nargs != 0) {
+	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
+    }
+
+    /* create EC public and private key */
+    context = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
+    key = NULL;
+    if (context == NULL || EVP_PKEY_keygen_init(context) <= 0 ||
+	EVP_PKEY_CTX_set_ec_paramgen_curve_nid(context, nid) <= 0 ||
+	EVP_PKEY_keygen(context, &key) <= 0 ||
+	(ec=EVP_PKEY_get0_EC_KEY(key)) == NULL) {
+	ERR_clear_error();
+	if (key != NULL) {
+	    EVP_PKEY_free(key);
+	}
+	if (context != NULL) {
+	    EVP_PKEY_CTX_free(context);
+	}
+	lpc_runtime_error(f, "Key generation failed");
+    }
+
+    /* obtain public and private key */
+    x = BN_new();
+    y = BN_new();
+    EC_POINT_get_affine_coordinates(EC_KEY_get0_group(ec),
+				    EC_KEY_get0_public_key(ec), x, y, NULL);
+    priv = EC_KEY_get0_private_key(ec);
+
+    /* store public and private key in LPC array */
+    data = lpc_frame_dataspace(f);
+    a = lpc_array_new(data, 3);
+    val = lpc_value_temp(data);
+    str = lpc_string_new(data, NULL, BN_num_bytes(x));
+    BN_bn2bin(x, lpc_string_text(str));
+    lpc_string_putval(val, str);
+    lpc_array_assign(data, a, 0, val);
+    val = lpc_value_temp(data);
+    str = lpc_string_new(data, NULL, BN_num_bytes(y));
+    BN_bn2bin(y, lpc_string_text(str));
+    lpc_string_putval(val, str);
+    lpc_array_assign(data, a, 1, val);
+    str = lpc_string_new(data, NULL, BN_num_bytes(priv));
+    BN_bn2bin(priv, lpc_string_text(str));
+    lpc_string_putval(val, str);
+    lpc_array_assign(data, a, 2, val);
+
+    BN_free(y);
+    BN_free(x);
+    EVP_PKEY_free(key);
+    EVP_PKEY_CTX_free(context);
+
+    /* return ({ x, y, private }) */
+    lpc_array_putval(retval, a);
+}
+
+/*
+ * ({ x, y, privkey }) = encrypt("SECP256R1 key")
+ */
+static void secp256r1_key(LPC_frame f, int nargs, LPC_value retval)
+{
+    ec_key(f, nargs, NID_X9_62_prime256v1, retval);
+}
+
+/*
+ * ({ x, y, privkey }) = encrypt("SECP384R1 key")
+ */
+static void secp384r1_key(LPC_frame f, int nargs, LPC_value retval)
+{
+    ec_key(f, nargs, NID_secp384r1, retval);
+}
+
+/*
+ * ({ x, y, privkey }) = encrypt("SECP521R1 key")
+ */
+static void secp521r1_key(LPC_frame f, int nargs, LPC_value retval)
+{
+    ec_key(f, nargs, NID_secp521r1, retval);
 }
 
 /*
@@ -938,7 +1032,7 @@ static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 }
 
 /*
- * shared_secret = decrypt("FFDHE derive", 3072, foreignkey, privkey)
+ * shared_secret = decrypt("FFDHE derive", 3072, peerkey, privkey)
  */
 static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
 {
@@ -987,7 +1081,7 @@ static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
 	} else if (bn != NULL) {
 	    BN_free(bn);
 	}
-	lpc_runtime_error(f, "FFDHE derive context failed");
+	lpc_runtime_error(f, "Derive key failed");
     }
     EVP_PKEY_free(key);
 
@@ -1006,7 +1100,7 @@ static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
 	} else if (bn != NULL) {
 	    BN_free(bn);
 	}
-	lpc_runtime_error(f, "FFDHE derive peer failed");
+	lpc_runtime_error(f, "Derive peer failed");
     }
 
     /* derive shared secret */
@@ -1016,7 +1110,7 @@ static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
 	ERR_clear_error();
 	EVP_PKEY_free(key);
 	EVP_PKEY_CTX_free(context);
-	lpc_runtime_error(f, "FFDHE derive failed");
+	lpc_runtime_error(f, "Derive failed");
     }
     secret = lpc_string_new(lpc_frame_dataspace(f), NULL, len);
     EVP_PKEY_derive(context, lpc_string_text(secret), &len);
@@ -1025,6 +1119,130 @@ static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
     EVP_PKEY_CTX_free(context);
 
     lpc_string_putval(retval, secret);
+}
+
+/*
+ * EC derive shared secret
+ */
+static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
+{
+    LPC_value val;
+    LPC_string x, y, priv, secret;
+    BIGNUM *bn, *bnx, *bny;
+    EC_KEY *ec;
+    EVP_PKEY *key;
+    EVP_PKEY_CTX *context;
+    size_t len;
+
+    /* retrieve arguments */
+    if (nargs != 3) {
+	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
+    }
+    val = lpc_frame_arg(f, nargs, 0);
+    if (lpc_value_type(val) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 2 for kfun decrypt");
+    }
+    x = lpc_string_getval(val);
+    val = lpc_frame_arg(f, nargs, 1);
+    if (lpc_value_type(val) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
+    }
+    y = lpc_string_getval(val);
+    val = lpc_frame_arg(f, nargs, 2);
+    if (lpc_value_type(val) != LPC_TYPE_STRING) {
+	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
+    }
+    priv = lpc_string_getval(val);
+
+    /* EC context with private key */
+    bn = BN_bin2bn(lpc_string_text(priv), lpc_string_length(priv), NULL);
+    ec = NULL;
+    key = NULL;
+    if (bn == NULL ||
+	(ec=EC_KEY_new_by_curve_name(nid)) == NULL ||
+	EC_KEY_set_private_key(ec, bn) <= 0 || (key=EVP_PKEY_new()) == NULL ||
+	EVP_PKEY_assign_EC_KEY(key, ec) <= 0 ||
+	(context=EVP_PKEY_CTX_new(key, NULL)) == NULL) {
+	ERR_clear_error();
+	if (key != NULL) {
+	    EVP_PKEY_free(key);
+	} else if (ec != NULL) {
+	    EC_KEY_free(ec);
+	}
+	if (bn != NULL) {
+	    BN_free(bn);
+	}
+	lpc_runtime_error(f, "Derive key failed");
+    }
+    EVP_PKEY_free(key);
+    BN_free(bn);
+
+    /* peer key */
+    bnx = BN_bin2bn(lpc_string_text(x), lpc_string_length(x), NULL);
+    bny = BN_bin2bn(lpc_string_text(y), lpc_string_length(y), NULL);
+    ec = NULL;
+    key = NULL;
+    if (bnx == NULL || bny == NULL ||
+	(ec=EC_KEY_new_by_curve_name(nid)) == NULL ||
+	EC_KEY_set_public_key_affine_coordinates(ec, bnx, bny) <= 0 ||
+	(key=EVP_PKEY_new()) == NULL || EVP_PKEY_assign_EC_KEY(key, ec) <= 0) {
+	ERR_clear_error();
+	if (key != NULL) {
+	    EVP_PKEY_free(key);
+	} else if (ec != NULL) {
+	    EC_KEY_free(ec);
+	}
+	if (bny != NULL) {
+	    BN_free(bny);
+	}
+	if (bnx != NULL) {
+	    BN_free(bnx);
+	}
+	lpc_runtime_error(f, "Derive peer failed");
+    }
+    BN_free(bny);
+    BN_free(bnx);
+
+    /* derive shared secret */
+    if (EVP_PKEY_derive_init(context) <= 0 ||
+	EVP_PKEY_derive_set_peer(context, key) <= 0 ||
+	EVP_PKEY_derive(context, NULL, &len) <= 0) {
+	ERR_clear_error();
+	EVP_PKEY_free(key);
+	EVP_PKEY_CTX_free(context);
+	lpc_runtime_error(f, "Derive failed");
+    }
+    secret = lpc_string_new(lpc_frame_dataspace(f), NULL, len);
+    EVP_PKEY_derive(context, lpc_string_text(secret), &len);
+
+    EVP_PKEY_free(key);
+    EVP_PKEY_CTX_free(context);
+
+    lpc_string_putval(retval, secret);
+}
+
+/*
+ * shared_secret = decrypt("SECP256R1 derive", peerx, peery, privkey)
+ */
+static void secp256r1_derive(LPC_frame f, int nargs, LPC_value retval)
+{
+    ec_derive(f, nargs, NID_X9_62_prime256v1, retval);
+}
+
+/*
+ * shared_secret = decrypt("SECP384R1 derive", peerx, peery, privkey)
+ */
+static void secp384r1_derive(LPC_frame f, int nargs, LPC_value retval)
+{
+    ec_derive(f, nargs, NID_secp384r1, retval);
+}
+
+/*
+ * shared_secret = decrypt("SECP521R1 derive", peerx, peery, privkey)
+ */
+static void secp521r1_derive(LPC_frame f, int nargs, LPC_value retval)
+{
+    ec_derive(f, nargs, NID_secp521r1, retval);
 }
 
 static char hash_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_STRING,
@@ -1041,6 +1259,10 @@ static char ffdhe_key_proto[] = { LPC_TYPE_ARRAY_OF(LPC_TYPE_STRING),
 static char ffdhe_derive_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
 				     LPC_TYPE_STRING, LPC_TYPE_INT,
 				     LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
+static char ec_key_proto[] = { LPC_TYPE_ARRAY_OF(LPC_TYPE_STRING),
+			       LPC_TYPE_STRING, 0 };
+static char ec_derive_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
+				  LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
 
 static LPC_ext_kfun kf[] = {
     { "hash MD5", hash_proto, &md5 },
@@ -1056,11 +1278,17 @@ static LPC_ext_kfun kf[] = {
     { "encrypt ChaCha20-Poly1305", cipher_proto, &encrypt_chacha20_poly1305 },
     { "encrypt AES-128-CCM", cipher_proto, &encrypt_aes_128_ccm },
     { "encrypt FFDHE key", ffdhe_key_proto, &ffdhe_key },
+    { "encrypt SECP256R1 key", ec_key_proto, &secp256r1_key },
+    { "encrypt SECP384R1 key", ec_key_proto, &secp384r1_key },
+    { "encrypt SECP521R1 key", ec_key_proto, &secp521r1_key },
     { "decrypt AES-128-GCM", cipher_proto, &decrypt_aes_128_gcm },
     { "decrypt AES-256-GCM", cipher_proto, &decrypt_aes_256_gcm },
     { "decrypt ChaCha20-Poly1305", cipher_proto, &decrypt_chacha20_poly1305 },
     { "decrypt AES-128-CCM", cipher_proto, &decrypt_aes_128_ccm },
-    { "decrypt FFDHE derive", ffdhe_derive_proto, &ffdhe_derive }
+    { "decrypt FFDHE derive", ffdhe_derive_proto, &ffdhe_derive },
+    { "decrypt SECP256R1 derive", ec_derive_proto, &secp256r1_derive },
+    { "decrypt SECP384R1 derive", ec_derive_proto, &secp384r1_derive },
+    { "decrypt SECP521R1 derive", ec_derive_proto, &secp521r1_derive }
 };
 
 int lpc_ext_init(int major, int minor, const char *config)
