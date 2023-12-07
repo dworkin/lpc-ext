@@ -1101,13 +1101,13 @@ static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 }
 
 /*
- * shared_secret = decrypt("FFDHE derive", 3072, peerkey, privkey)
+ * shared_secret = decrypt("FFDHE derive", 3072, privkey, peerkey)
  */
 static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
 {
     LPC_value val;
     int nid;
-    LPC_string pub, priv, secret;
+    LPC_string priv, peer, secret;
     BIGNUM *bn;
     DH *dh;
     EVP_PKEY *key;
@@ -1127,12 +1127,12 @@ static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
     if (lpc_value_type(val) != LPC_TYPE_STRING) {
 	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
     }
-    pub = lpc_string_getval(val);
+    priv = lpc_string_getval(val);
     val = lpc_frame_arg(f, nargs, 2);
     if (lpc_value_type(val) != LPC_TYPE_STRING) {
 	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
     }
-    priv = lpc_string_getval(val);
+    peer = lpc_string_getval(val);
 
     /* FFDHE context with private key */
     bn = BN_bin2bn(lpc_string_text(priv), lpc_string_length(priv), NULL);
@@ -1155,7 +1155,7 @@ static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
     EVP_PKEY_free(key);
 
     /* peer key */
-    bn = BN_bin2bn(lpc_string_text(pub), lpc_string_length(pub), NULL);
+    bn = BN_bin2bn(lpc_string_text(peer), lpc_string_length(peer), NULL);
     dh = NULL;
     key = NULL;
     if (bn == NULL || (dh=DH_new_by_nid(nid)) == NULL ||
@@ -1196,7 +1196,7 @@ static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
 static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
 {
     LPC_value val;
-    LPC_string x, y, priv, secret;
+    LPC_string priv, x, y, secret;
     BIGNUM *bn, *bnx, *bny;
     EC_KEY *ec;
     EVP_PKEY *key;
@@ -1211,17 +1211,17 @@ static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
     if (lpc_value_type(val) != LPC_TYPE_STRING) {
 	lpc_runtime_error(f, "Bad argument 2 for kfun decrypt");
     }
-    x = lpc_string_getval(val);
+    priv = lpc_string_getval(val);
     val = lpc_frame_arg(f, nargs, 1);
     if (lpc_value_type(val) != LPC_TYPE_STRING) {
 	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
     }
-    y = lpc_string_getval(val);
+    x = lpc_string_getval(val);
     val = lpc_frame_arg(f, nargs, 2);
     if (lpc_value_type(val) != LPC_TYPE_STRING) {
 	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
     }
-    priv = lpc_string_getval(val);
+    y = lpc_string_getval(val);
 
     /* EC context with private key */
     bn = BN_bin2bn(lpc_string_text(priv), lpc_string_length(priv), NULL);
@@ -1291,7 +1291,7 @@ static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
 }
 
 /*
- * shared_secret = decrypt("SECP256R1 derive", peerx, peery, privkey)
+ * shared_secret = decrypt("SECP256R1 derive", privkey, peerx, peery)
  */
 static void secp256r1_derive(LPC_frame f, int nargs, LPC_value retval)
 {
@@ -1299,7 +1299,7 @@ static void secp256r1_derive(LPC_frame f, int nargs, LPC_value retval)
 }
 
 /*
- * shared_secret = decrypt("SECP384R1 derive", peerx, peery, privkey)
+ * shared_secret = decrypt("SECP384R1 derive", privkey, peerx, peery)
  */
 static void secp384r1_derive(LPC_frame f, int nargs, LPC_value retval)
 {
@@ -1307,7 +1307,7 @@ static void secp384r1_derive(LPC_frame f, int nargs, LPC_value retval)
 }
 
 /*
- * shared_secret = decrypt("SECP521R1 derive", peerx, peery, privkey)
+ * shared_secret = decrypt("SECP521R1 derive", privkey, peerx, peery)
  */
 static void secp521r1_derive(LPC_frame f, int nargs, LPC_value retval)
 {
@@ -1320,7 +1320,7 @@ static void secp521r1_derive(LPC_frame f, int nargs, LPC_value retval)
 static void ecx_derive(LPC_frame f, int nargs, int id, LPC_value retval)
 {
     LPC_value val;
-    LPC_string pub, priv, secret;
+    LPC_string priv, peer, secret;
     EVP_PKEY *key;
     EVP_PKEY_CTX *context;
     size_t len;
@@ -1333,12 +1333,12 @@ static void ecx_derive(LPC_frame f, int nargs, int id, LPC_value retval)
     if (lpc_value_type(val) != LPC_TYPE_STRING) {
 	lpc_runtime_error(f, "Bad argument 2 for kfun decrypt");
     }
-    pub = lpc_string_getval(val);
+    priv = lpc_string_getval(val);
     val = lpc_frame_arg(f, nargs, 1);
     if (lpc_value_type(val) != LPC_TYPE_STRING) {
 	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
     }
-    priv = lpc_string_getval(val);
+    peer = lpc_string_getval(val);
 
     /* ECX context with private key */
     key = EVP_PKEY_new_raw_private_key(id, NULL, lpc_string_text(priv),
@@ -1353,8 +1353,8 @@ static void ecx_derive(LPC_frame f, int nargs, int id, LPC_value retval)
     EVP_PKEY_free(key);
 
     /* peer key */
-    key = EVP_PKEY_new_raw_public_key(id, NULL, lpc_string_text(pub),
-				      lpc_string_length(pub));
+    key = EVP_PKEY_new_raw_public_key(id, NULL, lpc_string_text(peer),
+				      lpc_string_length(peer));
     if (key == NULL) {
 	ERR_clear_error();
 	lpc_runtime_error(f, "Derive peer failed");
