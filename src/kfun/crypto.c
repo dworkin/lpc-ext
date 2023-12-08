@@ -578,72 +578,6 @@ static int ffdhe_id(LPC_frame f, int id)
 }
 
 /*
- * ({ pubkey, privkey }) = encrypt("FFDHE key", 3072)
- */
-static void ffdhe_key(LPC_frame f, int nargs, LPC_value retval)
-{
-    LPC_value val;
-    int nid;
-    EVP_PKEY_CTX *context;
-    EVP_PKEY *key;
-    const DH *dh;
-    const BIGNUM *pub, *priv;
-    LPC_dataspace data;
-    LPC_array a;
-    LPC_string str;
-
-    if (nargs != 1) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
-    }
-    val = lpc_frame_arg(f, nargs, 0);
-    if (lpc_value_type(val) != LPC_TYPE_INT) {
-	lpc_runtime_error(f, "Bad argument 2 for kfun encrypt");
-    }
-    nid = ffdhe_id(f, lpc_int_getval(val));
-
-    /* create DH public and private key */
-    context = EVP_PKEY_CTX_new_id(EVP_PKEY_DH, NULL);
-    key = NULL;
-    if (context == NULL || EVP_PKEY_keygen_init(context) <= 0 ||
-	EVP_PKEY_CTX_set_dh_nid(context, nid) <= 0 ||
-	EVP_PKEY_keygen(context, &key) <= 0 ||
-	(dh=EVP_PKEY_get0_DH(key)) == NULL) {
-	ERR_clear_error();
-	if (key != NULL) {
-	    EVP_PKEY_free(key);
-	}
-	if (context != NULL) {
-	    EVP_PKEY_CTX_free(context);
-	}
-	lpc_runtime_error(f, "Key generation failed");
-    }
-
-    /* obtain public and private key */
-    pub = NULL;
-    priv = NULL;
-    DH_get0_key(dh, &pub, &priv);
-
-    /* store public and private key in LPC array */
-    data = lpc_frame_dataspace(f);
-    a = lpc_array_new(data, 2);
-    val = lpc_value_temp(data);
-    str = lpc_string_new(data, NULL, BN_num_bytes(pub));
-    BN_bn2bin(pub, lpc_string_text(str));
-    lpc_string_putval(val, str);
-    lpc_array_assign(data, a, 0, val);
-    str = lpc_string_new(data, NULL, BN_num_bytes(priv));
-    BN_bn2bin(priv, lpc_string_text(str));
-    lpc_string_putval(val, str);
-    lpc_array_assign(data, a, 1, val);
-
-    EVP_PKEY_free(key);
-    EVP_PKEY_CTX_free(context);
-
-    /* return ({ public, private }) */
-    lpc_array_putval(retval, a);
-}
-
-/*
  * EC key generation
  */
 static void ec_key(LPC_frame f, int nargs, int nid, LPC_value retval)
@@ -1101,96 +1035,6 @@ static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 }
 
 /*
- * shared_secret = decrypt("FFDHE derive", 3072, privkey, peerkey)
- */
-static void ffdhe_derive(LPC_frame f, int nargs, LPC_value retval)
-{
-    LPC_value val;
-    int nid;
-    LPC_string priv, peer, secret;
-    BIGNUM *bn;
-    DH *dh;
-    EVP_PKEY *key;
-    EVP_PKEY_CTX *context;
-    size_t len;
-
-    /* retrieve arguments */
-    if (nargs != 3) {
-	lpc_runtime_error(f, "Wrong number of arguments for kfun decrypt");
-    }
-    val = lpc_frame_arg(f, nargs, 0);
-    if (lpc_value_type(val) != LPC_TYPE_INT) {
-	lpc_runtime_error(f, "Bad argument 2 for kfun decrypt");
-    }
-    nid = ffdhe_id(f, lpc_int_getval(val));
-    val = lpc_frame_arg(f, nargs, 1);
-    if (lpc_value_type(val) != LPC_TYPE_STRING) {
-	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
-    }
-    priv = lpc_string_getval(val);
-    val = lpc_frame_arg(f, nargs, 2);
-    if (lpc_value_type(val) != LPC_TYPE_STRING) {
-	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
-    }
-    peer = lpc_string_getval(val);
-
-    /* FFDHE context with private key */
-    bn = BN_bin2bn(lpc_string_text(priv), lpc_string_length(priv), NULL);
-    dh = NULL;
-    key = NULL;
-    if (bn == NULL || (dh=DH_new_by_nid(nid)) == NULL ||
-	DH_set0_key(dh, NULL, bn) <= 0 || (key=EVP_PKEY_new()) == NULL ||
-	EVP_PKEY_assign_DH(key, dh) <= 0 ||
-	(context=EVP_PKEY_CTX_new(key, NULL)) == NULL) {
-	ERR_clear_error();
-	if (key != NULL) {
-	    EVP_PKEY_free(key);
-	} else if (dh != NULL) {
-	    DH_free(dh);
-	} else if (bn != NULL) {
-	    BN_free(bn);
-	}
-	lpc_runtime_error(f, "Derive key failed");
-    }
-    EVP_PKEY_free(key);
-
-    /* peer key */
-    bn = BN_bin2bn(lpc_string_text(peer), lpc_string_length(peer), NULL);
-    dh = NULL;
-    key = NULL;
-    if (bn == NULL || (dh=DH_new_by_nid(nid)) == NULL ||
-	DH_set0_key(dh, bn, NULL) <= 0 || (key=EVP_PKEY_new()) == NULL ||
-	EVP_PKEY_assign_DH(key, dh) <= 0) {
-	ERR_clear_error();
-	if (key != NULL) {
-	    EVP_PKEY_free(key);
-	} else if (dh != NULL) {
-	    DH_free(dh);
-	} else if (bn != NULL) {
-	    BN_free(bn);
-	}
-	lpc_runtime_error(f, "Derive peer failed");
-    }
-
-    /* derive shared secret */
-    if (EVP_PKEY_derive_init(context) <= 0 ||
-	EVP_PKEY_derive_set_peer(context, key) <= 0 ||
-	EVP_PKEY_derive(context, NULL, &len) <= 0) {
-	ERR_clear_error();
-	EVP_PKEY_free(key);
-	EVP_PKEY_CTX_free(context);
-	lpc_runtime_error(f, "Derive failed");
-    }
-    secret = lpc_string_new(lpc_frame_dataspace(f), NULL, len);
-    EVP_PKEY_derive(context, lpc_string_text(secret), &len);
-
-    EVP_PKEY_free(key);
-    EVP_PKEY_CTX_free(context);
-
-    lpc_string_putval(retval, secret);
-}
-
-/*
  * EC derive shared secret
  */
 static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
@@ -1403,11 +1247,6 @@ static char verify_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
 static char cipher_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
 			       LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_INT,
 			       LPC_TYPE_STRING, 0 };
-static char ffdhe_key_proto[] = { LPC_TYPE_ARRAY_OF(LPC_TYPE_STRING),
-				  LPC_TYPE_STRING, LPC_TYPE_INT, 0 };
-static char ffdhe_derive_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
-				     LPC_TYPE_STRING, LPC_TYPE_INT,
-				     LPC_TYPE_STRING, LPC_TYPE_STRING, 0 };
 static char ec_key_proto[] = { LPC_TYPE_ARRAY_OF(LPC_TYPE_STRING),
 			       LPC_TYPE_STRING, 0 };
 static char ec_derive_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
@@ -1429,7 +1268,6 @@ static LPC_ext_kfun kf[] = {
     { "encrypt AES-256-GCM", cipher_proto, &encrypt_aes_256_gcm },
     { "encrypt ChaCha20-Poly1305", cipher_proto, &encrypt_chacha20_poly1305 },
     { "encrypt AES-128-CCM", cipher_proto, &encrypt_aes_128_ccm },
-    { "encrypt FFDHE key", ffdhe_key_proto, &ffdhe_key },
     { "encrypt SECP256R1 key", ec_key_proto, &secp256r1_key },
     { "encrypt SECP384R1 key", ec_key_proto, &secp384r1_key },
     { "encrypt SECP521R1 key", ec_key_proto, &secp521r1_key },
@@ -1439,7 +1277,6 @@ static LPC_ext_kfun kf[] = {
     { "decrypt AES-256-GCM", cipher_proto, &decrypt_aes_256_gcm },
     { "decrypt ChaCha20-Poly1305", cipher_proto, &decrypt_chacha20_poly1305 },
     { "decrypt AES-128-CCM", cipher_proto, &decrypt_aes_128_ccm },
-    { "decrypt FFDHE derive", ffdhe_derive_proto, &ffdhe_derive },
     { "decrypt SECP256R1 derive", ec_derive_proto, &secp256r1_derive },
     { "decrypt SECP384R1 derive", ec_derive_proto, &secp384r1_derive },
     { "decrypt SECP521R1 derive", ec_derive_proto, &secp521r1_derive },
