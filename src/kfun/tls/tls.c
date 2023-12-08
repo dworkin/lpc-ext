@@ -401,6 +401,9 @@ static void kf_tls_receive(LPC_frame f, int nargs, LPC_value retval)
     if (BIO_eof(bio)) {
 	lpc_string_putval(val, lpc_string_new(data, "EOF", 3));
 	lpc_array_assign(data, array, 3, val);
+    } else if (!SSL_is_init_finished(tls)) {
+	lpc_string_putval(val, lpc_string_new(data, "connecting", 10));
+	lpc_array_assign(data, array, 3, val);
     }
     lpc_array_putval(retval, array);
 }

@@ -13,8 +13,9 @@ DESCRIPTION
 	    1:	decrypted input
 	    2:	output to send to the other side immediately without further
 		processing (protocol negotiation)
-	    3:	a non-nil value indicates that the session was shut down, and
-		should be closed
+	    3:  a status value that can be "connecting", nil, or an error
+		message (with the latter also indicating that the session was
+		shut down, and should be closed)
 
 ERRORS
 	Any errors that may occur are unrecoverable, requiring the TLS session
