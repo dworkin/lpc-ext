@@ -675,7 +675,7 @@ static void secp521r1_key(LPC_frame f, int nargs, LPC_value retval)
 /*
  * ECX key generation
  */
-static void ecx_key(LPC_frame f, int nargs, int id, int size, LPC_value retval)
+static void ecx_key(LPC_frame f, int nargs, int id, int len, LPC_value retval)
 {
     EVP_PKEY_CTX *context;
     EVP_PKEY *key;
@@ -683,6 +683,7 @@ static void ecx_key(LPC_frame f, int nargs, int id, int size, LPC_value retval)
     LPC_array a;
     LPC_value val;
     LPC_string str;
+    size_t size;
 
     if (nargs != 0) {
 	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
@@ -707,12 +708,12 @@ static void ecx_key(LPC_frame f, int nargs, int id, int size, LPC_value retval)
     data = lpc_frame_dataspace(f);
     a = lpc_array_new(data, 2);
     val = lpc_value_temp(data);
-    str = lpc_string_new(data, NULL, size);
+    str = lpc_string_new(data, NULL, len);
     EVP_PKEY_get_raw_public_key(key, lpc_string_text(str), &size);
     lpc_string_putval(val, str);
     lpc_array_assign(data, a, 0, val);
     val = lpc_value_temp(data);
-    str = lpc_string_new(data, NULL, size);
+    str = lpc_string_new(data, NULL, len);
     EVP_PKEY_get_raw_private_key(key, lpc_string_text(str), &size);
     lpc_string_putval(val, str);
     lpc_array_assign(data, a, 1, val);
