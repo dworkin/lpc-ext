@@ -17,9 +17,17 @@ To build modules for most kfuns, just type `make` (or whatever your GNU make
 command is) in the src directory.  On Windows, use Visual Studio 2010 with
 the solution file `lpc-ext.sln`, or use `make EXT=dll` with Cygwin.
 
-Use `make zlib` to build the zlib module.  Requires zlib 1.2.11 dev headers.
+Use `make zlib` to build the zlib module, for version 1.2.11.  For other
+versions, use:
 
-Use `make dbase` to create the example database module for Hydra.
+-   1.2.8
+    `make zlib ZLIB=1.2.8`
+-   1.2.12
+    `make zlib ZLIB=1.2.12`
+-   1.2.13
+    `make zlib ZLIB=1.2.13 ZLIBDIR=1.2.12`
+-   1.3
+    `make zlib ZLIB=1.3 ZLIBDIR=1.2.12`
 
 Use `make jit` to build the JIT compiler module.  This requires clang to
 be installed (any version from 3.7 onward will work).  The jit module
@@ -38,3 +46,9 @@ used to build the actual jit compiler which runs as a separate program, and
 which depends on clang.  Clang can be installed as a component of Visual Studio
 Community 2022.  Note that jitcomp.sln is a VS2019 solution, whereas
 `lpc-ext.sln` can be built with any Visual Studio version from 2010 onward.
+
+Use `make crypto` to build the cryptographic functions module. This requires
+OpenSSL 1.1.1 or later.
+
+Use `make tls` to build the TLS module (for DGD only).  This also requires
+OpenSSL 1.1.1 or later.
