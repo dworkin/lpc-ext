@@ -158,6 +158,7 @@ static void secure_random(LPC_frame f, int nargs, LPC_value retval)
     if (n <= 0 || n > sizeof(buffer)) {
 	lpc_runtime_error(f, "Invalid number of random bytes");
     }
+    lpc_runtime_check(f, 3 * n);
     if (RAND_bytes((unsigned char *) buffer, n) <= 0) {
 	ERR_error_string(ERR_get_error(), buffer);
 	lpc_runtime_error(f, buffer);
@@ -192,6 +193,7 @@ static void verify_certificate(LPC_frame f, int nargs, LPC_value retval)
     } else {
 	lpc_runtime_error(f, "Invalid purpose");
     }
+    lpc_runtime_check(f, 4096 * (nargs - 1));
 
     /* target certificate */
     str = lpc_string_getval(lpc_frame_arg(f, nargs, 1));
@@ -328,6 +330,7 @@ static void encrypt_aes_gcm(LPC_frame f, int nargs, LPC_value retval,
 	lpc_runtime_error(f, "Bad plaintext");
     }
     plaintext = (unsigned char *) lpc_string_text(str);
+    lpc_runtime_check(f, lpc_string_length(str));
 
     len = length;
     length += taglen;
@@ -435,6 +438,7 @@ static void encrypt_chacha20_poly1305(LPC_frame f, int nargs, LPC_value retval)
 	lpc_runtime_error(f, "Bad plaintext");
     }
     plaintext = (unsigned char *) lpc_string_text(str);
+    lpc_runtime_check(f, 3 * lpc_string_length(str));
 
     len = length;
     length += taglen;
@@ -527,6 +531,7 @@ static void encrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 	lpc_runtime_error(f, "Bad plaintext");
     }
     plaintext = (unsigned char *) lpc_string_text(str);
+    lpc_runtime_check(f, lpc_string_length(str));
 
     len = length;
     length += taglen;
@@ -564,7 +569,7 @@ static void encrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 /*
  * EC key generation
  */
-static void ec_key(LPC_frame f, int nargs, int nid, LPC_value retval)
+static void ec_key(LPC_frame f, int nargs, int nid, int len, LPC_value retval)
 {
     EVP_PKEY_CTX *context;
     EVP_PKEY *key;
@@ -580,6 +585,7 @@ static void ec_key(LPC_frame f, int nargs, int nid, LPC_value retval)
     if (nargs != 0) {
 	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
     }
+    lpc_runtime_check(f, 12 * len);
 
     /* create EC public and private key */
     context = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
@@ -627,7 +633,7 @@ static void ec_key(LPC_frame f, int nargs, int nid, LPC_value retval)
  */
 static void secp256r1_key(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_key(f, nargs, NID_X9_62_prime256v1, retval);
+    ec_key(f, nargs, NID_X9_62_prime256v1, 32, retval);
 }
 
 /*
@@ -635,7 +641,7 @@ static void secp256r1_key(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secp384r1_key(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_key(f, nargs, NID_secp384r1, retval);
+    ec_key(f, nargs, NID_secp384r1, 48, retval);
 }
 
 /*
@@ -643,7 +649,7 @@ static void secp384r1_key(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secp521r1_key(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_key(f, nargs, NID_secp521r1, retval);
+    ec_key(f, nargs, NID_secp521r1, 64, retval);
 }
 
 
@@ -663,6 +669,7 @@ static void ecx_key(LPC_frame f, int nargs, int id, int len, LPC_value retval)
     if (nargs != 0) {
 	lpc_runtime_error(f, "Wrong number of arguments for kfun encrypt");
     }
+    lpc_runtime_check(f, 8 * len);
 
     /* create ECX public and private key */
     context = EVP_PKEY_CTX_new_id(id, NULL);
@@ -719,7 +726,7 @@ static void x448_key(LPC_frame f, int nargs, LPC_value retval)
 /*
  * EC sign
  */
-static void ec_sign(LPC_frame f, int nargs, int nid, const EVP_MD *md,
+static void ec_sign(LPC_frame f, int nargs, int nid, const EVP_MD *md, int len,
 		    LPC_value retval)
 {
     unsigned char buffer[1024];
@@ -745,6 +752,7 @@ static void ec_sign(LPC_frame f, int nargs, int nid, const EVP_MD *md,
 	lpc_runtime_error(f, "Bad argument 3 for kfun encrypt");
     }
     message = lpc_string_getval(val);
+    lpc_runtime_check(f, 16 * len);
 
     /* set up private key */
     bn = BN_bin2bn(lpc_string_text(priv), lpc_string_length(priv), NULL);
@@ -793,7 +801,7 @@ static void ec_sign(LPC_frame f, int nargs, int nid, const EVP_MD *md,
  */
 static void secp256r1_sign(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_sign(f, nargs, NID_X9_62_prime256v1, md_sha256, retval);
+    ec_sign(f, nargs, NID_X9_62_prime256v1, md_sha256, 32, retval);
 }
 
 /*
@@ -801,7 +809,7 @@ static void secp256r1_sign(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secp384r1_sign(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_sign(f, nargs, NID_secp384r1, md_sha384, retval);
+    ec_sign(f, nargs, NID_secp384r1, md_sha384, 48, retval);
 }
 
 /*
@@ -809,13 +817,13 @@ static void secp384r1_sign(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secp521r1_sign(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_sign(f, nargs, NID_secp521r1, md_sha512, retval);
+    ec_sign(f, nargs, NID_secp521r1, md_sha512, 64, retval);
 }
 
 /*
  * ECX sign
  */
-static void ecx_sign(LPC_frame f, int nargs, int id, LPC_value retval)
+static void ecx_sign(LPC_frame f, int nargs, int id, int len, LPC_value retval)
 {
     unsigned char buffer[1024];
     LPC_value val;
@@ -838,6 +846,7 @@ static void ecx_sign(LPC_frame f, int nargs, int id, LPC_value retval)
 	lpc_runtime_error(f, "Bad argument 3 for kfun encrypt");
     }
     message = lpc_string_getval(val);
+    lpc_runtime_check(f, 8 * len);
 
     /* set up private key */
     key = EVP_PKEY_new_raw_private_key(id, NULL, lpc_string_text(priv),
@@ -872,7 +881,7 @@ static void ecx_sign(LPC_frame f, int nargs, int id, LPC_value retval)
  */
 static void ed25519_sign(LPC_frame f, int nargs, LPC_value retval)
 {
-    ecx_sign(f, nargs, EVP_PKEY_ED25519, retval);
+    ecx_sign(f, nargs, EVP_PKEY_ED25519, 32, retval);
 }
 
 /*
@@ -880,7 +889,7 @@ static void ed25519_sign(LPC_frame f, int nargs, LPC_value retval)
  */
 static void ed448_sign(LPC_frame f, int nargs, LPC_value retval)
 {
-    ecx_sign(f, nargs, EVP_PKEY_ED448, retval);
+    ecx_sign(f, nargs, EVP_PKEY_ED448, 56, retval);
 }
 
 /*
@@ -943,6 +952,7 @@ static void decrypt_aes_gcm(LPC_frame f, int nargs, LPC_value retval,
 	lpc_runtime_error(f, "Bad ciphertext");
     }
     ciphertext = (unsigned char *) lpc_string_text(str);
+    lpc_runtime_check(f, lpc_string_length(str));
 
     len = length -= taglen;
     plaintext = alloca(length);
@@ -1051,6 +1061,7 @@ static void decrypt_chacha20_poly1305(LPC_frame f, int nargs, LPC_value retval)
 	lpc_runtime_error(f, "Bad ciphertext");
     }
     ciphertext = (unsigned char *) lpc_string_text(str);
+    lpc_runtime_check(f, 3 * lpc_string_length(str));
 
     len = length -= taglen;
     plaintext = alloca(length);
@@ -1144,6 +1155,7 @@ static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 	lpc_runtime_error(f, "Bad ciphertext");
     }
     ciphertext = (unsigned char *) lpc_string_text(str);
+    lpc_runtime_check(f, lpc_string_length(str));
 
     len = length -= taglen;
     plaintext = alloca(length);
@@ -1180,7 +1192,8 @@ static void decrypt_aes_128_ccm(LPC_frame f, int nargs, LPC_value retval)
 /*
  * EC derive shared secret
  */
-static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
+static void ec_derive(LPC_frame f, int nargs, int nid, int len,
+		      LPC_value retval)
 {
     unsigned char buffer[1024];
     LPC_value val;
@@ -1189,7 +1202,7 @@ static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
     EC_KEY *ec;
     EVP_PKEY *key;
     EVP_PKEY_CTX *context;
-    size_t len;
+    size_t size;
 
     /* retrieve arguments */
     if (nargs != 2) {
@@ -1205,6 +1218,7 @@ static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
 	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
     }
     peer = lpc_string_getval(val);
+    lpc_runtime_check(f, 16 * len);
 
     /* EC context with private key */
     bn = BN_bin2bn(lpc_string_text(priv), lpc_string_length(priv), NULL);
@@ -1247,10 +1261,10 @@ static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
     }
 
     /* derive shared secret */
-    len = sizeof(buffer);
+    size = sizeof(buffer);
     if (EVP_PKEY_derive_init(context) <= 0 ||
 	EVP_PKEY_derive_set_peer(context, key) <= 0 ||
-	EVP_PKEY_derive(context, buffer, &len) <= 0) {
+	EVP_PKEY_derive(context, buffer, &size) <= 0) {
 	ERR_clear_error();
 	EVP_PKEY_free(key);
 	EVP_PKEY_CTX_free(context);
@@ -1259,7 +1273,7 @@ static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
     EVP_PKEY_free(key);
     EVP_PKEY_CTX_free(context);
 
-    secret = lpc_string_new(lpc_frame_dataspace(f), buffer, len);
+    secret = lpc_string_new(lpc_frame_dataspace(f), buffer, size);
     lpc_string_putval(retval, secret);
 }
 
@@ -1268,7 +1282,7 @@ static void ec_derive(LPC_frame f, int nargs, int nid, LPC_value retval)
  */
 static void secp256r1_derive(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_derive(f, nargs, NID_X9_62_prime256v1, retval);
+    ec_derive(f, nargs, NID_X9_62_prime256v1, 32, retval);
 }
 
 /*
@@ -1276,7 +1290,7 @@ static void secp256r1_derive(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secp384r1_derive(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_derive(f, nargs, NID_secp384r1, retval);
+    ec_derive(f, nargs, NID_secp384r1, 48, retval);
 }
 
 /*
@@ -1284,20 +1298,21 @@ static void secp384r1_derive(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secp521r1_derive(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_derive(f, nargs, NID_secp521r1, retval);
+    ec_derive(f, nargs, NID_secp521r1, 64, retval);
 }
 
 /*
  * ECX derive shared secret
  */
-static void ecx_derive(LPC_frame f, int nargs, int id, LPC_value retval)
+static void ecx_derive(LPC_frame f, int nargs, int id, int len,
+		       LPC_value retval)
 {
     unsigned char buffer[1024];
     LPC_value val;
     LPC_string priv, peer, secret;
     EVP_PKEY *key;
     EVP_PKEY_CTX *context;
-    size_t len;
+    size_t size;
 
     /* retrieve arguments */
     if (nargs != 2) {
@@ -1313,6 +1328,7 @@ static void ecx_derive(LPC_frame f, int nargs, int id, LPC_value retval)
 	lpc_runtime_error(f, "Bad argument 3 for kfun decrypt");
     }
     peer = lpc_string_getval(val);
+    lpc_runtime_check(f, 8 * len);
 
     /* ECX context with private key */
     key = EVP_PKEY_new_raw_private_key(id, NULL, lpc_string_text(priv),
@@ -1335,10 +1351,10 @@ static void ecx_derive(LPC_frame f, int nargs, int id, LPC_value retval)
     }
 
     /* derive shared secret */
-    len = sizeof(buffer);
+    size = sizeof(buffer);
     if (EVP_PKEY_derive_init(context) <= 0 ||
 	EVP_PKEY_derive_set_peer(context, key) <= 0 ||
-	EVP_PKEY_derive(context, buffer, &len) <= 0) {
+	EVP_PKEY_derive(context, buffer, &size) <= 0) {
 	ERR_clear_error();
 	EVP_PKEY_free(key);
 	EVP_PKEY_CTX_free(context);
@@ -1347,7 +1363,7 @@ static void ecx_derive(LPC_frame f, int nargs, int id, LPC_value retval)
     EVP_PKEY_free(key);
     EVP_PKEY_CTX_free(context);
 
-    secret = lpc_string_new(lpc_frame_dataspace(f), buffer, len);
+    secret = lpc_string_new(lpc_frame_dataspace(f), buffer, size);
     lpc_string_putval(retval, secret);
 }
 
@@ -1356,7 +1372,7 @@ static void ecx_derive(LPC_frame f, int nargs, int id, LPC_value retval)
  */
 static void x25519_derive(LPC_frame f, int nargs, LPC_value retval)
 {
-    ecx_derive(f, nargs, EVP_PKEY_X25519, retval);
+    ecx_derive(f, nargs, EVP_PKEY_X25519, 32, retval);
 }
 
 /*
@@ -1364,14 +1380,14 @@ static void x25519_derive(LPC_frame f, int nargs, LPC_value retval)
  */
 static void x448_derive(LPC_frame f, int nargs, LPC_value retval)
 {
-    ecx_derive(f, nargs, EVP_PKEY_X448, retval);
+    ecx_derive(f, nargs, EVP_PKEY_X448, 56, retval);
 }
 
 /*
  * EC verify
  */
 static void ec_verify(LPC_frame f, int nargs, int nid, const EVP_MD *md,
-		      LPC_value retval)
+		      int len, LPC_value retval)
 {
     LPC_value val;
     LPC_string pub, message, signature;
@@ -1401,6 +1417,7 @@ static void ec_verify(LPC_frame f, int nargs, int nid, const EVP_MD *md,
 	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
     }
     message = lpc_string_getval(val);
+    lpc_runtime_check(f, 16 * len);
 
     /* set up public key */
     ec = EC_KEY_new_by_curve_name(nid);
@@ -1453,7 +1470,7 @@ static void ec_verify(LPC_frame f, int nargs, int nid, const EVP_MD *md,
  */
 static void secp256r1_verify(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_verify(f, nargs, NID_X9_62_prime256v1, md_sha256, retval);
+    ec_verify(f, nargs, NID_X9_62_prime256v1, md_sha256, 32, retval);
 }
 
 /*
@@ -1461,7 +1478,7 @@ static void secp256r1_verify(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secp384r1_verify(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_verify(f, nargs, NID_secp384r1, md_sha384, retval);
+    ec_verify(f, nargs, NID_secp384r1, md_sha384, 48, retval);
 }
 
 /*
@@ -1469,13 +1486,14 @@ static void secp384r1_verify(LPC_frame f, int nargs, LPC_value retval)
  */
 static void secp521r1_verify(LPC_frame f, int nargs, LPC_value retval)
 {
-    ec_verify(f, nargs, NID_secp521r1, md_sha512, retval);
+    ec_verify(f, nargs, NID_secp521r1, md_sha512, 64, retval);
 }
 
 /*
  * ECX verify
  */
-static void ecx_verify(LPC_frame f, int nargs, int id, LPC_value retval)
+static void ecx_verify(LPC_frame f, int nargs, int id, int len,
+		       LPC_value retval)
 {
     LPC_value val;
     LPC_string pub, message, signature;
@@ -1503,6 +1521,7 @@ static void ecx_verify(LPC_frame f, int nargs, int id, LPC_value retval)
 	lpc_runtime_error(f, "Bad argument 4 for kfun decrypt");
     }
     message = lpc_string_getval(val);
+    lpc_runtime_check(f, 8 * len);
 
     /* set up public key */
     key = EVP_PKEY_new_raw_public_key(id, NULL, lpc_string_text(pub),
@@ -1546,7 +1565,7 @@ static void ecx_verify(LPC_frame f, int nargs, int id, LPC_value retval)
  */
 static void ed25519_verify(LPC_frame f, int nargs, LPC_value retval)
 {
-    ecx_verify(f, nargs, EVP_PKEY_ED25519, retval);
+    ecx_verify(f, nargs, EVP_PKEY_ED25519, 32, retval);
 }
 
 /*
@@ -1554,7 +1573,7 @@ static void ed25519_verify(LPC_frame f, int nargs, LPC_value retval)
  */
 static void ed448_verify(LPC_frame f, int nargs, LPC_value retval)
 {
-    ecx_verify(f, nargs, EVP_PKEY_ED448, retval);
+    ecx_verify(f, nargs, EVP_PKEY_ED448, 56, retval);
 }
 
 static char hash_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_STRING,
