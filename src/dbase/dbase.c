@@ -48,8 +48,6 @@ struct _lpc_db_object_ {
     LPC_db *db;		/* database this object is in */
 };
 
-static char dir[1024];	/* directory containing database */
-
 /*
  * determine, based on the file name, whether something is a database
  */
@@ -73,8 +71,9 @@ static LPC_db *db_open(const char *file, int *created)
     if (!db_valid(file)) {
 	return NULL;
     }
-    sprintf(buffer, "%s/%s", dir, file);
-    if (stat(buffer, &statbuf) != 0) {
+    strncpy(buffer, file, sizeof(buffer) - 20);
+    memset(&statbuf, '\0', sizeof(statbuf));
+    if (stat(buffer, &statbuf) != 0 && created != NULL) {
 	/*
 	 * create new database
 	 */
@@ -125,7 +124,9 @@ static LPC_db *db_open(const char *file, int *created)
 	    db->generation = 1;
 	}
 
-	*created = FALSE;
+	if (created != NULL) {
+	    *created = FALSE;
+	}
     }
 
     return db;
@@ -432,7 +433,6 @@ static const LPC_ext_dbase db_ext = {
  */
 int lpc_ext_init(int major, int minor, const char *config)
 {
-    strcpy(dir, config);
     (*lpc_ext_dbase)(&db_ext);
 
     return TRUE;
