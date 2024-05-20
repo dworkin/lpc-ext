@@ -28,6 +28,8 @@ versions, use:
     `make zlib ZLIB=1.2.13 ZLIBDIR=1.2.12`
 -   1.3
     `make zlib ZLIB=1.3 ZLIBDIR=1.2.12`
+-   1.3.1
+    `make zlib ZLIB=1.3.1 ZLIBDIR=1.2.12`
 
 Use `make jit` to build the JIT compiler module.  This requires clang to
 be installed (any version from 3.7 onward will work).  The jit module

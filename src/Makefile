@@ -13,8 +13,8 @@ LDFLAGS=-shared $(DEBUG)
 
 OBJ=	lpc_ext.o
 LIBLIB=	kfun/rgx/libiberty
-ZLIB=	1.2.11			# 1.2.8, 1.2.11, 1.2.12, 1.2.13, 1.3
-ZLIBDIR=$(ZLIB)			# use 1.2.12 for versions 1.2.13 and 1.3
+ZLIB=	1.2.11			# 1.2.8, 1.2.11, 1.2.12, 1.2.13, 1.3, 1.3.1
+ZLIBDIR=$(ZLIB)			# use 1.2.12 for versions 1.2.13 to 1.3.1
 
 all:	../lower_case.$(EXT) ../regexp.$(EXT) ../dbase.$(EXT)
 
