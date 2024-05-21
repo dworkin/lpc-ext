@@ -100,7 +100,7 @@ DLLEXPORT int ext_init(int major, int minor, void **ftabs[], int sizes[],
     in = out = back = INVALID_HANDLE_VALUE;
 
     return (major == LPC_EXT_VERSION_MAJOR && minor >= LPC_EXT_VERSION_MINOR &&
-           ext_cb(ftabs[0], sizes[0], 6,
+	    ext_cb(ftabs[0], sizes[0], 6,
 		   &lpc_ext_kfun,
 		   &lpc_ext_dbase,
 		   &ext_spawn,
@@ -207,7 +207,12 @@ static void ext_finish(int wait)
 
 /*
  * NAME:	lpc_ext->spawn()
- * DESCRIPTION:	spawn a child process and execute the given program
+ * DESCRIPTION:	Spawn a child process and execute the given program.  This
+ *		is intended to be used by modules that offload some of their
+ *		functionality in an external program, rather than as a way
+ *		for LPC code to execute and communicate with such a program.
+ *		The JIT compiler module uses this to run the LPC VM decompiler
+ *		in isolation.
  */
 int lpc_ext_spawn(const char *program)
 {
@@ -327,7 +332,8 @@ int lpc_ext_spawn(const char *program)
 
 /*
  * NAME:	lpc_ext->read()
- * DESCRIPTION:	read input from the child process
+ * DESCRIPTION:	Read input from the child process.  Not intended for use by
+ *		LPC kfuns.
  */
 int lpc_ext_read(void *buffer, int len)
 {
@@ -336,7 +342,8 @@ int lpc_ext_read(void *buffer, int len)
 
 /*
  * NAME:	lpc_ext->write()
- * DESCRIPTION:	write output to the child process
+ * DESCRIPTION:	Write output to the child process.  Not intended for use by
+ *		LPC kfuns.
  */
 int lpc_ext_write(const void *buffer, int len)
 {
@@ -345,7 +352,7 @@ int lpc_ext_write(const void *buffer, int len)
 
 /*
  * NAME:	lpc_ext->writeback()
- * DESCRIPTION:	write back to oneself
+ * DESCRIPTION:	Write back to oneself.  Not intended for use by LPC kfuns.
  */
 int lpc_ext_writeback(const void *buffer, int len)
 {

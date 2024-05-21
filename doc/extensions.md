@@ -215,6 +215,10 @@ Data can also be put directly into the input pipe, to be read back with
     int		lpc_ext_writeback(const void *buffer, int len);
 ```
 
+This is intended for modules that offload some of their functionality into
+an external program.  It cannot be used to execute an arbitrary program and
+communicate with it from LPC code.
+
 ## 6. Example
 
 The following code implements a `lower_case()` kfun.
