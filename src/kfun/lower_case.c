@@ -13,6 +13,9 @@ static void lower_case(LPC_frame f, int nargs, LPC_value retval)
     char *p;
     unsigned int i;
 
+    /* tick cost */
+    lpc_runtime_check(f, 6);
+
     /* fetch the argument string */
     val = lpc_frame_arg(f, nargs, 0);
     str = lpc_string_getval(val);

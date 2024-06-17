@@ -12,6 +12,7 @@
 # include <openssl/err.h>
 # include <string.h>
 # include <alloca.h>
+# include <stdint.h>
 # include "lpc_ext.h"
 
 
@@ -268,6 +269,64 @@ static void verify_certificate(LPC_frame f, int nargs, LPC_value retval)
     X509_STORE_free(store);
     sk_X509_pop_free(intermediates, X509_free);
     X509_free(certificate);
+}
+
+/*
+ * masked = mask_xor(mask, message)
+ */
+void mask_xor(LPC_frame f, int nargs, LPC_value retval)
+{
+    LPC_string str;
+    unsigned char *data, *masked, *mdata;
+    uint64_t mask;
+    unsigned int len;
+
+    lpc_runtime_check(f, 5);
+    str = lpc_string_getval(lpc_frame_arg(f, 2, 0));
+    data = lpc_string_text(str);
+    switch (lpc_string_length(str)) {
+    case 1:
+	mask = data[0];
+	mask |= mask << 8;
+	mask |= mask << 16;
+	mask |= mask << 32;
+	break;
+
+    case 2:
+	mask = *(uint16_t *) data;
+	mask |= mask << 16;
+	mask |= mask << 32;
+	break;
+
+    case 4:
+	mask = *(uint32_t *) data;
+	mask |= mask << 32;
+	break;
+
+    case 8:
+	mask = *(uint64_t *) data;
+	break;
+
+    default:
+	lpc_runtime_error(f, "Bad mask");
+    }
+
+    str = lpc_string_getval(lpc_frame_arg(f, 2, 1));
+    len = lpc_string_length(str);
+    data = lpc_string_text(str);
+    str = lpc_string_new(lpc_frame_dataspace(f), NULL, len);
+    masked = lpc_string_text(str);
+    while (len >= 8) {
+	*(uint64_t *) masked = *(uint64_t *) data ^ mask;
+	masked += 8;
+	data += 8;
+	len -= 8;
+    }
+    for (mdata = (unsigned char *) &mask; len > 0; --len) {
+	*masked++ = *data++ ^ *mdata++;
+    }
+
+    lpc_string_putval(retval, str);
 }
 
 /*
@@ -1582,6 +1641,8 @@ static char secure_random_proto[] = { LPC_TYPE_STRING, LPC_TYPE_INT, 0 };
 static char verify_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
 			       LPC_TYPE_STRING, LPC_TYPE_STRING,
 			       LPC_TYPE_ELLIPSIS, 0 };
+static char mask_xor_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
+				 LPC_TYPE_STRING, 0 };
 static char cipher_proto[] = { LPC_TYPE_STRING, LPC_TYPE_STRING,
 			       LPC_TYPE_STRING, LPC_TYPE_STRING, LPC_TYPE_INT,
 			       LPC_TYPE_STRING, 0 };
@@ -1604,6 +1665,7 @@ static LPC_ext_kfun kf[] = {
     { "hash SHA512", hash_proto, &sha512 },
     { "secure_random", secure_random_proto, &secure_random },
     { "verify_certificate", verify_proto, &verify_certificate },
+    { "mask_xor", mask_xor_proto, mask_xor },
     { "encrypt AES-128-GCM", cipher_proto, &encrypt_aes_128_gcm },
     { "encrypt AES-256-GCM", cipher_proto, &encrypt_aes_256_gcm },
     { "encrypt ChaCha20-Poly1305", cipher_proto, &encrypt_chacha20_poly1305 },
