@@ -17,19 +17,19 @@ To build modules for most kfuns, just type `make` (or whatever your GNU make
 command is) in the src directory.  On Windows, use Visual Studio 2010 with
 the solution file `lpc-ext.sln`, or use `make EXT=dll` with Cygwin.
 
-Use `make zlib` to build the zlib module, for version 1.2.11.  For other
+Use `make zlib` to build the zlib module, for version 1.2.13.  For other
 versions, use:
 
--   1.2.8
-    `make zlib ZLIB=1.2.8`
--   1.2.12
+-   1.2.8  
+    `make zlib ZLIB=1.2.8 ZLIBDIR=1.2.8`
+-   1.2.11  
+    `make zlib ZLIB=1.2.11 ZLIBDIR=1.2.11`
+-   1.2.12  
     `make zlib ZLIB=1.2.12`
--   1.2.13
-    `make zlib ZLIB=1.2.13 ZLIBDIR=1.2.12`
--   1.3
-    `make zlib ZLIB=1.3 ZLIBDIR=1.2.12`
--   1.3.1
-    `make zlib ZLIB=1.3.1 ZLIBDIR=1.2.12`
+-   1.3  
+    `make zlib ZLIB=1.3`
+-   1.3.1  
+    `make zlib ZLIB=1.3.1`
 
 Use `make jit` to build the JIT compiler module.  This requires clang to
 be installed (any version from 3.7 onward will work).  The jit module
