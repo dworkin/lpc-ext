@@ -38,7 +38,7 @@ configured with the directory that contains the JIT compiler, and where
 the JIT cache will be created:
 ```
     modules = ([
-		 "/home/server/lpc-ext/jit.1.4" :	/* JIT module */
+		 "/home/server/lpc-ext/jit.1.5" :	/* JIT module */
 		 "/home/server/lpc-ext/src/jit"	/* where jitcomp resides */
 	      ]);
 ```

@@ -35,11 +35,11 @@ static void check(LPC_frame f, bool start)
     }
     data = lpc_frame_dataspace(f);
     if (start) {
-	if (lpc_object_isspecial(obj)) {
+	if (lpc_object_isspecial(f, obj)) {
 	    lpc_runtime_error(f, "Object is already special");
 	}
     } else {
-	if (!lpc_object_ismarked(obj)) {
+	if (!lpc_object_ismarked(f, obj)) {
 	    lpc_runtime_error(f, "TLS session not started");
 	}
 
@@ -183,7 +183,7 @@ static void kf_tls_server(LPC_frame f, int nargs, LPC_value retval)
     }
 
     /* start session */
-    lpc_object_mark(lpc_frame_object(f));
+    lpc_object_mark(f, lpc_frame_object(f));
     save(lpc_frame_dataspace(f), tls, bio);
     SSL_accept(tls);
 }
@@ -229,7 +229,7 @@ static void kf_tls_client(LPC_frame f, int nargs, LPC_value retval)
 
     /* start session */
     data = lpc_frame_dataspace(f);
-    lpc_object_mark(lpc_frame_object(f));
+    lpc_object_mark(f, lpc_frame_object(f));
     save(data, tls, bio);
     SSL_connect(tls);
 
@@ -437,7 +437,7 @@ static void kf_tls_close(LPC_frame f, int nargs, LPC_value retval)
     SSL_free(tls);
     BIO_free(bio);
     SSL_CTX_free(context);
-    lpc_object_unmark(lpc_frame_object(f));
+    lpc_object_unmark(f, lpc_frame_object(f));
 
     /* return flushed buffer */
     if (buflen != 0) {

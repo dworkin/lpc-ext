@@ -1,7 +1,7 @@
 #
 # Makefile for extension modules
 #
-EXT=1.4
+EXT=1.5
 DEFINES=			# -DLARGENUM
 DEBUG=-ggdb
 CCFLAGS=$(DEFINES) $(DEBUG)

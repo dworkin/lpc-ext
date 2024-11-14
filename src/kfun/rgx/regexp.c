@@ -57,7 +57,7 @@ static void rgx_init(void)
  * NAME:	rgx->new()
  * DESCRIPTION:	create a regexp container, and associate it with the object
  */
-static LPC_array rgx_new(LPC_dataspace data, LPC_object obj)
+static LPC_array rgx_new(LPC_frame f, LPC_dataspace data, LPC_object obj)
 {
     LPC_array a;
     LPC_string str;
@@ -71,7 +71,7 @@ static LPC_array rgx_new(LPC_dataspace data, LPC_object obj)
     lpc_array_assign(data, a, RGX_HEADER, val);
 
     /* associate it with the given object */
-    lpc_object_mark(obj);
+    lpc_object_mark(f, obj);
     lpc_array_putval(val, a);
     lpc_data_set_val(data, val);
 
@@ -90,12 +90,12 @@ static LPC_array rgx_get(LPC_frame f, LPC_dataspace data, LPC_object obj)
     int special;
 
     special = 0;
-    if (lpc_object_isspecial(obj)) {
+    if (lpc_object_isspecial(f, obj)) {
 	/*
 	 * special object
 	 */
 	special = 1;
-	if (lpc_object_ismarked(obj)) {
+	if (lpc_object_ismarked(f, obj)) {
 	    /*
 	     * object was marked by kfun extension
 	     */
@@ -343,7 +343,7 @@ static void regexp(LPC_frame f, int nargs, LPC_value retval)
     /* get regexp container */
     a = rgx_get(f, data, obj);
     if (a == NULL) {
-	a = rgx_new(data, obj);
+	a = rgx_new(f, data, obj);
     }
     if (!rgx_same(a, pattern, casef)) {
 	rgx_compile(f, data, a, pattern, casef);

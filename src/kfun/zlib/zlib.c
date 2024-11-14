@@ -296,7 +296,7 @@ static LPC_array check(LPC_frame f, const char *signature)
 
     data = lpc_frame_dataspace(f);
     val = lpc_data_get_val(data);
-    if (lpc_object_ismarked(obj)) {
+    if (lpc_object_ismarked(f, obj)) {
 	if (lpc_value_type(val) != LPC_TYPE_ARRAY) {
 	    lpc_runtime_error(f, "Object is already special");
 	}
@@ -309,10 +309,10 @@ static LPC_array check(LPC_frame f, const char *signature)
 	}
 
 	return array;
-    } else if (lpc_object_isspecial(obj)) {
+    } else if (lpc_object_isspecial(f, obj)) {
 	lpc_runtime_error(f, "Object is already special");
     } else {
-	lpc_object_mark(obj);
+	lpc_object_mark(f, obj);
     }
     return NULL;
 }
@@ -352,7 +352,7 @@ static LPC_array init(LPC_dataspace data, const char *signature, int size)
 static void finish(LPC_frame f)
 {
     lpc_data_set_val(lpc_frame_dataspace(f), lpc_value_nil());
-    lpc_object_unmark(lpc_frame_object(f));
+    lpc_object_unmark(f, lpc_frame_object(f));
 }
 
 /*

@@ -113,10 +113,10 @@ Objects should only be marked as special if they are not special already.
 If an object is to be unmarked, and a special LPC value has been set, it
 should be reset to `lpc_value_nil()` first.
 ```
-    int  lpc_object_isspecial(LPC_object obj);		/* special object */
-    int  lpc_object_ismarked(LPC_object obj);		/* user-def special */
-    void lpc_object_mark(LPC_object obj);		/* mark as special */
-    void lpc_object_unmark(LPC_object obj);		/* unmark as special */
+    int  lpc_object_isspecial(LPC_frame, LPC_object obj);/* special object */
+    int  lpc_object_ismarked(LPC_frame, LPC_object obj); /* user-def special */
+    void lpc_object_mark(LPC_frame, LPC_object obj);     /* mark as special */
+    void lpc_object_unmark(LPC_frame, LPC_object obj);   /* unmark as special */
 ```
 To retrieve or set the LPC value associated with a special object, the
 following functions can be used.

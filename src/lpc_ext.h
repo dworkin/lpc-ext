@@ -6,7 +6,7 @@
 
 
 # define LPC_EXT_VERSION_MAJOR	1
-# define LPC_EXT_VERSION_MINOR	4
+# define LPC_EXT_VERSION_MINOR	5
 
 # define LPC_TYPE_NIL		0
 # define LPC_TYPE_INT		1
@@ -135,10 +135,10 @@ LPCEXT int			(*lpc_string_length)(LPC_string);
 LPCEXT void			(*lpc_object_putval)(LPC_value, LPC_object);
 LPCEXT const char *		(*lpc_object_name)(LPC_frame, LPC_object,
 						   char*);
-LPCEXT int			(*lpc_object_isspecial)(LPC_object);
-LPCEXT int			(*lpc_object_ismarked)(LPC_object);
-LPCEXT void			(*lpc_object_mark)(LPC_object);
-LPCEXT void			(*lpc_object_unmark)(LPC_object);
+LPCEXT int			(*lpc_object_isspecial)(LPC_frame, LPC_object);
+LPCEXT int			(*lpc_object_ismarked)(LPC_frame, LPC_object);
+LPCEXT void			(*lpc_object_mark)(LPC_frame, LPC_object);
+LPCEXT void			(*lpc_object_unmark)(LPC_frame, LPC_object);
 
 LPCEXT LPC_array		(*lpc_array_getval)(LPC_value);
 LPCEXT void			(*lpc_array_putval)(LPC_value, LPC_array);
